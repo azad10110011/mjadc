@@ -1,0 +1,14 @@
+RewriteEngine On
+RewriteBase /
+
+# Don't rewrite API requests
+RewriteCond %{REQUEST_URI} ^/mjadc-api/ [NC]
+RewriteRule ^ - [L]
+
+# Don't rewrite files that exist
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-l
+
+# Rewrite all other requests to index.html for client-side routing
+RewriteRule ^ index.html [L]
