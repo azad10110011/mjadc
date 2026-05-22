@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
-import { Button, Input, Select, Card, CardContent, DataTable, PhotoWithPreview } from '@/components/ui'
+import { Button, Input, Select, Card, CardContent, DataTable, Badge, PhotoWithPreview } from '@/components/ui'
 import { SUBJECTS } from '@/types'
 import { api, UPLOAD_BASE } from '@/lib/api'
 
@@ -136,7 +136,7 @@ export default function AdminPanelStudentsPage() {
     setSection(s.section || '')
     setGender(s.gender)
     setStudentGroup(s.student_group || '')
-    setSelectiveSubjects(s.selective_subjects || [])
+    setSelectiveSubjects(Array.isArray(s.selective_subjects) ? s.selective_subjects : [])
     setExistingPhotoPath(s.photo_path || null)
     setPhotoFile(null)
   }
@@ -149,6 +149,18 @@ export default function AdminPanelStudentsPage() {
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to delete')
     }
+  }
+
+  const handleFreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/freeze`, {})
+      .then(() => fetchStudents())
+      .catch(() => {})
+  }
+
+  const handleUnfreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/unfreeze`, {})
+      .then(() => fetchStudents())
+      .catch(() => {})
   }
 
   const toggleSelectiveSubject = (s: string) => {
@@ -164,6 +176,7 @@ export default function AdminPanelStudentsPage() {
     { key: 'class', label: 'Class' },
     { key: 'mobile', label: 'Mobile' },
     { key: 'student_group', label: 'Group' },
+    { key: 'user_status', label: 'Account' },
     { key: 'actions', label: 'Actions' },
   ]
 
@@ -174,10 +187,15 @@ export default function AdminPanelStudentsPage() {
     class: s.class,
     mobile: s.mobile,
     student_group: s.student_group || '-',
+    user_status: <Badge variant={s.user_status === 'frozen' ? 'danger' : 'success'}>{s.user_status || 'active'}</Badge>,
     actions: (
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => handleView(s)}>View</Button>
         <Button variant="secondary" size="sm" onClick={() => handleEdit(s)}>Edit</Button>
+        {s.user_id && (s.user_status === 'frozen'
+          ? <Button variant="secondary" size="sm" onClick={() => handleUnfreeze(s.user_id)}>Unfreeze</Button>
+          : <Button variant="secondary" size="sm" onClick={() => handleFreeze(s.user_id)}>Freeze</Button>
+        )}
         <Button variant="danger" size="sm" onClick={() => handleDelete(s.id)}>Delete</Button>
       </div>
     ),
@@ -271,11 +289,13 @@ export default function AdminPanelStudentsPage() {
               <div className="sm:col-span-2"><span className="font-medium text-gray-700">Permanent Address:</span> <span className="text-gray-600">{viewingStudent.permanent_address || '-'}</span></div>
             </div>
             {(() => {
-              const subjects = Array.isArray(viewingStudent.selective_subjects)
-                ? viewingStudent.selective_subjects
-                : typeof viewingStudent.selective_subjects === 'string'
-                  ? JSON.parse(viewingStudent.selective_subjects || '[]')
-                  : []
+              let subjects: string[] = []
+              if (Array.isArray(viewingStudent.selective_subjects)) {
+                subjects = viewingStudent.selective_subjects
+              } else if (typeof viewingStudent.selective_subjects === 'string') {
+                try { subjects = JSON.parse(viewingStudent.selective_subjects) }
+                catch { subjects = [] }
+              }
               if (subjects.length === 0) return null
               return (
                 <div>

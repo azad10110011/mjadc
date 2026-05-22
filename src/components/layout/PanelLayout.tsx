@@ -67,6 +67,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Media', href: '/admin/media', icon: <Image className="h-4 w-4" /> },
     { label: 'Users', icon: <UserCog className="h-4 w-4" />, children: [
       { label: 'All Users', href: '/admin/users' },
+      { label: 'Teacher/Staff', href: '/admin/users/teacher-staff' },
       { label: 'Students', href: '/admin/students' },
     ] },
     { label: 'Tuition Fees', href: '/admin/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },

@@ -78,7 +78,7 @@ export type Subject =
   | 'Social Welfare' | 'History' | 'Islamic History'
   | 'Islamic Studies' | 'Psychology' | 'Statistics'
   | 'Agriculture' | 'Home Economics' | 'Physics' | 'Chemistry'
-  | 'Botany' | 'Higher Math' | 'Management' | 'Marketing'
+  | 'Biology' | 'Higher Math' | 'Management' | 'Marketing'
   | 'Production Management & Marketing' | 'Accounting'
   | 'Finance Banking & Insurance' | 'Finance & Banking'
 
@@ -257,7 +257,7 @@ export const SUBJECTS: Subject[] = [
   'Social Welfare', 'History', 'Islamic History',
   'Islamic Studies', 'Psychology', 'Statistics',
   'Agriculture', 'Home Economics', 'Physics', 'Chemistry',
-  'Botany', 'Higher Math', 'Management', 'Marketing',
+  'Biology', 'Higher Math', 'Management', 'Marketing',
   'Production Management & Marketing', 'Accounting',
   'Finance Banking & Insurance', 'Finance & Banking',
 ]

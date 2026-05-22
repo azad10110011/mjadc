@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
-import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
+import { Button, Input, Select, Card, CardContent, DataTable, Badge } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
 import { UserPlus } from 'lucide-react'
@@ -18,7 +18,7 @@ const subjects = [
   { value: 'ICT', label: 'ICT' },
   { value: 'Physics', label: 'Physics' },
   { value: 'Chemistry', label: 'Chemistry' },
-  { value: 'Botany', label: 'Botany' },
+  { value: 'Biology', label: 'Biology' },
 ]
 
 export default function AdminStaffPage() {
@@ -102,21 +102,39 @@ export default function AdminStaffPage() {
       .catch(() => {})
   }
 
+  const handleFreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/freeze`, {})
+      .then(() => fetchStaff())
+      .catch(() => {})
+  }
+
+  const handleUnfreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/unfreeze`, {})
+      .then(() => fetchStaff())
+      .catch(() => {})
+  }
+
   const columns = [
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
     { key: 'mobile', label: 'Mobile' },
     { key: 'email', label: 'Email' },
+    { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Actions' },
   ]
 
   const rows = staff.map((s) => ({
     ...s,
     photo: s.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${s.photo_path}`} alt={s.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
+    status: <Badge variant={s.user_status === 'frozen' ? 'danger' : 'success'}>{s.user_status || 'active'}</Badge>,
     actions: (
       <div className="flex gap-2">
         <Button variant="secondary" size="sm" onClick={() => handleEdit(s)}>Edit</Button>
+        {s.user_id && (s.user_status === 'frozen'
+          ? <Button variant="secondary" size="sm" onClick={() => handleUnfreeze(s.user_id)}>Unfreeze</Button>
+          : <Button variant="secondary" size="sm" onClick={() => handleFreeze(s.user_id)}>Freeze</Button>
+        )}
         <Button variant="danger" size="sm" onClick={() => handleDelete(s.id)}>Delete</Button>
       </div>
     ),

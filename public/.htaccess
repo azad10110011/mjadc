@@ -1,3 +1,4 @@
+Options -Indexes
 RewriteEngine On
 RewriteBase /
 
@@ -5,10 +6,5 @@ RewriteBase /
 RewriteCond %{REQUEST_URI} ^/mjadc-api/ [NC]
 RewriteRule ^ - [L]
 
-# Don't rewrite files that exist
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-l
-
-# Rewrite all other requests to index.html for client-side routing
-RewriteRule ^ index.html [L]
+# Custom 404
+ErrorDocument 404 /404.html

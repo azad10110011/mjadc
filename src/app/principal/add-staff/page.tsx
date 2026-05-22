@@ -16,7 +16,7 @@ const subjects = [
   { value: 'ICT', label: 'ICT' },
   { value: 'Physics', label: 'Physics' },
   { value: 'Chemistry', label: 'Chemistry' },
-  { value: 'Botany', label: 'Botany' },
+  { value: 'Biology', label: 'Biology' },
 ]
 
 const genders = [

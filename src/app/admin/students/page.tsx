@@ -154,7 +154,7 @@ export default function AdminStudentsPage() {
     setSection(s.section || '')
     setGender(s.gender)
     setStudentGroup(s.student_group || '')
-    setSelectiveSubjects(s.selective_subjects || [])
+    setSelectiveSubjects(Array.isArray(s.selective_subjects) ? s.selective_subjects : [])
     setExistingPhotoPath(s.photo_path || null)
     setPhotoFile(null)
   }
@@ -167,6 +167,18 @@ export default function AdminStudentsPage() {
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to delete')
     }
+  }
+
+  const handleFreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/freeze`, {})
+      .then(() => fetchStudents())
+      .catch(() => {})
+  }
+
+  const handleUnfreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/unfreeze`, {})
+      .then(() => fetchStudents())
+      .catch(() => {})
   }
 
   const toggleSelectiveSubject = (s: string) => {
@@ -198,6 +210,10 @@ export default function AdminStudentsPage() {
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => handleView(s)}>View</Button>
         <Button variant="secondary" size="sm" onClick={() => handleEdit(s)}>Edit</Button>
+        {s.user_id && (s.user_status === 'frozen'
+          ? <Button variant="secondary" size="sm" onClick={() => handleUnfreeze(s.user_id)}>Unfreeze</Button>
+          : <Button variant="secondary" size="sm" onClick={() => handleFreeze(s.user_id)}>Freeze</Button>
+        )}
         <Button variant="danger" size="sm" onClick={() => handleDelete(s.id)}>Delete</Button>
       </div>
     ),
@@ -287,11 +303,13 @@ export default function AdminStudentsPage() {
               <div className="sm:col-span-2"><span className="font-medium text-gray-700">Permanent Address:</span> <span className="text-gray-600">{viewingStudent.permanent_address || '-'}</span></div>
             </div>
             {(() => {
-              const subjects = Array.isArray(viewingStudent.selective_subjects)
-                ? viewingStudent.selective_subjects
-                : typeof viewingStudent.selective_subjects === 'string'
-                  ? JSON.parse(viewingStudent.selective_subjects || '[]')
-                  : []
+              let subjects: string[] = []
+              if (Array.isArray(viewingStudent.selective_subjects)) {
+                subjects = viewingStudent.selective_subjects
+              } else if (typeof viewingStudent.selective_subjects === 'string') {
+                try { subjects = JSON.parse(viewingStudent.selective_subjects) }
+                catch { subjects = [] }
+              }
               if (subjects.length === 0) return null
               return (
                 <div>

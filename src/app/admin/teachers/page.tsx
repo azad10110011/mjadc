@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
-import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
+import { Button, Input, Select, Card, CardContent, DataTable, Badge } from '@/components/ui'
 import { SUBJECTS } from '@/types'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
@@ -100,6 +100,18 @@ export default function AdminTeachersPage() {
       .catch(() => {})
   }
 
+  const handleFreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/freeze`, {})
+      .then(() => fetchTeachers())
+      .catch(() => {})
+  }
+
+  const handleUnfreeze = (userId: number) => {
+    api.post(`/admin/users/${userId}/unfreeze`, {})
+      .then(() => fetchTeachers())
+      .catch(() => {})
+  }
+
   const columns = [
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
@@ -107,15 +119,21 @@ export default function AdminTeachersPage() {
     { key: 'subject', label: 'Subject' },
     { key: 'mobile', label: 'Mobile' },
     { key: 'email', label: 'Email' },
+    { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Actions' },
   ]
 
   const rows = teachers.map((t) => ({
     ...t,
     photo: t.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${t.photo_path}`} alt={t.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
+    status: <Badge variant={t.user_status === 'frozen' ? 'danger' : 'success'}>{t.user_status || 'active'}</Badge>,
     actions: (
       <div className="flex gap-2">
         <Button variant="secondary" size="sm" onClick={() => handleEdit(t)}>Edit</Button>
+        {t.user_id && (t.user_status === 'frozen'
+          ? <Button variant="secondary" size="sm" onClick={() => handleUnfreeze(t.user_id)}>Unfreeze</Button>
+          : <Button variant="secondary" size="sm" onClick={() => handleFreeze(t.user_id)}>Freeze</Button>
+        )}
         <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)}>Delete</Button>
       </div>
     ),
