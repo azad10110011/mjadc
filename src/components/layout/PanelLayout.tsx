@@ -57,7 +57,10 @@ const panelNav: Record<PanelRole, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Notices', href: '/admin/notices', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Results', href: '/admin/results', icon: <GraduationCap className="h-4 w-4" /> },
+    { label: 'Results', icon: <GraduationCap className="h-4 w-4" />, children: [
+      { label: 'All Results', href: '/admin/results' },
+      { label: 'Transcript', href: '/admin/transcript' },
+    ] },
     { label: 'Subject Parts', href: '/admin/subject-parts', icon: <FileText className="h-4 w-4" /> },
     { label: 'Subjects', href: '/admin/subjects', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'User History', href: '/admin/user-history', icon: <ClipboardList className="h-4 w-4" /> },
@@ -95,8 +98,11 @@ const panelNav: Record<PanelRole, NavItem[]> = {
   ],
   exam_controller: [
     { label: 'Dashboard', href: '/exam-controller', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Upload Result', href: '/exam-controller/upload-result', icon: <Upload className="h-4 w-4" /> },
-    { label: 'Approve Result', href: '/exam-controller/approve-result', icon: <CheckSquare className="h-4 w-4" /> },
+    { label: 'Results', icon: <GraduationCap className="h-4 w-4" />, children: [
+      { label: 'Upload Result', href: '/exam-controller/upload-result' },
+      { label: 'Approve Result', href: '/exam-controller/approve-result' },
+      { label: 'Transcript', href: '/exam-controller/transcript' },
+    ] },
   ],
   principal: [
     { label: 'Dashboard', href: '/principal', icon: <LayoutDashboard className="h-4 w-4" /> },

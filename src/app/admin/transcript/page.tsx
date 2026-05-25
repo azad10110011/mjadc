@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Select, Input, Card, CardContent } from '@/components/ui'
 import { EXAM_NAMES, type StudentClass } from '@/types'
@@ -9,8 +9,6 @@ import { Printer } from 'lucide-react'
 
 interface SubjectRow {
   subject: string
-  parts_data: Record<string, number>
-  absent_in: string[]
   total: number
   grade: string
   gpa: number
@@ -20,14 +18,30 @@ interface SubjectRow {
 interface Transcript {
   student_id: string
   name: string
+  father_name: string
+  mother_name: string
+  date_of_birth: string
+  registration_no: string
   class: string
   group: string | null
   exam_name: string
   year: string
+  academic_session: string
+  student_type: string
+  optional_subject: string
+  published_at: string | null
   subjects: SubjectRow[]
   overall_gpa: number
   overall_grade: string
+  gpa_without_optional: number
+  optional_gp_above_2: number
   total_subjects: number
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'Not published yet'
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 export default function AdminTranscriptPage() {
@@ -75,7 +89,7 @@ export default function AdminTranscriptPage() {
 
   return (
     <PanelLayout role="admin" title="Generate Transcript">
-      <Card className="mb-6">
+      <Card className="mb-6 no-print">
         <CardContent className="space-y-4 pt-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Select label="Year" options={years} value={year} onChange={(e) => setYear(e.target.value)} />
@@ -92,7 +106,7 @@ export default function AdminTranscriptPage() {
             </Button>
             {transcripts.length > 0 && (
               <Button variant="secondary" onClick={handlePrint}>
-                <Printer className="mr-1 h-4 w-4" /> Print
+                <Printer className="mr-1 h-4 w-4" /> Print / PDF
               </Button>
             )}
           </div>
@@ -101,75 +115,253 @@ export default function AdminTranscriptPage() {
       </Card>
 
       {transcripts.length > 0 && (
-        <div ref={printRef} className="space-y-8">
-          {transcripts.map((t) => (
-            <Card key={t.student_id} className="print:shadow-none print:border-0">
-              <CardContent className="pt-6">
-                <div className="mb-6 border-b pb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Mujibul Academic College</h2>
-                  <p className="text-sm text-gray-500">Student Transcript</p>
+        <div ref={printRef} className="transcript-print-container">
+          {transcripts.map((t, idx) => {
+            const mainSubjects = t.optional_subject
+              ? t.subjects.filter((s) => s.subject !== t.optional_subject)
+              : t.subjects
+            const hasOptional = Boolean(t.optional_subject && t.subjects.some((s) => s.subject === t.optional_subject))
+            const optionalSubjectData = hasOptional ? t.subjects.find((s) => s.subject === t.optional_subject) : null
+
+            return (
+              <div key={t.student_id} className={`transcript-page${idx < transcripts.length - 1 ? ' break-after' : ''}`}>
+                <div className="header-area">
+                  <h2 className="college-name">Miah Jinnah Alam Degree College</h2>
+                  <p className="college-address">Garaganj, Shailkupa, Jhenaidah</p>
+                  <p className="transcript-title">Student Transcript</p>
                 </div>
 
-                <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="font-medium">Name:</span> {t.name}</div>
-                  <div><span className="font-medium">Roll:</span> {t.student_id}</div>
-                  <div><span className="font-medium">Class:</span> {t.class}</div>
-                  <div><span className="font-medium">Group:</span> {t.group || 'N/A'}</div>
-                  <div><span className="font-medium">Exam:</span> {t.exam_name} {t.year}</div>
+                <div className="info-grid">
+                  <div className="info-item"><span className="info-label">Student Name:</span> {t.name}</div>
+                  <div className="info-item"><span className="info-label">Father&apos;s Name:</span> {t.father_name}</div>
+                  <div className="info-item"><span className="info-label">Mother&apos;s Name:</span> {t.mother_name}</div>
+                  <div className="info-item"><span className="info-label">Roll Number:</span> {t.student_id}</div>
+                  <div className="info-item"><span className="info-label">Registration No:</span> {t.registration_no || 'N/A'}</div>
+                  <div className="info-item"><span className="info-label">Date of Birth:</span> {t.date_of_birth || 'N/A'}</div>
+                  <div className="info-item"><span className="info-label">Exam Name:</span> {t.exam_name}</div>
+                  <div className="info-item"><span className="info-label">Exam Year:</span> {t.year}</div>
+                  <div className="info-item"><span className="info-label">Academic Session:</span> {t.academic_session || 'N/A'}</div>
+                  <div className="info-item"><span className="info-label">Group/Department:</span> {t.group || 'N/A'}</div>
+                  <div className="info-item"><span className="info-label">Type:</span> {t.student_type || 'N/A'}</div>
                 </div>
 
-                <table className="w-full border-collapse text-sm">
+                <table className="marks-table">
                   <thead>
-                    <tr className="border-b-2 border-gray-300 bg-gray-50">
-                      <th className="px-3 py-2 text-left font-semibold">Subject</th>
-                      <th className="px-3 py-2 text-center font-semibold">Marks</th>
-                      <th className="px-3 py-2 text-center font-semibold">Total</th>
-                      <th className="px-3 py-2 text-center font-semibold">Grade</th>
-                      <th className="px-3 py-2 text-center font-semibold">GPA</th>
+                    <tr>
+                      <th className="col-sl">SL.NO.</th>
+                      <th className="col-subject">Name of Subjects</th>
+                      <th className="col-marks">Marks<br />Obtained</th>
+                      <th className="col-grade">Letter<br />Grade</th>
+                      <th className="col-point">Grade<br />Point</th>
+                      <th className="col-without">GPA<br />(Without Optional)</th>
+                      <th className="col-gpa">GPA</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {t.subjects.map((s, i) => {
-                      const partsStr = Object.entries(s.parts_data)
-                        .filter(([k]) => !s.absent_in.includes(k))
-                        .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
-                        .join(', ')
-                      const hasAbsent = s.absent_in.length > 0
-                      return (
-                        <tr key={i} className="border-b border-gray-200">
-                          <td className="px-3 py-2 font-medium">{s.subject}</td>
-                          <td className="px-3 py-2 text-center text-xs text-gray-600">
-                            {partsStr}
-                            {hasAbsent && <span className="ml-1 text-red-500">Absent: {s.absent_in.join(', ')}</span>}
+                    {mainSubjects.map((s, i) => (
+                      <tr key={i}>
+                        <td className="text-center fw-semibold">{i + 1}</td>
+                        <td className="fw-semibold">{s.subject}</td>
+                        <td className="text-center">
+                          {s.grade === 'Absent' ? 'A' : String(Math.round(s.total)).padStart(3, '0')}
+                        </td>
+                        <td className="text-center">{s.grade}</td>
+                        <td className="text-center">{s.gpa.toFixed(2)}</td>
+                        {i === 0 && (
+                          <td className="text-center fw-bold" rowSpan={mainSubjects.length}>
+                            {t.gpa_without_optional.toFixed(2)}
                           </td>
-                          <td className={`px-3 py-2 text-center font-medium ${s.grade === 'Absent' || s.grade === 'F' ? 'text-red-600' : ''}`}>
-                            {s.total}
+                        )}
+                        {i === 0 && (
+                          <td className="text-center fw-bold" rowSpan={mainSubjects.length + (hasOptional ? 2 : 0)}>
+                            {t.overall_gpa.toFixed(2)}
                           </td>
-                          <td className={`px-3 py-2 text-center font-medium ${s.grade === 'Absent' || s.grade === 'F' ? 'text-red-600' : ''}`}>
-                            {s.grade}
-                          </td>
-                          <td className="px-3 py-2 text-center font-medium">{s.grade === 'Absent' ? 'Absent' : s.gpa.toFixed(2)}</td>
+                        )}
+                      </tr>
+                    ))}
+                    {hasOptional && optionalSubjectData && (
+                      <>
+                        <tr className="optional-label-row">
+                          <td colSpan={6} className="optional-label">Optional Subject :</td>
                         </tr>
-                      )
-                    })}
+                        <tr>
+                          <td className="text-center fw-semibold">{mainSubjects.length + 1}</td>
+                          <td className="fw-semibold">{optionalSubjectData.subject}</td>
+                          <td className="text-center">
+                            {optionalSubjectData.grade === 'Absent' ? 'A' : String(Math.round(optionalSubjectData.total)).padStart(3, '0')}
+                          </td>
+                          <td className="text-center">{optionalSubjectData.grade}</td>
+                          <td className="text-center">{optionalSubjectData.gpa.toFixed(2)}</td>
+                          <td className="text-center p-0">
+                            <div className="gp-above-2-label">GP Above 2</div>
+                            <div className="gp-above-2-value">{t.optional_gp_above_2.toFixed(2)}</div>
+                          </td>
+                        </tr>
+                      </>
+                    )}
                   </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
-                      <td className="px-3 py-2" colSpan={3}>Total Subjects: {t.total_subjects}</td>
-                      <td className="px-3 py-2 text-center">{t.overall_grade}</td>
-                      <td className="px-3 py-2 text-center">{t.overall_gpa.toFixed(2)}</td>
-                    </tr>
-                  </tfoot>
                 </table>
-              </CardContent>
-            </Card>
-          ))}
+
+                <div className="after-table-spacer"></div>
+                <div className="footer-area">
+                  <div className="footer-left">
+                    <span className="fw-semibold">Date of Publication of Result:</span> {formatDate(t.published_at)}
+                  </div>
+                  <div className="footer-right">
+                    <span className="fw-semibold">Controller of Examination</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
       <style jsx>{`
+        .no-print {
+          font-family: inherit;
+        }
+        .transcript-print-container {
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .transcript-page {
+          padding: 0;
+        }
+        .header-area {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        .college-name {
+          font-size: 20px;
+          font-weight: bold;
+          margin: 0;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .college-address {
+          font-size: 13px;
+          margin: 2px 0;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .transcript-title {
+          font-size: 15px;
+          font-weight: 600;
+          margin-top: 6px;
+          margin-bottom: 0;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1px 24px;
+          margin-bottom: 12px;
+          font-size: 13px;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .info-item {
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .info-label {
+          font-weight: 600;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .marks-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 13px;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .marks-table th,
+        .marks-table td {
+          border: 1px solid black;
+          padding: 4px 6px;
+        }
+        .marks-table th {
+          background: white;
+          font-weight: bold;
+          text-align: center;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .marks-table td {
+          vertical-align: middle;
+        }
+        .col-sl { width: 50px; }
+        .col-marks { width: 90px; }
+        .col-grade { width: 65px; }
+        .col-point { width: 65px; }
+        .col-without { width: 90px; }
+        .col-gpa { width: 60px; }
+        .text-center { text-align: center; }
+        .fw-semibold { font-weight: 600; }
+        .fw-bold { font-weight: bold; }
+        .optional-label-row td {
+          padding: 4px 6px;
+          border-left: 1px solid black;
+          border-right: 1px solid black;
+        }
+        .optional-label {
+          text-align: left;
+          font-weight: 600;
+          padding-left: 8px;
+        }
+        .gp-above-2-label {
+          font-size: 10px;
+          text-align: center;
+          border-bottom: 1px solid black;
+          padding: 2px 4px;
+        }
+        .gp-above-2-value {
+          text-align: center;
+          padding: 2px 4px;
+        }
+        .after-table-spacer {
+          height: 3em;
+        }
+        .footer-area {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          font-family: 'Times New Roman', Times, serif;
+        }
+        .footer-left {
+          text-align: left;
+        }
+        .footer-right {
+          text-align: right;
+          padding-top: 2em;
+        }
         @media print {
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          :global(html), :global(body) {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          :global(aside) {
+            display: none !important;
+          }
+          :global(header) {
+            display: none !important;
+          }
+          :global(.flex-1.overflow-auto) {
+            overflow: visible !important;
+            padding: 0 !important;
+          }
+          :global(.flex.min-h-screen) {
+            display: block !important;
+          }
+          :global(.flex.flex-1.flex-col) {
+            display: block !important;
+          }
+          .break-after {
+            page-break-after: always;
+            break-after: page;
+          }
+          .no-print { display: none !important; }
+          :global(body) { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .transcript-page {
+            padding: 40px 50px 20px 50px;
+          }
+          @page {
+            margin: 0;
+          }
         }
       `}</style>
     </PanelLayout>

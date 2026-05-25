@@ -41,6 +41,7 @@ export default function AdminPanelStudentsPage() {
   const [gender, setGender] = useState('male')
   const [studentGroup, setStudentGroup] = useState('')
   const [selectiveSubjects, setSelectiveSubjects] = useState<string[]>([])
+  const [optionalSubject, setOptionalSubject] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -51,7 +52,7 @@ export default function AdminPanelStudentsPage() {
     setDateOfBirth(''); setMobile(''); setParentMobile(''); setWhatsapp('')
     setPresentAddress(''); setPermanentAddress('')
     setStudentClass('11th'); setSection(''); setGender('male')
-    setStudentGroup(''); setSelectiveSubjects([]); setPhotoFile(null); setExistingPhotoPath(null); setError('')
+    setStudentGroup(''); setSelectiveSubjects([]); setOptionalSubject(''); setPhotoFile(null); setExistingPhotoPath(null); setError('')
   }
 
   const fetchStudents = () => {
@@ -106,6 +107,7 @@ export default function AdminPanelStudentsPage() {
       formData.append('student_group', studentGroup)
       formData.append('compulsory_subjects', JSON.stringify(COMPULSORY_SUBJECTS))
       formData.append('selective_subjects', JSON.stringify(selectiveSubjects))
+      formData.append('optional_subject', optionalSubject)
       if (photoFile) formData.append('photo', photoFile)
       if (existingPhotoPath) formData.append('photo_path', existingPhotoPath)
 
@@ -144,6 +146,7 @@ export default function AdminPanelStudentsPage() {
     setGender(s.gender)
     setStudentGroup(s.student_group || '')
     setSelectiveSubjects(Array.isArray(s.selective_subjects) ? s.selective_subjects : [])
+    setOptionalSubject(s.optional_subject || '')
     setExistingPhotoPath(s.photo_path || null)
     setPhotoFile(null)
   }
@@ -256,6 +259,16 @@ export default function AdminPanelStudentsPage() {
                 </label>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Optional Subject</label>
+            <select value={optionalSubject} onChange={(e) => setOptionalSubject(e.target.value)}
+              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+              <option value="">-- None --</option>
+              {publicSubjects.filter((s) => !COMPULSORY_SUBJECTS.includes(s)).map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button variant="primary" onClick={handleSubmit}>
