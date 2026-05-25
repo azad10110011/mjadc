@@ -16,11 +16,21 @@ export default function ExamControllerUploadResultPage() {
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [partConfigs, setPartConfigs] = useState<SubjectPart[]>([])
-  const [resultSubjects, setResultSubjects] = useState<string[]>([])
+  const [examSubjects, setExamSubjects] = useState<string[]>([])
 
   useEffect(() => {
-    api.get<{ status: number; data: string[] }>('/result-subjects')
-      .then((res) => setResultSubjects(res.data))
+    api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
+      .then((res) => {
+        const list: string[] = []
+        for (const group of res.data) {
+          if (group.papers.length > 0) {
+            for (const paper of group.papers) list.push(paper.name)
+          } else {
+            list.push(group.name)
+          }
+        }
+        setExamSubjects(list)
+      })
       .catch(() => {})
   }, [])
 
@@ -144,7 +154,7 @@ export default function ExamControllerUploadResultPage() {
               value={cls} onChange={(e) => { setCls(e.target.value); setExamName('') }} placeholder="Select Class" />
             <Select label="Exam Name" options={examOptions} value={examName}
               onChange={(e) => setExamName(e.target.value)} placeholder={cls ? 'Select Exam' : 'Select class first'} disabled={!cls} />
-            <Select label="Subject" options={resultSubjects.map((s) => ({ value: s, label: s }))} value={subject}
+            <Select label="Subject" options={examSubjects.map((s) => ({ value: s, label: s }))} value={subject}
               onChange={(e) => setSubject(e.target.value)} placeholder="Select Subject" />
           </div>
           <Button onClick={handleLoad} disabled={!year || !cls || !examName || !subject || loading}>

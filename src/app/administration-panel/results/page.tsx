@@ -12,11 +12,11 @@ export default function AdminResultsPage() {
   const [filterClass, setFilterClass] = useState('')
   const [filterYear, setFilterYear] = useState('')
   const [filterSubject, setFilterSubject] = useState('')
-  const [resultSubjects, setResultSubjects] = useState<string[]>([])
+  const [examSubjects, setExamSubjects] = useState<string[]>([])
 
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
   const examOptions = filterClass ? EXAM_NAMES[filterClass as StudentClass]?.map((e) => ({ value: e, label: e })) : []
-  const subjectOptions = resultSubjects.map((s) => ({ value: s, label: s }))
+  const subjectOptions = examSubjects.map((s) => ({ value: s, label: s }))
 
   const fetchResults = () => {
     const params = new URLSearchParams()
@@ -31,8 +31,18 @@ export default function AdminResultsPage() {
 
   useEffect(() => {
     fetchResults()
-    api.get<{ status: number; data: string[] }>('/result-subjects')
-      .then((res) => setResultSubjects(res.data))
+    api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
+      .then((res) => {
+        const list: string[] = []
+        for (const group of res.data) {
+          if (group.papers.length > 0) {
+            for (const paper of group.papers) list.push(paper.name)
+          } else {
+            list.push(group.name)
+          }
+        }
+        setExamSubjects(list)
+      })
       .catch(() => {})
   }, [])
 

@@ -6,13 +6,7 @@ import { Button, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { EXAM_NAMES, calculateGradeFromParts, type StudentClass, type SubjectPart } from '@/types'
 import { api } from '@/lib/api'
 
-function parseJwtPayload(token: string) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]))
-  } catch {
-    return null
-  }
-}
+
 
 function MarkCell({ value, absent, min, max, onChange, onAbsentChange }: {
   value: number; absent: boolean; min: number; max: number
@@ -52,28 +46,32 @@ export default function TeacherUploadResultPage() {
   const [partConfigs, setPartConfigs] = useState<SubjectPart[]>([])
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) return
-    const payload = parseJwtPayload(token)
-    if (!payload) return
-    api.get<{ status: number; data: any[] }>('/admin/users')
+    api.get<{ status: number; data: any }>('/teacher/profile')
       .then((res) => {
-        const currentUser = res.data.find((u: any) => u.email === payload.email || u.id === payload.sub)
+        const currentUser = res.data
         if (!currentUser) return
         const roles: string[] = currentUser.roles || []
         setIsExamController(roles.includes('exam_controller'))
         if (roles.includes('teacher') && !roles.includes('exam_controller')) {
-          setAvailableSubjects(currentUser.result_subjects && currentUser.result_subjects.length > 0 ? currentUser.result_subjects : [])
+          if (currentUser.result_subjects && currentUser.result_subjects.length > 0) {
+            setAvailableSubjects(currentUser.result_subjects)
+          }
+          return
         }
-      })
-      .catch(() => {})
-    if (!localStorage.getItem('token')) return
-    api.get<{ status: number; data: string[] }>('/result-subjects')
-      .then((res) => {
-        const payload = parseJwtPayload(localStorage.getItem('token')!)
-        if (payload) {
-          setAvailableSubjects(res.data)
-        }
+        // exam_controller (with or without teacher): show all subjects
+        api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
+          .then((tree) => {
+            const list: string[] = []
+            for (const group of tree.data) {
+              if (group.papers.length > 0) {
+                for (const paper of group.papers) list.push(paper.name)
+              } else {
+                list.push(group.name)
+              }
+            }
+            setAvailableSubjects(list)
+          })
+          .catch(() => {})
       })
       .catch(() => {})
   }, [])
