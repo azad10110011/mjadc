@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
-import { SUBJECTS } from '@/types'
 import { api } from '@/lib/api'
 
 const designations = [
@@ -21,6 +20,7 @@ export default function PrincipalAddTeacherPage() {
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [publicSubjects, setPublicSubjects] = useState<string[]>([])
 
   const [name, setName] = useState('')
   const [designation, setDesignation] = useState('')
@@ -29,6 +29,12 @@ export default function PrincipalAddTeacherPage() {
   const [gender, setGender] = useState('')
   const [mobile, setMobile] = useState('')
   const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    api.get<{ status: number; data: string[] }>('/subjects')
+      .then((res) => setPublicSubjects(res.data))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     api.get('/principal/teachers').then((r: any) => setTeachers(r.data || [])).catch(() => {}).finally(() => setLoading(false))
@@ -69,7 +75,7 @@ export default function PrincipalAddTeacherPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Name" placeholder="Full name" required value={name} onChange={(e) => setName(e.target.value)} />
             <Select label="Designation" options={designations} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Select" />
-            <Select label="Subject" options={SUBJECTS.map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
+            <Select label="Subject" options={publicSubjects.map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
             <Input label="Joining Date" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} />
             <Select label="Gender" options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Select" />
             <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} />

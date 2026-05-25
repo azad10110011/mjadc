@@ -3,13 +3,26 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Search } from 'lucide-react'
-import { Button, Input, Select, Card, CardContent } from '@/components/ui'
+import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { EXAM_NAMES, type StudentClass } from '@/types'
 import { api } from '@/lib/api'
+
+interface SubjectResult {
+  subject: string
+  mcq: number
+  cq: number
+  practical: number
+  parts_data: Record<string, number> | null
+  total: number
+  grade: string
+  gpa: number
+  absent_in: string[]
+}
 
 interface ResultData {
   student_id: string
   name: string
+  subjects: SubjectResult[]
   gpa: string
 }
 
@@ -48,6 +61,40 @@ export default function ResultsPage() {
     }
   }
 
+  const subjectCols = [
+    { key: 'subject', label: 'Subject' },
+    { key: 'marks', label: 'Marks' },
+    { key: 'total', label: 'Total' },
+    { key: 'grade', label: 'Grade' },
+    { key: 'gpa', label: 'GPA' },
+  ]
+
+  const subjectRows = (result?.subjects || []).map((s) => {
+    let marksStr = ''
+    if (s.parts_data) {
+      marksStr = Object.entries(s.parts_data)
+        .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
+        .join(', ')
+    } else {
+      const parts = []
+      if (s.mcq != null) parts.push(`MCQ: ${s.mcq}`)
+      if (s.cq != null) parts.push(`CQ: ${s.cq}`)
+      if (s.practical != null) parts.push(`Practical: ${s.practical}`)
+      marksStr = parts.join(', ')
+    }
+    return {
+      subject: s.subject,
+      marks: (
+        <span className={s.absent_in.length > 0 ? 'text-red-600' : ''}>
+          {s.absent_in.length > 0 ? `Absent in: ${s.absent_in.join(', ')}` : marksStr}
+        </span>
+      ),
+      total: s.total,
+      grade: <span className={`font-medium ${s.grade === 'F' || s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade}</span>,
+      gpa: s.grade === 'Absent' ? 'Absent' : s.gpa,
+    }
+  })
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
@@ -76,11 +123,12 @@ export default function ResultsPage() {
       {searched && result && (
         <Card>
           <CardContent className="space-y-4 pt-6">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
               <div><span className="text-gray-500">Student ID:</span> <span className="font-medium text-gray-900">{result.student_id}</span></div>
               <div><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-900">{result.name}</span></div>
               <div><span className="text-gray-500">GPA:</span> <span className="font-semibold text-blue-600">{result.gpa}</span></div>
             </div>
+            <DataTable columns={subjectCols} data={subjectRows} emptyMessage="No subject data" />
           </CardContent>
         </Card>
       )}

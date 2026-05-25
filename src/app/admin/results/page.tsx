@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
-import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
-import { EXAM_NAMES, SUBJECTS, calculateGrade, type StudentClass } from '@/types'
+import { Button, Select, Card, CardContent, DataTable } from '@/components/ui'
+import { EXAM_NAMES, calculateGradeFromParts, type StudentClass, type SubjectPart } from '@/types'
 import { api } from '@/lib/api'
 
 export default function AdminResultsPage() {
@@ -21,10 +21,12 @@ export default function AdminResultsPage() {
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [partConfigs, setPartConfigs] = useState<SubjectPart[]>([])
+  const [resultSubjects, setResultSubjects] = useState<string[]>([])
 
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
   const examOptions = cls ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) : []
-  const subjectOptions = SUBJECTS.map((s) => ({ value: s, label: s }))
+  const subjectOptions = resultSubjects.map((s) => ({ value: s, label: s }))
 
   const fetchResults = () => {
     const params = new URLSearchParams()
@@ -46,6 +48,9 @@ export default function AdminResultsPage() {
         setUserMap(map)
       })
       .catch(() => {})
+    api.get<{ status: number; data: string[] }>('/result-subjects')
+      .then((res) => setResultSubjects(res.data))
+      .catch(() => {})
   }, [])
 
   const handleLoad = async () => {
@@ -55,17 +60,32 @@ export default function AdminResultsPage() {
       const res: any = await api.get(
         `/admin/results/upload-data?year=${year}&class=${cls}&exam_name=${encodeURIComponent(examName)}&subject=${encodeURIComponent(subject)}`
       )
-      const data = res.data || []
-      setStudents(data.map((s: any, i: number) => ({
-        ...s,
-        sl: i + 1,
-        mcq: s.mcq ?? '',
-        cq: s.cq ?? '',
-        practical: s.practical ?? '',
-        total: s.total ?? 0,
-        grade: s.grade ?? '',
-        gpa: s.gpa ?? '',
-      })))
+      const configs: SubjectPart[] = res.data?.part_configs || []
+      setPartConfigs(configs)
+      const data = res.data?.students || []
+      setStudents(data.map((s: any, i: number) => {
+        const absentIn: string[] = [...(s.absent_in || [])]
+        const rawParts: Record<string, number> = s.parts_data || {}
+        const partsData: Record<string, number> = {}
+        configs.forEach((p) => {
+          const val = rawParts[p.part_name] !== undefined ? Number(rawParts[p.part_name]) : (Number(s[p.part_name]) || 0)
+          partsData[p.part_name] = val
+          if (val > 0 && absentIn.includes(p.part_name)) {
+            const idx = absentIn.indexOf(p.part_name)
+            if (idx !== -1) absentIn.splice(idx, 1)
+          }
+        })
+        const total = configs.reduce((sum, p) => sum + (partsData[p.part_name] ?? 0), 0)
+        return {
+          ...s,
+          absent_in: absentIn,
+          sl: i + 1,
+          partsData,
+          total,
+          grade: s.grade || '',
+          gpa: s.gpa || '',
+        }
+      }))
     } catch {
       setStudents([])
     } finally {
@@ -73,18 +93,17 @@ export default function AdminResultsPage() {
     }
   }
 
-  const updateMark = (idx: number, field: string, value: string) => {
+  const updateMark = (idx: number, partName: string, value: string) => {
     setStudents((prev) => {
       const updated = [...prev]
-      updated[idx] = { ...updated[idx], [field]: value }
-      const mcq = Number(updated[idx].mcq) || 0
-      const cq = Number(updated[idx].cq) || 0
-      const practical = Number(updated[idx].practical) || 0
-      const total = mcq + cq + practical
-      const { grade, points } = calculateGrade(total)
-      updated[idx].total = total
-      updated[idx].grade = grade
-      updated[idx].gpa = points
+      const s = { ...updated[idx] }
+      s.partsData = { ...s.partsData, [partName]: Number(value) || 0 }
+      const total = partConfigs.reduce((sum, p) => sum + (s.partsData[p.part_name] ?? 0), 0)
+      const { grade, points } = calculateGradeFromParts(s.partsData, partConfigs, s.absent_in || [])
+      s.total = total
+      s.grade = grade
+      s.gpa = points
+      updated[idx] = s
       return updated
     })
   }
@@ -93,12 +112,11 @@ export default function AdminResultsPage() {
     setSaving(true)
     try {
       const marks = students
-        .filter((s) => Number(s.mcq) || Number(s.cq) || Number(s.practical))
+        .filter((s) => (Object.values(s.partsData) as number[]).some((v) => Number(v) > 0))
         .map((s) => ({
           student_id: s.student_id,
-          mcq: Number(s.mcq) || 0,
-          cq: Number(s.cq) || 0,
-          practical: Number(s.practical) || 0,
+          parts_data: s.partsData,
+          absent_in: s.absent_in || [],
         }))
       if (marks.length === 0) { alert('No marks to save'); return }
       await api.post('/admin/results/upload', {
@@ -122,7 +140,7 @@ export default function AdminResultsPage() {
         `/admin/results/bulk?exam_name=${encodeURIComponent(examName)}&class=${cls}&year=${year}&subject=${encodeURIComponent(subject)}`
       )
       alert('Results deleted')
-      setStudents((prev) => prev.map((s) => ({ ...s, mcq: '', cq: '', practical: '', total: 0, grade: '', gpa: '' })))
+      setStudents([])
       fetchResults()
     } catch (e: any) {
       alert(e.message || 'Failed to delete results')
@@ -136,24 +154,43 @@ export default function AdminResultsPage() {
       .catch(() => {})
   }
 
-  const uploadColumns = [
-    { key: 'sl', label: 'SL No' },
-    { key: 'student_id', label: 'Roll' },
-    { key: 'name', label: 'Name' },
-    { key: 'mcq', label: 'MCQ' },
-    { key: 'cq', label: 'CQ' },
-    { key: 'practical', label: 'Practical' },
-    { key: 'total', label: 'Total' },
-    { key: 'grade', label: 'Grade' },
-    { key: 'gpa', label: 'GPA' },
-  ]
+  const getUploadColumns = () => {
+    const cols = [
+      { key: 'sl', label: 'SL No' },
+      { key: 'student_id', label: 'Roll' },
+      { key: 'name', label: 'Name' },
+    ]
+    partConfigs.forEach((p) => {
+      cols.push({ key: p.part_name, label: p.part_name.toUpperCase() })
+    })
+    cols.push(
+      { key: 'total', label: 'Total' },
+      { key: 'grade', label: 'Grade' },
+      { key: 'gpa', label: 'GPA' },
+    )
+    return cols
+  }
 
-  const uploadRows = students.map((s, i) => ({
-    ...s,
-    mcq: <input type="number" className="w-16 rounded border px-1 py-0.5 text-sm" value={s.mcq} onChange={(e) => updateMark(i, 'mcq', e.target.value)} />,
-    cq: <input type="number" className="w-16 rounded border px-1 py-0.5 text-sm" value={s.cq} onChange={(e) => updateMark(i, 'cq', e.target.value)} />,
-    practical: <input type="number" className="w-16 rounded border px-1 py-0.5 text-sm" value={s.practical} onChange={(e) => updateMark(i, 'practical', e.target.value)} />,
-  }))
+  const uploadRows = students.map((s, i) => {
+    const row: any = { sl: s.sl, student_id: s.student_id, name: s.name }
+    partConfigs.forEach((p) => {
+      const fullMark = p.full_mark
+      row[p.part_name] = (
+        <input
+          type="number"
+          className="w-16 rounded border px-1 py-0.5 text-sm"
+          value={s.partsData?.[p.part_name] ?? ''}
+          min={0}
+          max={fullMark}
+          onChange={(e) => updateMark(i, p.part_name, String(Math.min(fullMark, Math.max(0, Number(e.target.value) || 0))))}
+        />
+      )
+    })
+    row.total = s.total
+    row.grade = s.grade
+    row.gpa = s.gpa
+    return row
+  })
 
   const listColumns = [
     { key: 'id', label: 'ID' },
@@ -163,6 +200,7 @@ export default function AdminResultsPage() {
     { key: 'class', label: 'Class' },
     { key: 'year', label: 'Year' },
     { key: 'subject', label: 'Subject' },
+    { key: 'marks', label: 'Marks' },
     { key: 'total', label: 'Total' },
     { key: 'grade', label: 'Grade' },
     { key: 'gpa', label: 'GPA' },
@@ -172,22 +210,37 @@ export default function AdminResultsPage() {
     { key: 'actions', label: 'Actions' },
   ]
 
-  const listRows = results.map((r) => ({
-    ...r,
-    uploaded_by: r.uploaded_by ? (userMap[r.uploaded_by] || `User #${r.uploaded_by}`) : '-',
-    approved_by: r.approved_by ? (userMap[r.approved_by] || `User #${r.approved_by}`) : '-',
-    actions: <div className="flex gap-1">
-      <Button variant="secondary" size="sm" onClick={() => {
-        setYear(r.year); setCls(r.class); setExamName(r.exam_name); setSubject(r.subject);
-        setFilterYear(r.year); setFilterClass(r.class); setFilterExamName(r.exam_name); setFilterSubject(r.subject);
-        setTimeout(() => {
-          const loadBtn = document.querySelector('[data-load-btn]') as HTMLButtonElement
-          if (loadBtn) { loadBtn.scrollIntoView({ behavior: 'smooth' }); loadBtn.click() }
-        }, 100)
-      }}>Edit</Button>
-      <Button variant="danger" size="sm" onClick={() => handleDeleteOne(r.id)}>Delete</Button>
-    </div>,
-  }))
+  const listRows = results.map((r) => {
+    let marksStr = ''
+    if (r.parts_data) {
+      marksStr = Object.entries(r.parts_data)
+        .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
+        .join(', ')
+    } else {
+      const parts = []
+      if (r.mcq != null) parts.push(`MCQ: ${r.mcq}`)
+      if (r.cq != null) parts.push(`CQ: ${r.cq}`)
+      if (r.practical != null) parts.push(`Practical: ${r.practical}`)
+      marksStr = parts.join(', ')
+    }
+    return {
+      ...r,
+      marks: <span className="text-xs">{marksStr}</span>,
+      uploaded_by: r.uploaded_by ? (userMap[r.uploaded_by] || `User #${r.uploaded_by}`) : '-',
+      approved_by: r.approved_by ? (userMap[r.approved_by] || `User #${r.approved_by}`) : '-',
+      actions: <div className="flex gap-1">
+        <Button variant="secondary" size="sm" onClick={() => {
+          setYear(r.year); setCls(r.class); setExamName(r.exam_name); setSubject(r.subject);
+          setFilterYear(r.year); setFilterClass(r.class); setFilterExamName(r.exam_name); setFilterSubject(r.subject);
+          setTimeout(() => {
+            const loadBtn = document.querySelector('[data-load-btn]') as HTMLButtonElement
+            if (loadBtn) { loadBtn.scrollIntoView({ behavior: 'smooth' }); loadBtn.click() }
+          }, 100)
+        }}>Edit</Button>
+        <Button variant="danger" size="sm" onClick={() => handleDeleteOne(r.id)}>Delete</Button>
+      </div>,
+    }
+  })
 
   return (
     <PanelLayout role="admin" title="Result Management">
@@ -224,7 +277,7 @@ export default function AdminResultsPage() {
       {students.length > 0 && (
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <DataTable columns={uploadColumns} data={uploadRows} emptyMessage="No students loaded" />
+            <DataTable columns={getUploadColumns()} data={uploadRows} emptyMessage="No students loaded" />
           </CardContent>
         </Card>
       )}
@@ -233,7 +286,7 @@ export default function AdminResultsPage() {
         <CardContent className="space-y-4 pt-6">
           <h3 className="font-semibold text-gray-900">Existing Results</h3>
           <div className="grid gap-4 sm:grid-cols-4">
-            <Select label="Exam Name" options={[]} placeholder="All" value={filterExamName} onChange={(e) => setFilterExamName(e.target.value)} />
+            <Select label="Exam Name" options={[...new Set(Object.values(EXAM_NAMES).flat())].map((e) => ({ value: e, label: e }))} placeholder="All" value={filterExamName} onChange={(e) => setFilterExamName(e.target.value)} />
             <Select label="Class" options={[{ value: '11th', label: '11th' }, { value: '12th', label: '12th' }]} placeholder="All" value={filterClass} onChange={(e) => setFilterClass(e.target.value)} />
             <Select label="Year" options={years} placeholder="All" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} />
             <Select label="Subject" options={subjectOptions} placeholder="All" value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} />

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge } from '@/components/ui'
-import { SUBJECTS } from '@/types'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
 import { UserPlus } from 'lucide-react'
@@ -23,6 +22,7 @@ export default function AdminTeachersPage() {
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [publicSubjects, setPublicSubjects] = useState<string[]>([])
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
@@ -35,6 +35,12 @@ export default function AdminTeachersPage() {
   const [email, setEmail] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.get<{ status: number; data: string[] }>('/subjects')
+      .then((res) => setPublicSubjects(res.data))
+      .catch(() => {})
+  }, [])
 
   const resetForm = () => {
     setEditingId(null); setName(''); setDesignation(''); setSubject('')
@@ -151,7 +157,7 @@ export default function AdminTeachersPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Name" placeholder="Full name" required value={name} onChange={(e) => setName(e.target.value)} />
             <Select label="Designation" options={designations} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Select" />
-            <Select label="Subject" options={SUBJECTS.map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
+            <Select label="Subject" options={publicSubjects.map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
             <Input label="Joining Date" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} required />
             <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
             <Select label="Gender" options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Select" />

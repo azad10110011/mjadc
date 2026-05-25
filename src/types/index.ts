@@ -72,15 +72,7 @@ export type StaffDesignation =
   | 'Lab Assistant' | '3rd Class Employee'
   | '4th Class Employee' | 'Office Assistant (MLSS)'
 
-export type Subject =
-  | 'Bangla' | 'English' | 'ICT' | 'Political Science'
-  | 'Economics' | 'Geography' | 'Philosophy' | 'Sociology'
-  | 'Social Welfare' | 'History' | 'Islamic History'
-  | 'Islamic Studies' | 'Psychology' | 'Statistics'
-  | 'Agriculture' | 'Home Economics' | 'Physics' | 'Chemistry'
-  | 'Biology' | 'Higher Math' | 'Management' | 'Marketing'
-  | 'Production Management & Marketing' | 'Accounting'
-  | 'Finance Banking & Insurance' | 'Finance & Banking'
+export type Subject = string
 
 export type StudentClass = '11th' | '12th'
 
@@ -103,6 +95,7 @@ export interface ExamResult {
   mcq: number
   cq: number
   practical: number
+  parts_data?: Record<string, number> | null
   total: number
   grade: string
   gpa: number
@@ -241,6 +234,32 @@ export interface GradePoint {
   points: number
 }
 
+export interface SubjectPart {
+  id?: number
+  subject: Subject
+  part_name: string
+  full_mark: number
+  pass_mark: number
+  sort_order: number
+}
+
+export interface ChangelogEntry {
+  id: number
+  exam_result_id: number | null
+  action: string
+  old_data: Record<string, unknown> | null
+  new_data: Record<string, unknown> | null
+  user_id: number
+  user_name: string
+  user_email: string
+  subject: string
+  student_id: string
+  exam_name: string
+  class: string
+  year: number
+  created_at: string
+}
+
 export const GRADE_TABLE: GradePoint[] = [
   { min: 80, max: 100, grade: 'A+', points: 5.00 },
   { min: 70, max: 79, grade: 'A', points: 4.00 },
@@ -251,16 +270,42 @@ export const GRADE_TABLE: GradePoint[] = [
   { min: 0, max: 32, grade: 'F', points: 0.00 },
 ]
 
-export const SUBJECTS: Subject[] = [
-  'Bangla', 'English', 'ICT', 'Political Science',
-  'Economics', 'Geography', 'Philosophy', 'Sociology',
-  'Social Welfare', 'History', 'Islamic History',
-  'Islamic Studies', 'Psychology', 'Statistics',
-  'Agriculture', 'Home Economics', 'Physics', 'Chemistry',
-  'Biology', 'Higher Math', 'Management', 'Marketing',
-  'Production Management & Marketing', 'Accounting',
-  'Finance Banking & Insurance', 'Finance & Banking',
+export const DEFAULT_PARTS: SubjectPart[] = [
+  { subject: '' as Subject, part_name: 'mcq', full_mark: 50, pass_mark: 8, sort_order: 1 },
+  { subject: '' as Subject, part_name: 'cq', full_mark: 50, pass_mark: 17, sort_order: 2 },
+  { subject: '' as Subject, part_name: 'practical', full_mark: 50, pass_mark: 8, sort_order: 3 },
 ]
+
+export function calculateGradeFromParts(
+  parts: Record<string, number>,
+  partConfigs: SubjectPart[],
+  absentIn: string[] = []
+): { grade: string; points: number } {
+  const hasAbsent = absentIn.length > 0
+  let hasFail = false
+  let total = 0
+
+  for (const config of partConfigs) {
+    const mark = parts[config.part_name] ?? 0
+    if (absentIn.includes(config.part_name)) {
+      continue
+    }
+    if (mark < config.pass_mark) {
+      hasFail = true
+    }
+    total += mark
+  }
+
+  if (hasAbsent) {
+    return { grade: 'Absent', points: 0.00 }
+  }
+
+  if (hasFail) {
+    return { grade: 'F', points: 0.00 }
+  }
+
+  return calculateGrade(total)
+}
 
 export const DEPARTMENTS = [
   { slug: 'science', name: 'Science' },
@@ -283,6 +328,26 @@ export function calculateGrade(total: number): { grade: string; points: number }
     }
   }
   return { grade: 'F', points: 0.00 }
+}
+
+export function calculateGradeFromMarks(mcq: number, cq: number, practical: number, absentIn: string[] = []): { grade: string; points: number } {
+  const hasAbsent = absentIn.length > 0
+
+  const mcqFail = !absentIn.includes('mcq') && mcq < 8
+  const cqFail = !absentIn.includes('cq') && cq < 17
+  const practicalFail = !absentIn.includes('practical') && practical < 8
+  const belowThreshold = mcqFail || cqFail || practicalFail
+
+  if (hasAbsent) {
+    return { grade: 'Absent', points: 0.00 }
+  }
+
+  if (belowThreshold) {
+    return { grade: 'F', points: 0.00 }
+  }
+
+  const total = mcq + cq + practical
+  return calculateGrade(total)
 }
 
 export const MONTHS = [

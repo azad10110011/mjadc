@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Card, CardContent, DataTable, Badge } from '@/components/ui'
-import { UserRole, SUBJECTS } from '@/types'
+import { UserRole } from '@/types'
 import { api } from '@/lib/api'
 
 interface User {
@@ -15,6 +15,7 @@ interface User {
   status: string
   roles: string[]
   subjects?: string[]
+  result_subjects?: string[]
   created_at: string
 }
 
@@ -26,6 +27,9 @@ export default function AdminUsersPage() {
   const [password, setPassword] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
+  const [selectedResultSubjects, setSelectedResultSubjects] = useState<string[]>([])
+  const [examSubjects, setExamSubjects] = useState<string[]>([])
+  const [publicSubjects, setPublicSubjects] = useState<string[]>([])
   const [createError, setCreateError] = useState('')
   const [resetPwUser, setResetPwUser] = useState<User | null>(null)
   const [resetPwValue, setResetPwValue] = useState('')
@@ -33,7 +37,7 @@ export default function AdminUsersPage() {
   const [resetPwLoading, setResetPwLoading] = useState(false)
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setEmail(''); setPassword(''); setSelectedRoles([]); setSelectedSubjects([]); setCreateError('')
+    setEditingId(null); setName(''); setEmail(''); setPassword(''); setSelectedRoles([]); setSelectedSubjects([]); setSelectedResultSubjects([]); setCreateError('')
   }
 
   const fetchUsers = () => {
@@ -42,7 +46,27 @@ export default function AdminUsersPage() {
       .catch(() => {})
   }
 
-  useEffect(() => { fetchUsers() }, [])
+  useEffect(() => {
+    fetchUsers()
+    api.get<{ status: number; data: string[] }>('/subjects')
+      .then((res) => setPublicSubjects(res.data))
+      .catch(() => {})
+    api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
+      .then((res) => {
+        const list: string[] = []
+        for (const group of res.data) {
+          if (group.papers.length > 0) {
+            for (const paper of group.papers) {
+              list.push(paper.name)
+            }
+          } else {
+            list.push(group.name)
+          }
+        }
+        setExamSubjects(list)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleSubmit = async () => {
     setCreateError('')
@@ -51,7 +75,10 @@ export default function AdminUsersPage() {
     try {
       const payload: any = { name, email, roles: selectedRoles }
       const isTeacher = selectedRoles.includes('teacher')
-      if (isTeacher) payload.subjects = selectedSubjects
+      if (isTeacher) {
+        payload.subjects = selectedSubjects
+        payload.result_subjects = selectedResultSubjects
+      }
       if (editingId) {
         if (password) payload.password = password
         await api.put(`/admin/users/${editingId}`, payload)
@@ -67,7 +94,9 @@ export default function AdminUsersPage() {
   }
 
   const handleEdit = (u: User) => {
-    setEditingId(u.id); setName(u.name); setEmail(u.email); setSelectedRoles(u.roles); setSelectedSubjects(u.subjects || []); setPassword(''); setCreateError('')
+    setEditingId(u.id); setName(u.name); setEmail(u.email); setSelectedRoles(u.roles)
+    setSelectedSubjects(u.subjects || []); setSelectedResultSubjects(u.result_subjects || [])
+    setPassword(''); setCreateError('')
   }
 
   const handleFreeze = (id: number) => {
@@ -84,9 +113,10 @@ export default function AdminUsersPage() {
 
   const handleDelete = (id: number) => {
     if (!confirm('Delete this user?')) return
+    setCreateError('')
     api.delete(`/admin/users/${id}`)
       .then(() => fetchUsers())
-      .catch(() => {})
+      .catch((err: unknown) => setCreateError(err instanceof Error ? err.message : 'Delete failed'))
   }
 
   const handleResetPassword = async () => {
@@ -114,6 +144,18 @@ export default function AdminUsersPage() {
     )
   }
 
+  const toggleSubject = (subject: string) => {
+    setSelectedSubjects((prev) =>
+      prev.includes(subject) ? prev.filter((x) => x !== subject) : [...prev, subject]
+    )
+  }
+
+  const toggleResultSubject = (subject: string) => {
+    setSelectedResultSubjects((prev) =>
+      prev.includes(subject) ? prev.filter((x) => x !== subject) : [...prev, subject]
+    )
+  }
+
   const allRoles: { value: UserRole; label: string }[] = [
     { value: 'admin', label: 'Admin' },
     { value: 'student', label: 'Student' },
@@ -123,6 +165,16 @@ export default function AdminUsersPage() {
     { value: 'administration', label: 'Administration' },
     { value: 'principal', label: 'Principal' },
   ]
+
+  const checkboxList = (items: string[], selected: string[], toggle: (s: string) => void) => (
+    <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
+      {items.map((s) => (
+        <label key={s} className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100">
+          <input type="checkbox" checked={selected.includes(s)} onChange={() => toggle(s)} /> {s}
+        </label>
+      ))}
+    </div>
+  )
 
   const columns = [
     { key: 'id', label: 'ID' },
@@ -174,18 +226,21 @@ export default function AdminUsersPage() {
             </div>
           </div>
           {selectedRoles.includes('teacher') && (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Assign Subject</label>
-              <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
-                {SUBJECTS.map((s) => (
-                  <label key={s} className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100">
-                    <input type="checkbox" checked={selectedSubjects.includes(s)} onChange={() =>
-                      setSelectedSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
-                    } /> {s}
-                  </label>
-                ))}
+            <>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Assign Subject <span className="text-xs text-gray-400">(Public / Teacher Directory)</span>
+                </label>
+                {checkboxList(publicSubjects, selectedSubjects, toggleSubject)}
               </div>
-            </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Assign Result Management Subjects <span className="text-xs text-gray-400">(Exam Marks)</span>
+                </label>
+                <p className="mb-1 text-xs text-gray-500">Teacher can upload/update marks for these subjects.</p>
+                {checkboxList(examSubjects, selectedResultSubjects, toggleResultSubject)}
+              </div>
+            </>
           )}
           {createError && <p className="text-sm text-red-600">{createError}</p>}
           <Button variant="primary" onClick={handleSubmit}>{editingId ? 'Update User' : 'Create User'}</Button>

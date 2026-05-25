@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, PhotoWithPreview } from '@/components/ui'
-import { SUBJECTS } from '@/types'
+
 import { api, UPLOAD_BASE } from '@/lib/api'
 
 const GROUPS = [
@@ -24,6 +24,7 @@ export default function AdminPanelStudentsPage() {
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [viewingStudent, setViewingStudent] = useState<any | null>(null)
+  const [publicSubjects, setPublicSubjects] = useState<string[]>([])
 
   const [studentId, setStudentId] = useState('')
   const [name, setName] = useState('')
@@ -59,6 +60,12 @@ export default function AdminPanelStudentsPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }
+
+  useEffect(() => {
+    api.get<{ status: number; data: string[] }>('/subjects')
+      .then((res) => setPublicSubjects(res.data))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => { fetchStudents() }, [])
 
@@ -243,7 +250,7 @@ export default function AdminPanelStudentsPage() {
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">Selective Subjects</label>
             <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
-              {SUBJECTS.filter((s) => !COMPULSORY_SUBJECTS.includes(s)).map((s) => (
+              {publicSubjects.filter((s) => !COMPULSORY_SUBJECTS.includes(s)).map((s) => (
                 <label key={s} className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100">
                   <input type="checkbox" checked={selectiveSubjects.includes(s)} onChange={() => toggleSelectiveSubject(s)} /> {s}
                 </label>

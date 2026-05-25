@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Card, CardContent, DataTable, Badge } from '@/components/ui'
-import { SUBJECTS } from '@/types'
 import { api } from '@/lib/api'
 
 interface User {
@@ -15,6 +14,7 @@ interface User {
   status: string
   roles: string[]
   subjects?: string[]
+  result_subjects?: string[]
   created_at: string
 }
 
@@ -26,14 +26,36 @@ export default function AdminTeacherStaffPage() {
   const [password, setPassword] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
+  const [selectedResultSubjects, setSelectedResultSubjects] = useState<string[]>([])
   const [createError, setCreateError] = useState('')
   const [resetPwUser, setResetPwUser] = useState<User | null>(null)
   const [resetPwValue, setResetPwValue] = useState('')
   const [resetPwResult, setResetPwResult] = useState('')
   const [resetPwLoading, setResetPwLoading] = useState(false)
+  const [examSubjects, setExamSubjects] = useState<string[]>([])
+  const [publicSubjects, setPublicSubjects] = useState<string[]>([])
+
+  useEffect(() => {
+    api.get<{ status: number; data: string[] }>('/subjects')
+      .then((res) => setPublicSubjects(res.data))
+      .catch(() => {})
+    api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
+      .then((res) => {
+        const list: string[] = []
+        for (const group of res.data) {
+          if (group.papers.length > 0) {
+            for (const paper of group.papers) list.push(paper.name)
+          } else {
+            list.push(group.name)
+          }
+        }
+        setExamSubjects(list)
+      })
+      .catch(() => {})
+  }, [])
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setEmail(''); setPassword(''); setSelectedRoles([]); setSelectedSubjects([]); setCreateError('')
+    setEditingId(null); setName(''); setEmail(''); setPassword(''); setSelectedRoles([]); setSelectedSubjects([]); setSelectedResultSubjects([]); setCreateError('')
   }
 
   const fetchUsers = () => {
@@ -51,7 +73,10 @@ export default function AdminTeacherStaffPage() {
     try {
       const payload: any = { name, email, roles: selectedRoles }
       const isTeacher = selectedRoles.includes('teacher')
-      if (isTeacher) payload.subjects = selectedSubjects
+      if (isTeacher) {
+        payload.subjects = selectedSubjects
+        payload.result_subjects = selectedResultSubjects
+      }
       if (editingId) {
         if (password) payload.password = password
         await api.put(`/admin/users/${editingId}`, payload)
@@ -67,7 +92,9 @@ export default function AdminTeacherStaffPage() {
   }
 
   const handleEdit = (u: User) => {
-    setEditingId(u.id); setName(u.name); setEmail(u.email); setSelectedRoles(u.roles); setSelectedSubjects(u.subjects || []); setPassword(''); setCreateError('')
+    setEditingId(u.id); setName(u.name); setEmail(u.email); setSelectedRoles(u.roles)
+    setSelectedSubjects(u.subjects || []); setSelectedResultSubjects(u.result_subjects || [])
+    setPassword(''); setCreateError('')
   }
 
   const handleFreeze = (id: number) => {
@@ -114,6 +141,18 @@ export default function AdminTeacherStaffPage() {
     )
   }
 
+  const toggleSubject = (subject: string) => {
+    setSelectedSubjects((prev) =>
+      prev.includes(subject) ? prev.filter((x) => x !== subject) : [...prev, subject]
+    )
+  }
+
+  const toggleResultSubject = (subject: string) => {
+    setSelectedResultSubjects((prev) =>
+      prev.includes(subject) ? prev.filter((x) => x !== subject) : [...prev, subject]
+    )
+  }
+
   const allRoles: { value: string; label: string }[] = [
     { value: 'teacher', label: 'Teacher' },
     { value: 'staff', label: 'Staff' },
@@ -145,6 +184,16 @@ export default function AdminTeacherStaffPage() {
     ),
   }))
 
+  const checkboxList = (items: string[], selected: string[], toggle: (s: string) => void) => (
+    <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
+      {items.map((s) => (
+        <label key={s} className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100">
+          <input type="checkbox" checked={selected.includes(s)} onChange={() => toggle(s)} /> {s}
+        </label>
+      ))}
+    </div>
+  )
+
   return (
     <PanelLayout role="admin" title="Teacher/Staff Management">
       <Card className="mb-6">
@@ -169,18 +218,17 @@ export default function AdminTeacherStaffPage() {
             </div>
           </div>
           {selectedRoles.includes('teacher') && (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Assign Subject</label>
-              <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
-                {SUBJECTS.map((s) => (
-                  <label key={s} className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100">
-                    <input type="checkbox" checked={selectedSubjects.includes(s)} onChange={() =>
-                      setSelectedSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
-                    } /> {s}
-                  </label>
-                ))}
+            <>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Assign Subject (Public / Directory)</label>
+                {checkboxList(publicSubjects, selectedSubjects, toggleSubject)}
               </div>
-            </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Assign Result Management Subjects</label>
+                <p className="mb-1 text-xs text-gray-500">Teachers can upload/update marks for these subjects.</p>
+                {checkboxList(examSubjects, selectedResultSubjects, toggleResultSubject)}
+              </div>
+            </>
           )}
           {createError && <p className="text-sm text-red-600">{createError}</p>}
           <Button variant="primary" onClick={handleSubmit}>{editingId ? 'Update User' : 'Create User'}</Button>
