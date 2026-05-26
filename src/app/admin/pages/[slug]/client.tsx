@@ -21,7 +21,7 @@ export default function AdminPageEditClient({ params }: { params: Promise<{ slug
         setTitle(res.data.title || '')
         setContent(res.data.content)
       })
-      .catch(() => { router.push('/admin/pages') })
+      .catch(() => { /* page may not exist yet — show empty form */ })
       .finally(() => setLoading(false))
   }, [slug, router])
 
@@ -31,7 +31,12 @@ export default function AdminPageEditClient({ params }: { params: Promise<{ slug
       await api.put(`/admin/pages/${slug}`, { title, content })
       router.push('/admin/pages')
     } catch {
-      alert('Failed to save')
+      try {
+        await api.post('/admin/pages', { page_key: slug, title, content })
+        router.push('/admin/pages')
+      } catch {
+        alert('Failed to save')
+      }
     }
     setSaving(false)
   }
@@ -48,6 +53,7 @@ export default function AdminPageEditClient({ params }: { params: Promise<{ slug
 
   return (
     <PanelLayout role="admin" title={`Edit: ${slug}`}>
+      <div className="mx-auto w-4/5">
       {loading ? (
         <p className="text-sm text-gray-500">Loading...</p>
       ) : (
@@ -66,6 +72,7 @@ export default function AdminPageEditClient({ params }: { params: Promise<{ slug
           </CardContent>
         </Card>
       )}
+      </div>
     </PanelLayout>
   )
 }

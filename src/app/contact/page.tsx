@@ -2,12 +2,13 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Phone, Mail } from 'lucide-react'
 import { DynamicContent } from '@/components/ui/DynamicContent'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 export const metadata: Metadata = { title: 'Contact Us - MJADC' }
 
 export default function ContactPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <PageContainer>
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -45,6 +46,6 @@ export default function ContactPage() {
           Google Map
         </div>
       </div>
-    </div>
+    </PageContainer>
   )
 }

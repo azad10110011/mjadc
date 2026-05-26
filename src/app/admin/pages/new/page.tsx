@@ -27,7 +27,8 @@ export default function AdminPageNew() {
 
   return (
     <PanelLayout role="admin" title="Create New Page">
-      <Card>
+      <div className="mx-auto w-4/5">
+        <Card>
         <CardContent className="space-y-4 pt-6">
           <Input label="Page Key" placeholder="e.g. history" value={pageKey} onChange={(e) => setPageKey(e.target.value)} />
           <Input label="Page Title (optional)" placeholder="Page title" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -40,6 +41,7 @@ export default function AdminPageNew() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </PanelLayout>
   )
 }

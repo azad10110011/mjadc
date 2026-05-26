@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui'
 import { GraduationCap, CalendarDays, FileText, Award, ArrowRight } from 'lucide-react'
+import { DynamicContent } from '@/components/ui/DynamicContent'
 import { api } from '@/lib/api'
 
 interface Notice {
@@ -22,10 +23,11 @@ export default function HomePage() {
 
   return (
     <div>
-      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-950 py-24 text-white">
-        <div className="mx-auto max-w-7xl px-4 text-center">
+      <section className="relative bg-cover bg-center py-24 text-white" style={{ backgroundImage: `url(/bg_clg.jpg)` }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-blue-800/80 to-blue-950/80" />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 text-center">
           <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Miah Jinnah Alam Degree College
+            মিঞা জিন্নাহ আলম ডিগ্রী কলেজ
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-blue-100">
             Empowering education, building futures — since our founding
@@ -86,6 +88,14 @@ export default function HomePage() {
             <div className="aspect-video rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center text-blue-400">
               College Photo
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="prose max-w-none text-gray-700">
+            <DynamicContent pageKey="home" />
           </div>
         </div>
       </section>

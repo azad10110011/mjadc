@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button, Input, Select, Card, CardContent } from '@/components/ui'
 import { DynamicContent } from '@/components/ui/DynamicContent'
+import { PageContainer } from '@/components/ui/PageContainer'
 import { api } from '@/lib/api'
 
 interface FormData {
@@ -63,7 +64,7 @@ export default function AdmissionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
+    <PageContainer>
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -124,6 +125,6 @@ export default function AdmissionPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   )
 }

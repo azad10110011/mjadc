@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
 import { DynamicContent } from '@/components/ui/DynamicContent'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 interface CouncilMember {
   id: number
@@ -25,7 +26,7 @@ export default function TeachersCouncilPage() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12">
+    <PageContainer>
       <Link href="/administration" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Administration
       </Link>
@@ -66,6 +67,6 @@ export default function TeachersCouncilPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </PageContainer>
   )
 }
