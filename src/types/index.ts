@@ -213,8 +213,44 @@ export interface GoverningBodyMember {
   id: number
   name: string
   designation: string
-  position: string
+  mobile?: string
   photo_path?: string
+  sort_order: number
+}
+
+export interface Principal {
+  id: number
+  name: string
+  designation: string
+  photo_path?: string
+  message?: string
+  sort_order: number
+}
+
+export interface TeachersCouncilMember {
+  id: number
+  name: string
+  designation: string
+  position?: string
+  photo_path?: string
+  sort_order: number
+}
+
+export interface CareerClubMember {
+  id: number
+  name: string
+  designation: string
+  position?: string
+  photo_path?: string
+  sort_order: number
+}
+
+export interface AcademicApproval {
+  id: number
+  heading: string
+  image_path?: string
+  image_width?: number
+  image_height?: number
   sort_order: number
 }
 

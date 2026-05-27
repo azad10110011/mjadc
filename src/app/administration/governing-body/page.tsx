@@ -12,7 +12,7 @@ interface Member {
   id: number
   name: string
   designation: string
-  position: string
+  mobile: string
   photo_path: string | null
 }
 
@@ -41,7 +41,7 @@ export default function GoverningBodyPage() {
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">SL No</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Designation</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Position</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Mobile</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Picture</th>
             </tr>
           </thead>
@@ -51,7 +51,7 @@ export default function GoverningBodyPage() {
                 <td className="px-4 py-3 text-sm text-gray-700">{i + 1}</td>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{m.name}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{m.designation}</td>
-                <td className="px-4 py-3 text-sm text-gray-700">{m.position}</td>
+                <td className="px-4 py-3 text-sm text-gray-700">{m.mobile}</td>
                 <td className="px-4 py-3">
                   {m.photo_path ? (
                     <PhotoWithPreview src={`${UPLOAD_BASE}/${m.photo_path}`} alt={m.name} className="h-10 w-10 rounded-full object-cover" />

@@ -7,7 +7,13 @@ import { Button } from '@/components/ui'
 
 const navItems = [
   { label: 'Homepage', href: '/' },
-  { label: 'About Us', href: '/about' },
+  {
+    label: 'About Us',
+    children: [
+      { label: 'About MJADC', href: '/about' },
+      { label: 'Academic Approval', href: '/about/academic-approval' },
+    ],
+  },
   {
     label: 'Administration',
     children: [
