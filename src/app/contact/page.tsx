@@ -1,12 +1,29 @@
-import type { Metadata } from 'next'
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Phone, Mail } from 'lucide-react'
 import { DynamicContent } from '@/components/ui/DynamicContent'
 import { PageContainer } from '@/components/ui/PageContainer'
-
-export const metadata: Metadata = { title: 'Contact Us - MJADC' }
+import { api } from '@/lib/api'
 
 export default function ContactPage() {
+  const [address, setAddress] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [map, setMap] = useState('')
+
+  useEffect(() => {
+    api.get<{ status: number; data: { address: string; phone: string; email: string; map: string } }>('/contact')
+      .then((res) => {
+        setAddress(res.data.address || '')
+        setPhone(res.data.phone || '')
+        setEmail(res.data.email || '')
+        setMap(res.data.map || '')
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <PageContainer>
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
@@ -24,26 +41,43 @@ export default function ContactPage() {
             <MapPin className="mt-1 h-5 w-5 shrink-0 text-blue-600" />
             <div>
               <h3 className="font-semibold text-gray-900">Address</h3>
-              <p className="text-sm text-gray-600">Miah Jinnah Alam Degree College</p>
+              <p className="text-sm text-gray-600 whitespace-pre-line">{address || 'Miah Jinnah Alam Degree College'}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <Phone className="mt-1 h-5 w-5 shrink-0 text-blue-600" />
             <div>
               <h3 className="font-semibold text-gray-900">Phone</h3>
-              <p className="text-sm text-gray-600">Contact number</p>
+              <p className="text-sm text-gray-600">{phone || 'Contact number'}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <Mail className="mt-1 h-5 w-5 shrink-0 text-blue-600" />
             <div>
               <h3 className="font-semibold text-gray-900">Email</h3>
-              <p className="text-sm text-gray-600">info@mjadc.ac.bd</p>
+              <p className="text-sm text-gray-600">{email || 'info@mjadc.ac.bd'}</p>
             </div>
           </div>
         </div>
-        <div className="aspect-video rounded-xl bg-gray-200 flex items-center justify-center text-gray-400">
-          Google Map
+        <div>
+          {map ? (
+            map.includes('<iframe') ? (
+              <div className="w-full rounded-xl border border-gray-200 overflow-hidden [&_iframe]:w-full" style={{ height: 320 }}
+                dangerouslySetInnerHTML={{ __html: map }} />
+            ) : (
+              <iframe
+                src={map}
+                className="w-full rounded-xl border border-gray-200"
+                style={{ height: 320 }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            )
+          ) : (
+            <div className="aspect-video rounded-xl bg-gray-200 flex items-center justify-center text-gray-400">
+              Google Map
+            </div>
+          )}
         </div>
       </div>
     </PageContainer>

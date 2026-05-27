@@ -22,7 +22,7 @@ export default function AcademicApprovalPage() {
         <ArrowLeft className="mr-1 h-4 w-4" /> About Us
       </Link>
       <h1 className="mb-6 text-3xl font-bold text-gray-900">Academic Approval</h1>
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="flex flex-col gap-6">
         {items.map((item) => (
           <div key={item.id} className="rounded-xl border border-gray-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">{item.heading}</h2>
@@ -31,7 +31,7 @@ export default function AcademicApprovalPage() {
                 src={`${UPLOAD_BASE}/${item.image_path}`}
                 alt={item.heading}
                 className="w-full rounded-lg object-contain"
-                style={{ maxHeight: 400 }}
+                style={{ maxHeight: 900 }}
               />
             )}
             {item.image_width && (
@@ -42,7 +42,7 @@ export default function AcademicApprovalPage() {
           </div>
         ))}
         {items.length === 0 && (
-          <div className="col-span-2 py-12 text-center text-sm text-gray-500">No approvals added yet.</div>
+          <div className="py-12 text-center text-sm text-gray-500">No approvals added yet.</div>
         )}
       </div>
     </PageContainer>

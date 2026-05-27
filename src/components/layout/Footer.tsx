@@ -7,11 +7,20 @@ import Link from 'next/link'
 
 export function Footer() {
   const [footerText, setFooterText] = useState('© 2026-MJADC. WebSite Created & Designed By MAK Azad, Lecturer (ICT)')
+  const [contactAddress, setContactAddress] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
 
   useEffect(() => {
     api.get<{ data: { setting_value: string } }>('/settings/footer-text')
       .then((res) => setFooterText(res.data.setting_value))
       .catch(() => {})
+    api.get<{ status: number; data: { address: string; phone: string; email: string } }>('/contact')
+      .then((res) => {
+        setContactAddress(res.data.address || '')
+        setContactPhone(res.data.phone || '')
+        setContactEmail(res.data.email || '')
+      }).catch(() => {})
   }, [])
 
   return (
@@ -23,15 +32,15 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 shrink-0" />
-                Miah Jinnah Alam Degree College
+                {contactAddress || 'Miah Jinnah Alam Degree College'}
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 shrink-0" />
-                Contact number
+                {contactPhone || 'Contact number'}
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0" />
-                info@mjadc.ac.bd
+                {contactEmail || 'info@mjadc.ac.bd'}
               </li>
             </ul>
           </div>

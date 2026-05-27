@@ -27,6 +27,7 @@ const navItems = [
   {
     label: 'Academic',
     children: [
+      { label: 'Student Info', href: '/academic/student-info' },
       { label: 'Class Routine', href: '/academic/routine' },
       { label: 'Syllabus', href: '/academic/syllabus' },
       { label: 'Results', href: '/academic/results' },

@@ -11,11 +11,19 @@ import type { Principal } from '@/types'
 
 export default function PrincipalPage() {
   const [members, setMembers] = useState<Principal[]>([])
+  const [fontSize, setFontSize] = useState('text-base')
+  const [fontStyle, setFontStyle] = useState('font-semibold')
 
   useEffect(() => {
     api.get<{ data: Principal[] }>('/principals').then((res) => {
       setMembers(res.data)
     }).catch(() => {})
+    api.get<{ data: { setting_value: string } }>('/settings/principal_font')
+      .then((res) => {
+        try { const p = JSON.parse(res.data.setting_value); setFontSize(p.fontSize || 'text-base'); setFontStyle(p.fontStyle || 'font-semibold') }
+        catch {}
+      })
+      .catch(() => {})
   }, [])
 
   return (
@@ -36,9 +44,9 @@ export default function PrincipalPage() {
               ) : (
                 <div className="mx-auto mb-4 h-24 w-24 rounded-full bg-gray-200" />
               )}
-              <h2 className="font-semibold text-gray-900">{m.name}</h2>
-              <p className="text-sm text-gray-600">{m.designation}</p>
-              {m.message && <p className="mt-3 text-sm text-gray-700 text-left">{m.message}</p>}
+              <h2 className={`${fontSize} ${fontStyle} text-gray-900`}>{m.name}</h2>
+              <p className={`${fontSize} text-gray-600`}>{m.designation}</p>
+              {m.message && <p className={`mt-3 ${fontSize} text-gray-700 text-left whitespace-pre-line`}>{m.message}</p>}
             </div>
           ))}
         </div>

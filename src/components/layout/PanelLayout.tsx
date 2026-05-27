@@ -8,7 +8,7 @@ import {
   LayoutDashboard, FileText, GraduationCap, Users, BookOpen,
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck,
   DollarSign, ClipboardList, Upload, Download, CheckSquare,
-  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt,
+  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
@@ -73,6 +73,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: "Teachers Council", href: '/admin/teachers-council', icon: <GraduationCap className="h-4 w-4" /> },
     { label: 'Career Club', href: '/admin/career-club', icon: <Users className="h-4 w-4" /> },
     { label: 'Co-Curricular', href: '/admin/co-curricular', icon: <Users className="h-4 w-4" /> },
+    { label: 'Student Info', href: '/admin/student-info', icon: <FileText className="h-4 w-4" /> },
     { label: 'Academic Approvals', href: '/admin/academic-approvals', icon: <FileText className="h-4 w-4" /> },
     { label: 'Forms', href: '/admin/forms', icon: <Download className="h-4 w-4" /> },
     { label: 'Pages', icon: <FileText className="h-4 w-4" />, children: PAGE_SUB_ITEMS },
@@ -86,6 +87,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Transactions', href: '/admin/transactions', icon: <Receipt className="h-4 w-4" /> },
     { label: 'Leave Management', href: '/admin/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Collected Summary', href: '/admin/collected-summary', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Contact Info', href: '/admin/contact', icon: <MapPin className="h-4 w-4" /> },
     { label: 'Settings', href: '/admin/settings', icon: <Settings className="h-4 w-4" /> },
   ],
   student: [
@@ -149,10 +151,10 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <aside className={cn(
-        'fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-white transition-transform lg:relative lg:translate-x-0',
+        'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform lg:relative lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
-        <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">MJ</div>
             <span className="text-sm font-semibold text-gray-900">College Portal</span>
@@ -161,7 +163,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
             <X className="h-4 w-4" />
           </button>
         </div>
-        <nav className="space-y-1 overflow-y-auto p-3" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {navItems.map((item) => {
             if (item.children) {
               const isOpen = expandedMenus[item.label]
@@ -225,7 +227,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
             )
           })}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 p-3">
+        <div className="shrink-0 border-t border-gray-200 p-3">
           <Link
             href="/change-password"
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"

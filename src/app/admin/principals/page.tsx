@@ -5,8 +5,24 @@ import { PanelLayout } from '@/components/layout'
 import { Button, Input, Textarea, Card, CardContent, DataTable } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
-import { ArrowUp, ArrowDown, UserPlus } from 'lucide-react'
+import { ArrowUp, ArrowDown, UserPlus, Type } from 'lucide-react'
 import type { Principal } from '@/types'
+
+const FONT_SIZES = [
+  { label: 'Extra Small', value: 'text-xs' },
+  { label: 'Small', value: 'text-sm' },
+  { label: 'Base', value: 'text-base' },
+  { label: 'Large', value: 'text-lg' },
+  { label: 'Extra Large', value: 'text-xl' },
+  { label: '2X Large', value: 'text-2xl' },
+]
+
+const FONT_STYLES = [
+  { label: 'Normal', value: 'font-normal' },
+  { label: 'Medium', value: 'font-medium' },
+  { label: 'Semibold', value: 'font-semibold' },
+  { label: 'Bold', value: 'font-bold' },
+]
 
 export default function AdminPrincipalsPage() {
   const [members, setMembers] = useState<Principal[]>([])
@@ -18,6 +34,8 @@ export default function AdminPrincipalsPage() {
   const [message, setMessage] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
+  const [fontSize, setFontSize] = useState('text-base')
+  const [fontStyle, setFontStyle] = useState('font-semibold')
 
   const resetForm = () => {
     setEditingId(null); setName(''); setDesignation(''); setMessage('')
@@ -28,7 +46,15 @@ export default function AdminPrincipalsPage() {
     api.get('/admin/principals').then((r: any) => setMembers(r.data || [])).catch(() => {}).finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetchMembers() }, [])
+  useEffect(() => {
+    fetchMembers()
+    api.get<{ data: { setting_value: string } }>('/settings/principal_font')
+      .then((res) => {
+        try { const p = JSON.parse(res.data.setting_value); setFontSize(p.fontSize || 'text-base'); setFontStyle(p.fontStyle || 'font-semibold') }
+        catch {}
+      })
+      .catch(() => {})
+  }, [])
 
   const uploadPhoto = async (): Promise<string> => {
     const formData = new FormData()
@@ -132,6 +158,31 @@ export default function AdminPrincipalsPage() {
         <CardContent className="pt-6">
           <h3 className="mb-4 font-semibold text-gray-900">Principal & Vice-Principal</h3>
           <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No members added yet" />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardContent className="pt-6">
+          <h3 className="mb-4 font-semibold text-gray-900 flex items-center gap-2"><Type className="h-5 w-5" /> Font Settings</h3>
+          <p className="mb-4 text-sm text-gray-500">Controls font size and style for name, designation, and message on the public page.</p>
+          <div className="flex flex-wrap gap-6">
+            <div>
+              <label className="mb-1 block text-sm text-gray-600">Font Size</label>
+              <select value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                {FONT_SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-gray-600">Font Style</label>
+              <select value={fontStyle} onChange={(e) => setFontStyle(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                {FONT_STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <Button className="mt-4" onClick={async () => {
+            await api.put('/admin/settings/principal_font', { setting_value: JSON.stringify({ fontSize, fontStyle }) })
+            alert('Font settings saved')
+          }}><Type className="mr-2 h-4 w-4" /> Save Font Settings</Button>
         </CardContent>
       </Card>
     </PanelLayout>
