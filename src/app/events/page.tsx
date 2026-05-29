@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, CalendarDays } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { api } from '@/lib/api'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 interface Event {
   id: number
@@ -23,7 +24,7 @@ export default function EventsPage() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <PageContainer className="max-w-4xl">
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -45,6 +46,6 @@ export default function EventsPage() {
           <p className="py-8 text-center text-gray-500">No upcoming events.</p>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

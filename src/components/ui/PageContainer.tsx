@@ -44,8 +44,11 @@ export function PageContainer({ children, className = '' }: { children: ReactNod
       const style = document.createElement('style')
       style.id = styleId
       style.textContent = `
-        .${uid} { ${fontSize ? `font-size: ${fontSize} !important;` : ''} ${fontWeight ? `font-weight: ${fontWeight} !important;` : ''} }
-        .${uid} * { ${fontSize ? `font-size: ${fontSize} !important;` : ''} ${fontWeight ? `font-weight: ${fontWeight} !important;` : ''} }
+        .${uid},
+        .${uid} * {
+          ${fontSize ? `font-size: ${fontSize} !important;` : ''}
+          ${fontWeight ? `font-weight: ${fontWeight} !important;` : ''}
+        }
       `
       document.head.appendChild(style)
     }

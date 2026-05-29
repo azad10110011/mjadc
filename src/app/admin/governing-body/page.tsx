@@ -16,12 +16,13 @@ export default function AdminGoverningBodyPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [designation, setDesignation] = useState('')
+  const [position, setPosition] = useState('')
   const [mobile, setMobile] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setDesignation(''); setMobile('')
+    setEditingId(null); setName(''); setDesignation(''); setPosition(''); setMobile('')
     setPhotoFile(null); setExistingPhotoPath(null)
   }
 
@@ -47,12 +48,12 @@ export default function AdminGoverningBodyPage() {
       const photoPath = photoFile ? await uploadPhoto() : existingPhotoPath
       if (editingId) {
         await api.put(`/admin/governing-body/${editingId}`, {
-          name, designation, mobile: mobile || undefined,
+          name, designation, position: position || undefined, mobile: mobile || undefined,
           ...(photoPath && { photo_path: photoPath }),
         })
       } else {
         await api.post('/admin/governing-body', {
-          name, designation, mobile: mobile || undefined,
+          name, designation, position: position || undefined, mobile: mobile || undefined,
           ...(photoPath && { photo_path: photoPath }),
         })
       }
@@ -67,7 +68,7 @@ export default function AdminGoverningBodyPage() {
   }
 
   const handleEdit = (m: GoverningBodyMember) => {
-    setEditingId(m.id); setName(m.name); setDesignation(m.designation)
+    setEditingId(m.id); setName(m.name); setDesignation(m.designation); setPosition(m.position || '')
     setMobile(m.mobile || ''); setExistingPhotoPath(m.photo_path || null); setPhotoFile(null)
   }
 
@@ -130,6 +131,7 @@ export default function AdminGoverningBodyPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Name" placeholder="Full name" required value={name} onChange={(e) => setName(e.target.value)} />
             <Input label="Designation" placeholder="e.g. Chairman" required value={designation} onChange={(e) => setDesignation(e.target.value)} />
+            <Input label="Position" placeholder="e.g. Member" value={position} onChange={(e) => setPosition(e.target.value)} />
             <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} />
             <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
           </div>

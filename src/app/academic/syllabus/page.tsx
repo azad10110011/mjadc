@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, FileDown } from 'lucide-react'
 import { api, UPLOAD_BASE } from '@/lib/api'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 interface SyllabusItem {
   id: number
@@ -32,7 +33,7 @@ export default function SyllabusPage() {
   const classKeys = Object.keys(byClass).length > 0 ? Object.keys(byClass) : ['HSC', 'Degree (Pass)']
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <PageContainer className="max-w-4xl">
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -58,6 +59,6 @@ export default function SyllabusPage() {
           </div>
         </div>
       ))}
-    </div>
+    </PageContainer>
   )
 }

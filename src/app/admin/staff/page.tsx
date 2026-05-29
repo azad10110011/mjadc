@@ -28,19 +28,25 @@ export default function AdminStaffPage() {
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
+  const [nameBangla, setNameBangla] = useState('')
   const [designation, setDesignation] = useState('')
   const [subject, setSubject] = useState('')
   const [joiningDate, setJoiningDate] = useState('')
+  const [firstMpoDate, setFirstMpoDate] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState('')
   const [mobile, setMobile] = useState('')
+  const [whatsappNumber, setWhatsappNumber] = useState('')
+  const [nidNumber, setNidNumber] = useState('')
   const [email, setEmail] = useState('')
+  const [presentAddress, setPresentAddress] = useState('')
+  const [permanentAddress, setPermanentAddress] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setDesignation(''); setSubject('')
-    setJoiningDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setEmail(''); setPhotoFile(null); setExistingPhotoPath(null)
+    setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setSubject('')
+    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPhotoFile(null); setExistingPhotoPath(null)
   }
 
   const fetchStaff = () => {
@@ -63,10 +69,19 @@ export default function AdminStaffPage() {
     setSubmitting(true)
     try {
       const photoPath = photoFile ? await uploadPhoto() : existingPhotoPath
+      const extraFields = {
+        name_bangla: nameBangla || undefined,
+        first_mpo_date: firstMpoDate || undefined,
+        nid_number: nidNumber || undefined,
+        whatsapp_number: whatsappNumber || undefined,
+        present_address: presentAddress || undefined,
+        permanent_address: permanentAddress || undefined,
+      }
       if (editingId) {
         await api.put(`/admin/teachers-staff/staff/${editingId}`, {
           name, designation, subject: subject || undefined,
           joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email: email || undefined,
+          ...extraFields,
           ...(photoPath && { photo_path: photoPath }),
         })
         alert('Staff updated successfully')
@@ -74,6 +89,7 @@ export default function AdminStaffPage() {
         await api.post('/admin/teachers-staff/staff', {
           name, designation, subject: subject || undefined,
           joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email: email || undefined,
+          ...extraFields,
           ...(photoPath && { photo_path: photoPath }),
         })
         alert('Staff added successfully')
@@ -89,9 +105,10 @@ export default function AdminStaffPage() {
   }
 
   const handleEdit = (s: any) => {
-    setEditingId(s.id); setName(s.name); setDesignation(s.designation)
-    setSubject(s.subject || ''); setJoiningDate(s.joining_date || '')
-    setDateOfBirth(s.date_of_birth || ''); setGender(s.gender || ''); setMobile(s.mobile || ''); setEmail(s.email || '')
+    setEditingId(s.id); setName(s.name); setNameBangla(s.name_bangla || '')
+    setDesignation(s.designation)
+    setSubject(s.subject || ''); setJoiningDate(s.joining_date || ''); setFirstMpoDate(s.first_mpo_date || '')
+    setDateOfBirth(s.date_of_birth || ''); setGender(s.gender || ''); setMobile(s.mobile || ''); setWhatsappNumber(s.whatsapp_number || ''); setNidNumber(s.nid_number || ''); setEmail(s.email || ''); setPresentAddress(s.present_address || ''); setPermanentAddress(s.permanent_address || '')
     setExistingPhotoPath(s.photo_path || null); setPhotoFile(null)
   }
 
@@ -149,14 +166,20 @@ export default function AdminStaffPage() {
             <h3 className="font-semibold text-gray-900">Staff Information</h3>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Name" placeholder="Full name" required value={name} onChange={(e) => setName(e.target.value)} />
+            <Input label="Name (English)" placeholder="Full name in English" required value={name} onChange={(e) => setName(e.target.value)} />
+            <Input label="Name (Bangla)" placeholder="পূর্ণ নাম বাংলায়" value={nameBangla} onChange={(e) => setNameBangla(e.target.value)} />
             <Select label="Designation" options={staffDesignations} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Select" />
             <Select label="Subject" options={subjects} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select (optional)" />
             <Input label="Joining Date" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} required />
+            <Input label="1st MPO Date" type="date" value={firstMpoDate} onChange={(e) => setFirstMpoDate(e.target.value)} />
             <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
             <Select label="Gender" options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Select" />
+            <Input label="NID Number" placeholder="National ID number" value={nidNumber} onChange={(e) => setNidNumber(e.target.value)} />
             <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} required />
+            <Input label="WhatsApp Number" placeholder="01XXXXXXXXX" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
             <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
+            <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
             <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
           </div>
           <Button variant="primary" onClick={handleSubmit} disabled={submitting}>

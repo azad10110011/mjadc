@@ -5,10 +5,12 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 interface Teacher {
   id: number
   name: string
+  name_bangla?: string
   designation: string
   subject: string
   email: string
@@ -26,7 +28,7 @@ export default function TeachersListPage() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
+    <PageContainer>
       <Link href="/administration" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Administration
       </Link>
@@ -44,7 +46,10 @@ export default function TeachersListPage() {
             {teachers.map((t, i) => (
               <tr key={t.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-sm text-gray-700">{i + 1}</td>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{t.name}</td>
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                  {t.name}
+                  {t.name_bangla && <span className="block text-xs text-gray-500">({t.name_bangla})</span>}
+                </td>
                 <td className="px-4 py-3 text-sm text-gray-700">{t.designation}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{t.subject}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{t.email}</td>
@@ -64,6 +69,6 @@ export default function TeachersListPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </PageContainer>
   )
 }

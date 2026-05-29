@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Search, Loader2 } from 'lucide-react'
 import { Button, Input, Card, CardContent } from '@/components/ui'
 import { api } from '@/lib/api'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 interface FeeRecord {
   year: string
@@ -67,7 +68,7 @@ export default function PayFeesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
+    <PageContainer className="max-w-3xl">
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -110,6 +111,6 @@ export default function PayFeesPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   )
 }

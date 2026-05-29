@@ -12,6 +12,7 @@ interface Member {
   id: number
   name: string
   designation: string
+  position: string
   mobile: string
   photo_path: string | null
 }
@@ -41,6 +42,7 @@ export default function GoverningBodyPage() {
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">SL No</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Designation</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Position</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Mobile</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Picture</th>
             </tr>
@@ -51,6 +53,7 @@ export default function GoverningBodyPage() {
                 <td className="px-4 py-3 text-sm text-gray-700">{i + 1}</td>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{m.name}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{m.designation}</td>
+                <td className="px-4 py-3 text-sm text-gray-700">{m.position}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{m.mobile}</td>
                 <td className="px-4 py-3">
                   {m.photo_path ? (
@@ -61,9 +64,9 @@ export default function GoverningBodyPage() {
                 </td>
               </tr>
             ))}
-            {members.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">No governing body members listed.</td></tr>
-            )}
+              {members.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">No governing body members listed.</td></tr>
+              )}
           </tbody>
         </table>
       </div>

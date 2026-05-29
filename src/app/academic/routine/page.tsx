@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, FileDown } from 'lucide-react'
 import { api, UPLOAD_BASE } from '@/lib/api'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 interface Routine {
   id: number
@@ -30,7 +31,7 @@ export default function RoutinePage() {
   const classKeys = Object.keys(grouped).length > 0 ? Object.keys(grouped) : ['11th', '12th']
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <PageContainer>
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -55,6 +56,6 @@ export default function RoutinePage() {
           <div className="col-span-full py-8 text-center text-gray-500">No routines available.</div>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

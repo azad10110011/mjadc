@@ -41,26 +41,38 @@ export interface Teacher {
   id: number
   user_id?: number
   name: string
+  name_bangla?: string
   gender: 'male' | 'female'
   designation: Designation
   subject: Subject
   joining_date: string
+  first_mpo_date?: string
+  nid_number?: string
   mobile: string
+  whatsapp_number?: string
   email: string
   photo_path?: string
+  present_address?: string
+  permanent_address?: string
 }
 
 export interface Staff {
   id: number
   user_id?: number
   name: string
+  name_bangla?: string
   gender: 'male' | 'female'
   designation: StaffDesignation
   subject?: Subject
   joining_date: string
+  first_mpo_date?: string
+  nid_number?: string
   mobile: string
+  whatsapp_number?: string
   email: string
   photo_path?: string
+  present_address?: string
+  permanent_address?: string
 }
 
 export type Designation =
@@ -213,6 +225,7 @@ export interface GoverningBodyMember {
   id: number
   name: string
   designation: string
+  position?: string
   mobile?: string
   photo_path?: string
   sort_order: number

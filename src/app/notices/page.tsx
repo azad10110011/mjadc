@@ -6,6 +6,7 @@ import { ArrowLeft, FileText, Calendar, Paperclip, Download, ChevronDown, Chevro
 import { formatDate } from '@/lib/utils'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import type { Notice } from '@/types'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 export default function NoticesPage() {
   const [notices, setNotices] = useState<Notice[]>([])
@@ -27,7 +28,7 @@ export default function NoticesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <PageContainer>
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -76,6 +77,6 @@ export default function NoticesPage() {
           <p className="py-8 text-center text-gray-500">No notices published yet.</p>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

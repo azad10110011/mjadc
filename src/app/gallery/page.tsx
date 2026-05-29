@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 interface GalleryImage {
   id: number
@@ -22,7 +23,7 @@ export default function GalleryPage() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
+    <PageContainer className="max-w-6xl">
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
@@ -47,6 +48,6 @@ export default function GalleryPage() {
           <div className="col-span-full py-12 text-center text-gray-500">No images in gallery yet.</div>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

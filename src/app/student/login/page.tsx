@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, LogIn } from 'lucide-react'
 import { Button, Input, Card, CardContent } from '@/components/ui'
+import { PageContainer } from '@/components/ui/PageContainer'
 
 export default function StudentLoginPage() {
   const router = useRouter()
@@ -48,7 +49,7 @@ export default function StudentLoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md items-center px-4 py-12">
+    <PageContainer className="flex min-h-[60vh] max-w-md items-center">
       <Card className="w-full">
         <CardContent className="space-y-6 pt-6">
           <div className="text-center">
@@ -89,6 +90,6 @@ export default function StudentLoginPage() {
 
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   )
 }
