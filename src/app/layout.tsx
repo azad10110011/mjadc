@@ -4,6 +4,7 @@ import "./globals.css"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { Providers } from "@/components/layout/Providers"
+import { PublicFontMain } from "@/components/layout/PublicFontMain"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +32,7 @@ export default function RootLayout({
       <body className="flex min-h-screen flex-col antialiased">
         <Providers>
           <Header />
-          <main className="flex-1">{children}</main>
+          <PublicFontMain>{children}</PublicFontMain>
           <Footer />
         </Providers>
       </body>

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, FileText, GraduationCap, Users, BookOpen,
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck,
   DollarSign, ClipboardList, Upload, Download, CheckSquare,
-  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin,
+  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
@@ -88,6 +88,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Leave Management', href: '/admin/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Collected Summary', href: '/admin/collected-summary', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Contact Info', href: '/admin/contact', icon: <MapPin className="h-4 w-4" /> },
+    { label: 'Font Settings', href: '/admin/font-settings', icon: <Type className="h-4 w-4" /> },
     { label: 'Settings', href: '/admin/settings', icon: <Settings className="h-4 w-4" /> },
   ],
   student: [
