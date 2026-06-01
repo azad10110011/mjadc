@@ -22,8 +22,16 @@ export default function AdminSubjectPartsPage() {
   const [allSubjects, setAllSubjects] = useState<string[]>([])
 
   useEffect(() => {
-    api.get<{ status: number; data: string[] }>('/subjects')
-      .then((res) => setAllSubjects(res.data))
+    api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
+      .then((res) => {
+        const names: string[] = []
+        for (const group of res.data) {
+          for (const paper of group.papers) {
+            names.push(paper.name)
+          }
+        }
+        setAllSubjects(names)
+      })
       .catch(() => {})
   }, [])
 

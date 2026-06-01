@@ -61,7 +61,6 @@ const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'All Results', href: '/admin/results' },
       { label: 'Transcript', href: '/admin/transcript' },
     ] },
-    { label: 'Subject Parts', href: '/admin/subject-parts', icon: <FileText className="h-4 w-4" /> },
     { label: 'Subjects', href: '/admin/subjects', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'User History', href: '/admin/user-history', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Routines', href: '/admin/routines', icon: <Calendar className="h-4 w-4" /> },

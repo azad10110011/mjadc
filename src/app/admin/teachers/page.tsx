@@ -2,10 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
-import { Button, Input, Select, Card, CardContent, DataTable, Badge } from '@/components/ui'
+import { Button, Input, Select, Card, CardContent, DataTable, Badge, Modal } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
 import { UserPlus } from 'lucide-react'
+
+const calculateRetirement = (dob: string | null | undefined) => {
+  if (!dob) return null
+  const birth = new Date(dob)
+  const retired = new Date(birth.getFullYear() + 60, birth.getMonth(), birth.getDate())
+  const now = new Date()
+  if (retired <= now) return { remaining: 'Retired', retiredDate: retired.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
+  let years = retired.getFullYear() - now.getFullYear()
+  let months = retired.getMonth() - now.getMonth()
+  let days = retired.getDate() - now.getDate()
+  if (days < 0) { months--; const prev = new Date(retired.getFullYear(), retired.getMonth(), 0); days += prev.getDate() }
+  if (months < 0) { years--; months += 12 }
+  return { remaining: `${years}y ${months}m ${days}d`, retiredDate: retired.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
+}
 
 const designations = [
   { value: 'Principal', label: 'Principal' },
@@ -41,6 +55,7 @@ export default function AdminTeachersPage() {
   const [permanentAddress, setPermanentAddress] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
+  const [viewingTeacher, setViewingTeacher] = useState<any | null>(null)
 
   useEffect(() => {
     api.get<{ status: number; data: string[] }>('/subjects')
@@ -135,11 +150,47 @@ export default function AdminTeachersPage() {
       .catch(() => {})
   }
 
+  const viewDetail = (t: any) => {
+    const retirement = calculateRetirement(t.date_of_birth)
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          {t.photo_path ? (
+            <PhotoWithPreview src={`${UPLOAD_BASE}/${t.photo_path}`} alt={t.name} className="h-20 w-20 rounded-full object-cover" />
+          ) : (
+            <div className="h-20 w-20 rounded-full bg-gray-200" />
+          )}
+          <div>
+            <h3 className="text-xl font-semibold">{t.name}</h3>
+            {t.name_bangla && <p className="text-sm text-gray-500">{t.name_bangla}</p>}
+            <p className="text-sm text-gray-600">{t.designation}{t.subject ? ` (${t.subject})` : ''}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div><span className="font-medium text-gray-500">Gender</span><p className="text-gray-900 capitalize">{t.gender}</p></div>
+          <div><span className="font-medium text-gray-500">Mobile</span><p className="text-gray-900">{t.mobile}</p></div>
+          <div><span className="font-medium text-gray-500">Email</span><p className="text-gray-900">{t.email || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">WhatsApp</span><p className="text-gray-900">{t.whatsapp_number || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">NID Number</span><p className="text-gray-900">{t.nid_number || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">Joining Date</span><p className="text-gray-900">{t.joining_date || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">1st MPO Date</span><p className="text-gray-900">{t.first_mpo_date || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">Date of Birth</span><p className="text-gray-900">{t.date_of_birth || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">Remaining Job Time</span><p className="text-gray-900">{retirement ? retirement.remaining : '-'}</p></div>
+          <div><span className="font-medium text-gray-500">Retired Date</span><p className="text-gray-900">{retirement ? retirement.retiredDate : '-'}</p></div>
+          <div className="col-span-2"><span className="font-medium text-gray-500">Present Address</span><p className="text-gray-900">{t.present_address || '-'}</p></div>
+          <div className="col-span-2"><span className="font-medium text-gray-500">Permanent Address</span><p className="text-gray-900">{t.permanent_address || '-'}</p></div>
+        </div>
+      </div>
+    )
+  }
+
   const columns = [
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
     { key: 'subject', label: 'Subject' },
+    { key: 'remaining_job_time', label: 'Remaining Job Time' },
+    { key: 'retired_date', label: 'Retired Date' },
     { key: 'mobile', label: 'Mobile' },
     { key: 'email', label: 'Email' },
     { key: 'status', label: 'Status' },
@@ -149,16 +200,19 @@ export default function AdminTeachersPage() {
   const rows = teachers.map((t) => ({
     ...t,
     photo: t.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${t.photo_path}`} alt={t.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
+    remaining_job_time: (calculateRetirement(t.date_of_birth) || {}).remaining || '-',
+    retired_date: (calculateRetirement(t.date_of_birth) || {}).retiredDate || '-',
     status: <Badge variant={t.user_status === 'frozen' ? 'danger' : 'success'}>{t.user_status || 'active'}</Badge>,
     actions: (
-      <div className="flex gap-2">
-        <Button variant="secondary" size="sm" onClick={() => handleEdit(t)}>Edit</Button>
-        {t.user_id && (t.user_status === 'frozen'
-          ? <Button variant="secondary" size="sm" onClick={() => handleUnfreeze(t.user_id)}>Unfreeze</Button>
-          : <Button variant="secondary" size="sm" onClick={() => handleFreeze(t.user_id)}>Freeze</Button>
-        )}
-        <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)}>Delete</Button>
-      </div>
+    <div className="flex gap-2">
+      <Button variant="secondary" size="sm" onClick={() => setViewingTeacher(t)}>View</Button>
+      <Button variant="secondary" size="sm" onClick={() => handleEdit(t)}>Edit</Button>
+      {t.user_id && (t.user_status === 'frozen'
+        ? <Button variant="secondary" size="sm" onClick={() => handleUnfreeze(t.user_id)}>Unfreeze</Button>
+        : <Button variant="secondary" size="sm" onClick={() => handleFreeze(t.user_id)}>Freeze</Button>
+      )}
+      <Button variant="danger" size="sm" onClick={() => handleDelete(t.id)}>Delete</Button>
+    </div>
     ),
   }))
 
@@ -200,6 +254,10 @@ export default function AdminTeachersPage() {
           <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No teachers added yet" />
         </CardContent>
       </Card>
+
+      <Modal open={!!viewingTeacher} onClose={() => setViewingTeacher(null)} title="Teacher Details">
+        {viewingTeacher && viewDetail(viewingTeacher)}
+      </Modal>
     </PanelLayout>
   )
 }

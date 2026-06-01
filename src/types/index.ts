@@ -46,6 +46,7 @@ export interface Teacher {
   designation: Designation
   subject: Subject
   joining_date: string
+  date_of_birth?: string
   first_mpo_date?: string
   nid_number?: string
   mobile: string
@@ -65,6 +66,7 @@ export interface Staff {
   designation: StaffDesignation
   subject?: Subject
   joining_date: string
+  date_of_birth?: string
   first_mpo_date?: string
   nid_number?: string
   mobile: string
@@ -142,8 +144,29 @@ export interface TuitionFee {
 export interface LeaveAllocation {
   id: number
   role_type: 'teacher' | 'staff' | 'principal'
+  user_id?: number | null
+  user_name?: string
   leave_type: LeaveType
   total_days: number
+  period: 'yearly' | 'lifetime'
+}
+
+export interface LeaveTaken {
+  id: number
+  user_id: number
+  user_name?: string
+  year: number
+  leave_type: LeaveType
+  period: 'yearly' | 'lifetime'
+  days_taken: number
+}
+
+export interface LeaveSummaryItem {
+  type: string
+  allocated: number
+  taken: number
+  remaining: number
+  period: 'yearly' | 'lifetime'
 }
 
 export interface LeaveApplication {

@@ -18,6 +18,7 @@ interface SubjectPart {
 interface Paper {
   id: number
   name: string
+  code?: string
   parent_id: number
   parts: SubjectPart[]
 }
@@ -25,8 +26,10 @@ interface Paper {
 interface SubjectGroup {
   id: number
   name: string
+  code?: string
   type: string
   papers: Paper[]
+  parts: SubjectPart[]
 }
 
 const SUBJECT_TYPES = [
@@ -65,11 +68,13 @@ export default function AdminSubjectsPage() {
 
   // New subject form
   const [newName, setNewName] = useState('')
+  const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState('public')
 
   // New paper dialog
   const [addingPaperFor, setAddingPaperFor] = useState<number | null>(null)
   const [newPaperName, setNewPaperName] = useState('')
+  const [newPaperCode, setNewPaperCode] = useState('')
 
   // New part dialog
   const [addingPartFor, setAddingPartFor] = useState<string | null>(null)
@@ -83,8 +88,9 @@ export default function AdminSubjectsPage() {
   const [editPartPass, setEditPartPass] = useState('')
 
   // Rename dialog
-  const [renaming, setRenaming] = useState<{ id: number; name: string } | null>(null)
+  const [renaming, setRenaming] = useState<{ id: number; name: string; code?: string } | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [renameCode, setRenameCode] = useState('')
 
   const fetchTree = () => {
     api.get<{ status: number; data: SubjectGroup[] }>('/admin/subjects/tree')
@@ -99,8 +105,8 @@ export default function AdminSubjectsPage() {
     const name = newName.trim()
     if (!name) { setError('Subject name required'); return }
     try {
-      await api.post('/admin/subjects', { name, type: newType })
-      setNewName('')
+      await api.post('/admin/subjects', { name, code: newCode || undefined, type: newType })
+      setNewName(''); setNewCode('')
       fetchTree()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed')
@@ -108,19 +114,19 @@ export default function AdminSubjectsPage() {
   }
 
   const handleDeleteSubject = async (id: number) => {
-    if (!confirm('Delete this subject and unlink all its papers?')) return
+    if (!confirm('Delete this subject and all its papers & parts?')) return
     try {
-      await api.delete(`/admin/subjects/${id}`)
+      await api.post(`/admin/subjects/${id}`, { _method: 'DELETE' })
       fetchTree()
-    } catch { setError('Delete failed') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Delete failed') }
   }
 
   const handleDeletePaper = async (id: number) => {
     if (!confirm('Delete this paper?')) return
     try {
-      await api.delete(`/admin/subjects/${id}`)
+      await api.post(`/admin/subjects/${id}`, { _method: 'DELETE' })
       fetchTree()
-    } catch { setError('Delete failed') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Delete failed') }
   }
 
   const handleAddPaper = async (parentId: number) => {
@@ -128,10 +134,12 @@ export default function AdminSubjectsPage() {
     try {
       await api.post('/admin/subjects', {
         name: newPaperName.trim(),
+        code: newPaperCode || undefined,
         type: 'result',
         parent_id: parentId,
       })
       setNewPaperName('')
+      setNewPaperCode('')
       setAddingPaperFor(null)
       fetchTree()
     } catch (err: unknown) {
@@ -184,7 +192,7 @@ export default function AdminSubjectsPage() {
   const handleRename = async () => {
     if (!renaming || !renameValue.trim()) return
     try {
-      await api.put(`/admin/subjects/${renaming.id}`, { name: renameValue.trim() })
+      await api.put(`/admin/subjects/${renaming.id}`, { name: renameValue.trim(), code: renameCode || undefined })
       setRenaming(null)
       fetchTree()
     } catch (err: unknown) {
@@ -205,6 +213,9 @@ export default function AdminSubjectsPage() {
           <div className="flex items-end gap-3">
             <div className="flex-1">
               <Input label="Subject Name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Bangla" />
+            </div>
+            <div className="w-32">
+              <Input label="Subject Code" value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g. 101" />
             </div>
             <div className="w-56">
               <Select label="Type" options={SUBJECT_TYPES} value={newType} onChange={(e) => setNewType(e.target.value)} />
@@ -233,10 +244,11 @@ export default function AdminSubjectsPage() {
                 <div className="flex items-center gap-2">
                   <FolderOpen className="h-5 w-5 text-blue-500" />
                   <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
+                  {group.code && <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-mono text-gray-600">{group.code}</span>}
                   <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">Public</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name }); setRenameValue(group.name) }}>
+                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name, code: group.code }); setRenameValue(group.name); setRenameCode(group.code || '') }}>
                     <Edit3 className="mr-1 h-3.5 w-3.5" /> Rename
                   </Button>
                   <Button size="sm" variant="danger" onClick={() => handleDeleteSubject(group.id)}>
@@ -244,6 +256,22 @@ export default function AdminSubjectsPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* Subject-level parts */}
+              {group.parts.length > 0 && (
+                <div className="mb-4 ml-4 space-y-2 border-l-2 border-green-200 pl-4">
+                  <span className="text-xs font-medium text-green-600">Subject Parts</span>
+                  {group.parts.map((part) => (
+                    <PartRow
+                      key={part.id}
+                      part={part}
+                      subject={group.name}
+                      onEdit={(p) => { setEditingPart(p); setEditPartFull(String(p.full_mark)); setEditPartPass(String(p.pass_mark)) }}
+                      onDelete={handleDeletePart}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Papers */}
               {group.papers.length > 0 ? (
@@ -253,6 +281,7 @@ export default function AdminSubjectsPage() {
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-base font-medium text-gray-800">{paper.name}</span>
+                          {paper.code && <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-mono text-gray-600">{paper.code}</span>}
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">Paper</span>
                         </div>
                         <div className="flex gap-2">
@@ -287,11 +316,11 @@ export default function AdminSubjectsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="ml-4 text-sm text-gray-400">No papers yet. Add one below, or mark as N/A for single-paper subjects.</p>
+                <p className="ml-4 text-sm text-gray-400">No papers yet.</p>
               )}
 
-              {/* Add paper */}
-              <div className="ml-4 mt-4">
+              {/* Add paper / Add part */}
+              <div className="ml-4 mt-4 flex gap-2">
                 {addingPaperFor === group.id ? (
                   <div className="flex items-center gap-2">
                     <input
@@ -302,6 +331,12 @@ export default function AdminSubjectsPage() {
                       onKeyDown={(e) => e.key === 'Enter' && handleAddPaper(group.id)}
                       autoFocus
                     />
+                    <input
+                      className="w-24 rounded border border-gray-300 px-2 py-1 text-sm"
+                      placeholder="Code"
+                      value={newPaperCode}
+                      onChange={(e) => setNewPaperCode(e.target.value)}
+                    />
                     <Button size="sm" variant="primary" onClick={() => handleAddPaper(group.id)}>Add</Button>
                     <Button size="sm" variant="ghost" onClick={() => setAddingPaperFor(null)}>Cancel</Button>
                   </div>
@@ -310,6 +345,9 @@ export default function AdminSubjectsPage() {
                     <Plus className="mr-1 h-4 w-4" /> Add Paper
                   </Button>
                 )}
+                <Button size="sm" variant="secondary" onClick={() => { setAddingPartFor(group.name); setNewPartName(''); setNewPartFull('50'); setNewPartPass('8') }}>
+                  <Plus className="mr-1 h-4 w-4" /> Add Part
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -321,7 +359,10 @@ export default function AdminSubjectsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setRenaming(null)}>
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-3 text-lg font-semibold text-gray-900">Rename</h3>
-            <Input label="New name" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRename()} autoFocus />
+            <div className="space-y-3">
+              <Input label="New name" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRename()} autoFocus />
+              <Input label="Subject Code" value={renameCode} onChange={(e) => setRenameCode(e.target.value)} placeholder="e.g. 101" />
+            </div>
             <div className="mt-4 flex gap-2">
               <Button variant="primary" onClick={handleRename}>Save</Button>
               <Button variant="ghost" onClick={() => setRenaming(null)}>Cancel</Button>

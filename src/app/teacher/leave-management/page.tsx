@@ -1,11 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge } from '@/components/ui'
+import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/lib/api'
 
 export default function TeacherLeaveManagementPage() {
+  const { user } = useAuth()
+  const isFemale = user?.gender === 'female'
+  const leaveTypeOptions = [
+    { value: 'casual', label: 'Casual Leave' },
+    { value: 'medical', label: 'Medical Leave' },
+    ...(isFemale ? [{ value: 'maternity', label: 'Maternity Leave' }] : []),
+    { value: 'without_pay', label: 'Without Pay Leave' },
+  ]
+
   const [showForm, setShowForm] = useState(false)
   const [summary, setSummary] = useState<any[]>([])
   const [applications, setApplications] = useState<any[]>([])
@@ -31,11 +41,21 @@ export default function TeacherLeaveManagementPage() {
     ]).finally(() => setLoading(false))
   }, [])
 
+  const LEAVE_ORDER: Record<string, number> = { casual: 0, medical: 1, maternity: 2, without_pay: 3 }
+
+  const sortedSummary = useMemo(() =>
+    summary
+      .filter((l: any) => l.type !== 'maternity' || isFemale)
+      .sort((a: any, b: any) => (LEAVE_ORDER[a.type] ?? 99) - (LEAVE_ORDER[b.type] ?? 99)),
+    [summary, isFemale]
+  )
+
   const summaryColumns = [
     { key: 'type', label: 'Leave Type' },
     { key: 'allocated', label: 'Total Allocated' },
     { key: 'taken', label: 'Leave Taken' },
     { key: 'remaining', label: 'Leave Remaining' },
+    { key: 'period', label: 'Period' },
   ]
 
   const applicationColumns = [
@@ -126,9 +146,9 @@ export default function TeacherLeaveManagementPage() {
             <h3 className="font-semibold text-gray-900">Leave Summary</h3>
             <Button onClick={() => setShowForm(!showForm)}>New Leave Application</Button>
           </div>
-          <DataTable columns={summaryColumns} data={summary.map((l) => ({
+          <DataTable columns={summaryColumns} data={sortedSummary.map((l: any) => ({
             ...l,
-            status: l.type === 'Maternity Leave' ? <Badge variant="info">Female only</Badge> : '',
+            period: l.period === 'lifetime' ? 'Lifetime' : 'Yearly',
           }))} loading={loading} />
         </CardContent>
       </Card>
@@ -139,12 +159,7 @@ export default function TeacherLeaveManagementPage() {
             <h3 className="font-semibold text-gray-900">New Leave Application</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Select label="Leave Type" value={leaveType} onChange={(e) => setLeaveType(e.target.value)}
-                options={[
-                  { value: 'casual', label: 'Casual Leave' },
-                  { value: 'medical', label: 'Medical Leave' },
-                  { value: 'maternity', label: 'Maternity Leave' },
-                  { value: 'without_pay', label: 'Without Pay Leave' },
-                ]} placeholder="Select" />
+                options={leaveTypeOptions} placeholder="Select" />
               <Input label="From Date" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <Input label="To Date" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
             </div>
@@ -174,12 +189,7 @@ export default function TeacherLeaveManagementPage() {
               <h3 className="text-lg font-semibold text-gray-900">Edit Leave Application</h3>
 
               <Select label="Leave Type" value={editLeaveType} onChange={(e) => setEditLeaveType(e.target.value)}
-                options={[
-                  { value: 'casual', label: 'Casual Leave' },
-                  { value: 'medical', label: 'Medical Leave' },
-                  { value: 'maternity', label: 'Maternity Leave' },
-                  { value: 'without_pay', label: 'Without Pay Leave' },
-                ]} />
+                options={leaveTypeOptions} />
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input label="From Date" type="date" value={editFromDate} onChange={(e) => setEditFromDate(e.target.value)} />
