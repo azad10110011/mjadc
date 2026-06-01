@@ -55,27 +55,11 @@ export default function TeacherUpdateResultPage() {
         if (!currentUser) return
         const roles: string[] = currentUser.roles || []
         setIsExamController(roles.includes('exam_controller'))
-        if (roles.includes('teacher') && !roles.includes('exam_controller')) {
-          if (currentUser.result_subjects && currentUser.result_subjects.length > 0) {
-            setAvailableSubjects(currentUser.result_subjects)
-          }
-          return
-        }
-        // exam_controller (with or without teacher): show all subjects
-        api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
-          .then((tree) => {
-            const list: string[] = []
-            for (const group of tree.data) {
-              if (group.papers.length > 0) {
-                for (const paper of group.papers) list.push(paper.name)
-              } else {
-                list.push(group.name)
-              }
-            }
-            setAvailableSubjects(list)
-          })
-          .catch(() => {})
       })
+      .catch(() => {})
+
+    api.get<{ status: number; data: string[] }>('/teacher/subjects')
+      .then((res) => setAvailableSubjects(res.data || []))
       .catch(() => {})
   }, [])
 

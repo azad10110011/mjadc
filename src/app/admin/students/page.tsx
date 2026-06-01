@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, PhotoWithPreview } from '@/components/ui'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 
 import { api, UPLOAD_BASE } from '@/lib/api'
 
@@ -179,6 +180,18 @@ export default function AdminStudentsPage() {
     }
   }
 
+  const handleMoveUp = (id: number) => {
+    api.post(`/admin/students/${id}/move-up`, {})
+      .then(() => fetchStudents())
+      .catch(() => alert('Already at top'))
+  }
+
+  const handleMoveDown = (id: number) => {
+    api.post(`/admin/students/${id}/move-down`, {})
+      .then(() => fetchStudents())
+      .catch(() => alert('Already at bottom'))
+  }
+
   const handleFreeze = (userId: number) => {
     api.post(`/admin/users/${userId}/freeze`, {})
       .then(() => fetchStudents())
@@ -198,6 +211,7 @@ export default function AdminStudentsPage() {
   }
 
   const columns = [
+    { key: 'sl', label: 'SL' },
     { key: 'photo', label: 'Photo' },
     { key: 'student_id', label: 'Student ID' },
     { key: 'name', label: 'Name' },
@@ -208,7 +222,9 @@ export default function AdminStudentsPage() {
     { key: 'actions', label: 'Actions' },
   ]
 
-  const rows = students.map((s) => ({
+  const rows = students.map((s, i) => ({
+    ...s,
+    sl: i + 1,
     photo: s.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${s.photo_path}`} alt={s.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
     student_id: s.student_id,
     name: s.name,
@@ -217,7 +233,13 @@ export default function AdminStudentsPage() {
     student_group: s.student_group || '-',
     user_status: <Badge variant={s.user_status === 'frozen' ? 'danger' : 'success'}>{s.user_status || 'active'}</Badge>,
     actions: (
-      <div className="flex gap-2">
+      <div className="flex gap-1">
+        <Button variant="ghost" size="sm" onClick={() => handleMoveUp(s.id)} disabled={i === 0} title="Move up">
+          <ArrowUp className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => handleMoveDown(s.id)} disabled={i === students.length - 1} title="Move down">
+          <ArrowDown className="h-4 w-4" />
+        </Button>
         <Button variant="outline" size="sm" onClick={() => handleView(s)}>View</Button>
         <Button variant="secondary" size="sm" onClick={() => handleEdit(s)}>Edit</Button>
         {s.user_id && (s.user_status === 'frozen'

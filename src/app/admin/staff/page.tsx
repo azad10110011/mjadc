@@ -5,7 +5,7 @@ import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, Modal } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, ArrowUp, ArrowDown } from 'lucide-react'
 
 const calculateRetirement = (dob: string | null | undefined) => {
   if (!dob) return null
@@ -134,6 +134,18 @@ export default function AdminStaffPage() {
       .catch(() => {})
   }
 
+  const handleMoveUp = (id: number) => {
+    api.post(`/admin/teachers-staff/staff/${id}/move-up`, {})
+      .then(() => fetchStaff())
+      .catch(() => alert('Already at top'))
+  }
+
+  const handleMoveDown = (id: number) => {
+    api.post(`/admin/teachers-staff/staff/${id}/move-down`, {})
+      .then(() => fetchStaff())
+      .catch(() => alert('Already at bottom'))
+  }
+
   const handleFreeze = (userId: number) => {
     api.post(`/admin/users/${userId}/freeze`, {})
       .then(() => fetchStaff())
@@ -181,6 +193,7 @@ export default function AdminStaffPage() {
   }
 
   const columns = [
+    { key: 'sl', label: 'SL' },
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
@@ -192,14 +205,21 @@ export default function AdminStaffPage() {
     { key: 'actions', label: 'Actions' },
   ]
 
-  const rows = staff.map((s) => ({
+  const rows = staff.map((s, i) => ({
     ...s,
+    sl: i + 1,
     photo: s.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${s.photo_path}`} alt={s.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
     remaining_job_time: (calculateRetirement(s.date_of_birth) || {}).remaining || '-',
     retired_date: (calculateRetirement(s.date_of_birth) || {}).retiredDate || '-',
     status: <Badge variant={s.user_status === 'frozen' ? 'danger' : 'success'}>{s.user_status || 'active'}</Badge>,
     actions: (
-    <div className="flex gap-2">
+    <div className="flex gap-1">
+      <Button variant="ghost" size="sm" onClick={() => handleMoveUp(s.id)} disabled={i === 0} title="Move up">
+        <ArrowUp className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => handleMoveDown(s.id)} disabled={i === staff.length - 1} title="Move down">
+        <ArrowDown className="h-4 w-4" />
+      </Button>
       <Button variant="secondary" size="sm" onClick={() => setViewingStaff(s)}>View</Button>
       <Button variant="secondary" size="sm" onClick={() => handleEdit(s)}>Edit</Button>
       {s.user_id && (s.user_status === 'frozen'

@@ -5,7 +5,7 @@ import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, ArrowUp, ArrowDown } from 'lucide-react'
 
 const CLUBS = [
   { slug: 'bncc', name: 'BNCC' },
@@ -92,6 +92,18 @@ export default function AdminCoCurricularPage() {
     api.delete(`/admin/co-curricular/${selectedClub}/${id}`).then(() => fetchMembers()).catch(() => {})
   }
 
+  const handleMoveUp = (id: number) => {
+    api.post(`/admin/co-curricular/${selectedClub}/${id}/move-up`, {})
+      .then(() => fetchMembers())
+      .catch(() => alert('Already at top'))
+  }
+
+  const handleMoveDown = (id: number) => {
+    api.post(`/admin/co-curricular/${selectedClub}/${id}/move-down`, {})
+      .then(() => fetchMembers())
+      .catch(() => alert('Already at bottom'))
+  }
+
   const columns = [
     { key: 'sl', label: 'SL' },
     { key: 'photo', label: 'Photo' },
@@ -107,6 +119,12 @@ export default function AdminCoCurricularPage() {
     photo: m.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${m.photo_path}`} alt={m.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
     actions: (
       <div className="flex gap-1">
+        <Button variant="ghost" size="sm" onClick={() => handleMoveUp(m.id)} disabled={i === 0} title="Move up">
+          <ArrowUp className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => handleMoveDown(m.id)} disabled={i === members.length - 1} title="Move down">
+          <ArrowDown className="h-4 w-4" />
+        </Button>
         <Button variant="secondary" size="sm" onClick={() => handleEdit(m)}>Edit</Button>
         <Button variant="danger" size="sm" onClick={() => handleDelete(m.id)}>Delete</Button>
       </div>

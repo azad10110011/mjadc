@@ -28,6 +28,7 @@ interface SubjectGroup {
   name: string
   code?: string
   type: string
+  group: string
   papers: Paper[]
   parts: SubjectPart[]
 }
@@ -36,6 +37,13 @@ const SUBJECT_TYPES = [
   { value: 'public', label: 'Public (teacher directory)' },
   { value: 'result', label: 'Paper (exam)"' },
   { value: 'both', label: 'Both' },
+]
+
+const SUBJECT_GROUPS = [
+  { value: 'Common', label: 'Common' },
+  { value: 'Science', label: 'Science' },
+  { value: 'Business Studies', label: 'Business Studies' },
+  { value: 'Humanities', label: 'Humanities' },
 ]
 
 function PartRow({ part, subject, onEdit, onDelete }: {
@@ -70,6 +78,7 @@ export default function AdminSubjectsPage() {
   const [newName, setNewName] = useState('')
   const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState('public')
+  const [newGroup, setNewGroup] = useState('Common')
 
   // New paper dialog
   const [addingPaperFor, setAddingPaperFor] = useState<number | null>(null)
@@ -88,9 +97,10 @@ export default function AdminSubjectsPage() {
   const [editPartPass, setEditPartPass] = useState('')
 
   // Rename dialog
-  const [renaming, setRenaming] = useState<{ id: number; name: string; code?: string } | null>(null)
+  const [renaming, setRenaming] = useState<{ id: number; name: string; code?: string; group?: string } | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [renameCode, setRenameCode] = useState('')
+  const [renameGroup, setRenameGroup] = useState('Common')
 
   const fetchTree = () => {
     api.get<{ status: number; data: SubjectGroup[] }>('/admin/subjects/tree')
@@ -105,7 +115,7 @@ export default function AdminSubjectsPage() {
     const name = newName.trim()
     if (!name) { setError('Subject name required'); return }
     try {
-      await api.post('/admin/subjects', { name, code: newCode || undefined, type: newType })
+      await api.post('/admin/subjects', { name, code: newCode || undefined, type: newType, group: newGroup })
       setNewName(''); setNewCode('')
       fetchTree()
     } catch (err: unknown) {
@@ -192,7 +202,7 @@ export default function AdminSubjectsPage() {
   const handleRename = async () => {
     if (!renaming || !renameValue.trim()) return
     try {
-      await api.put(`/admin/subjects/${renaming.id}`, { name: renameValue.trim(), code: renameCode || undefined })
+      await api.put(`/admin/subjects/${renaming.id}`, { name: renameValue.trim(), code: renameCode || undefined, group: renameGroup })
       setRenaming(null)
       fetchTree()
     } catch (err: unknown) {
@@ -217,8 +227,11 @@ export default function AdminSubjectsPage() {
             <div className="w-32">
               <Input label="Subject Code" value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g. 101" />
             </div>
-            <div className="w-56">
+            <div className="w-40">
               <Select label="Type" options={SUBJECT_TYPES} value={newType} onChange={(e) => setNewType(e.target.value)} />
+            </div>
+            <div className="w-44">
+              <Select label="Group" options={SUBJECT_GROUPS} value={newGroup} onChange={(e) => setNewGroup(e.target.value)} />
             </div>
             <Button variant="primary" onClick={handleCreateSubject}>
               <Plus className="mr-1 h-4 w-4" /> Add Subject
@@ -245,10 +258,18 @@ export default function AdminSubjectsPage() {
                   <FolderOpen className="h-5 w-5 text-blue-500" />
                   <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
                   {group.code && <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-mono text-gray-600">{group.code}</span>}
-                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">Public</span>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{group.type}</span>
+                  {group.group && (
+                    <span className={`rounded-full px-2 py-0.5 text-xs ${
+                      group.group === 'Science' ? 'bg-green-100 text-green-700' :
+                      group.group === 'Business Studies' ? 'bg-amber-100 text-amber-700' :
+                      group.group === 'Humanities' ? 'bg-purple-100 text-purple-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>{group.group}</span>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name, code: group.code }); setRenameValue(group.name); setRenameCode(group.code || '') }}>
+                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name, code: group.code, group: group.group }); setRenameValue(group.name); setRenameCode(group.code || ''); setRenameGroup(group.group || 'Common') }}>
                     <Edit3 className="mr-1 h-3.5 w-3.5" /> Rename
                   </Button>
                   <Button size="sm" variant="danger" onClick={() => handleDeleteSubject(group.id)}>
@@ -362,6 +383,7 @@ export default function AdminSubjectsPage() {
             <div className="space-y-3">
               <Input label="New name" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRename()} autoFocus />
               <Input label="Subject Code" value={renameCode} onChange={(e) => setRenameCode(e.target.value)} placeholder="e.g. 101" />
+              <Select label="Group" options={SUBJECT_GROUPS} value={renameGroup} onChange={(e) => setRenameGroup(e.target.value)} />
             </div>
             <div className="mt-4 flex gap-2">
               <Button variant="primary" onClick={handleRename}>Save</Button>

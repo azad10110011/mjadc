@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, Modal } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, ArrowUp, ArrowDown } from 'lucide-react'
 
 const calculateRetirement = (dob: string | null | undefined) => {
   if (!dob) return null
@@ -32,16 +32,26 @@ const designations = [
   { value: 'Assistant Teacher', label: 'Assistant Teacher' },
 ]
 
+const TEACHER_GROUPS = [
+  { value: '', label: 'None' },
+  { value: 'Science', label: 'Science' },
+  { value: 'Business Studies', label: 'Business Studies' },
+  { value: 'Humanities', label: 'Humanities' },
+  { value: 'Common', label: 'Common' },
+]
+
 export default function AdminTeachersPage() {
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [publicSubjects, setPublicSubjects] = useState<string[]>([])
+  const [filteredSubjects, setFilteredSubjects] = useState<string[]>([])
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [nameBangla, setNameBangla] = useState('')
   const [designation, setDesignation] = useState('')
+  const [teacherGroup, setTeacherGroup] = useState('')
   const [subject, setSubject] = useState('')
   const [joiningDate, setJoiningDate] = useState('')
   const [firstMpoDate, setFirstMpoDate] = useState('')
@@ -57,14 +67,28 @@ export default function AdminTeachersPage() {
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
   const [viewingTeacher, setViewingTeacher] = useState<any | null>(null)
 
-  useEffect(() => {
-    api.get<{ status: number; data: string[] }>('/subjects')
-      .then((res) => setPublicSubjects(res.data))
+  const fetchSubjects = useCallback((group: string) => {
+    const query = group ? `/subjects?group=${encodeURIComponent(group)}` : '/subjects'
+    api.get<{ status: number; data: string[] }>(query)
+      .then((res) => setFilteredSubjects(res.data))
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    api.get<{ status: number; data: string[] }>('/subjects')
+      .then((res) => {
+        setPublicSubjects(res.data)
+        setFilteredSubjects(res.data)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetchSubjects(teacherGroup)
+  }, [teacherGroup, fetchSubjects])
+
   const resetForm = () => {
-    setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setSubject('')
+    setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setTeacherGroup(''); setSubject('')
     setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPhotoFile(null); setExistingPhotoPath(null)
   }
 
@@ -96,21 +120,18 @@ export default function AdminTeachersPage() {
         present_address: presentAddress || undefined,
         permanent_address: permanentAddress || undefined,
       }
+      const payload = {
+        name, designation, subject: subject || undefined,
+        group: teacherGroup || undefined,
+        joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email,
+        ...extraFields,
+        ...(photoPath && { photo_path: photoPath }),
+      }
       if (editingId) {
-        await api.put(`/admin/teachers-staff/teacher/${editingId}`, {
-          name, designation, subject: subject || undefined,
-          joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email,
-          ...extraFields,
-          ...(photoPath && { photo_path: photoPath }),
-        })
+        await api.put(`/admin/teachers-staff/teacher/${editingId}`, payload)
         alert('Teacher updated successfully')
       } else {
-        await api.post('/admin/teachers-staff/teacher', {
-          name, designation, subject: subject || undefined,
-          joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email,
-          ...extraFields,
-          ...(photoPath && { photo_path: photoPath }),
-        })
+        await api.post('/admin/teachers-staff/teacher', payload)
         alert('Teacher added successfully')
       }
       resetForm()
@@ -125,7 +146,7 @@ export default function AdminTeachersPage() {
 
   const handleEdit = (t: any) => {
     setEditingId(t.id); setName(t.name); setNameBangla(t.name_bangla || '')
-    setDesignation(t.designation)
+    setDesignation(t.designation); setTeacherGroup(t.group || '')
     setSubject(t.subject || ''); setJoiningDate(t.joining_date || ''); setFirstMpoDate(t.first_mpo_date || '')
     setDateOfBirth(t.date_of_birth || ''); setGender(t.gender || ''); setMobile(t.mobile || ''); setWhatsappNumber(t.whatsapp_number || ''); setNidNumber(t.nid_number || ''); setEmail(t.email || ''); setPresentAddress(t.present_address || ''); setPermanentAddress(t.permanent_address || '')
     setExistingPhotoPath(t.photo_path || null); setPhotoFile(null)
@@ -136,6 +157,18 @@ export default function AdminTeachersPage() {
     api.delete(`/admin/teachers-staff/teacher/${id}`)
       .then(() => fetchTeachers())
       .catch(() => {})
+  }
+
+  const handleMoveUp = (id: number) => {
+    api.post(`/admin/teachers-staff/teacher/${id}/move-up`, {})
+      .then(() => fetchTeachers())
+      .catch(() => alert('Already at top'))
+  }
+
+  const handleMoveDown = (id: number) => {
+    api.post(`/admin/teachers-staff/teacher/${id}/move-down`, {})
+      .then(() => fetchTeachers())
+      .catch(() => alert('Already at bottom'))
   }
 
   const handleFreeze = (userId: number) => {
@@ -164,9 +197,11 @@ export default function AdminTeachersPage() {
             <h3 className="text-xl font-semibold">{t.name}</h3>
             {t.name_bangla && <p className="text-sm text-gray-500">{t.name_bangla}</p>}
             <p className="text-sm text-gray-600">{t.designation}{t.subject ? ` (${t.subject})` : ''}</p>
+            {t.group && <p className="text-xs text-gray-400">Group: {t.group}</p>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
+          <div><span className="font-medium text-gray-500">Group</span><p className="text-gray-900">{t.group || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Gender</span><p className="text-gray-900 capitalize">{t.gender}</p></div>
           <div><span className="font-medium text-gray-500">Mobile</span><p className="text-gray-900">{t.mobile}</p></div>
           <div><span className="font-medium text-gray-500">Email</span><p className="text-gray-900">{t.email || '-'}</p></div>
@@ -185,9 +220,11 @@ export default function AdminTeachersPage() {
   }
 
   const columns = [
+    { key: 'sl', label: 'SL' },
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
+    { key: 'group', label: 'Group' },
     { key: 'subject', label: 'Subject' },
     { key: 'remaining_job_time', label: 'Remaining Job Time' },
     { key: 'retired_date', label: 'Retired Date' },
@@ -197,14 +234,21 @@ export default function AdminTeachersPage() {
     { key: 'actions', label: 'Actions' },
   ]
 
-  const rows = teachers.map((t) => ({
+  const rows = teachers.map((t, i) => ({
     ...t,
+    sl: i + 1,
     photo: t.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${t.photo_path}`} alt={t.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
     remaining_job_time: (calculateRetirement(t.date_of_birth) || {}).remaining || '-',
     retired_date: (calculateRetirement(t.date_of_birth) || {}).retiredDate || '-',
     status: <Badge variant={t.user_status === 'frozen' ? 'danger' : 'success'}>{t.user_status || 'active'}</Badge>,
     actions: (
-    <div className="flex gap-2">
+    <div className="flex gap-1">
+      <Button variant="ghost" size="sm" onClick={() => handleMoveUp(t.id)} disabled={i === 0} title="Move up">
+        <ArrowUp className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => handleMoveDown(t.id)} disabled={i === teachers.length - 1} title="Move down">
+        <ArrowDown className="h-4 w-4" />
+      </Button>
       <Button variant="secondary" size="sm" onClick={() => setViewingTeacher(t)}>View</Button>
       <Button variant="secondary" size="sm" onClick={() => handleEdit(t)}>Edit</Button>
       {t.user_id && (t.user_status === 'frozen'
@@ -229,7 +273,8 @@ export default function AdminTeachersPage() {
             <Input label="Name (English)" placeholder="Full name in English" required value={name} onChange={(e) => setName(e.target.value)} />
             <Input label="Name (Bangla)" placeholder="পূর্ণ নাম বাংলায়" value={nameBangla} onChange={(e) => setNameBangla(e.target.value)} />
             <Select label="Designation" options={designations} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Select" />
-            <Select label="Subject" options={publicSubjects.map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
+            <Select label="Group" options={TEACHER_GROUPS} value={teacherGroup} onChange={(e) => setTeacherGroup(e.target.value)} placeholder="Select Group" />
+            <Select label="Subject" options={(teacherGroup ? filteredSubjects : publicSubjects).map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
             <Input label="Joining Date" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} required />
             <Input label="1st MPO Date" type="date" value={firstMpoDate} onChange={(e) => setFirstMpoDate(e.target.value)} />
             <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
