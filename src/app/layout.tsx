@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MJADC - Miah Jinnah Alam Degree College",
   description: "Official website of Miah Jinnah Alam Degree College",
-  icons: { icon: "/favicon.ico" },
+  icons: { icon: "/college_logo.png" },
 }
 
 export default function RootLayout({

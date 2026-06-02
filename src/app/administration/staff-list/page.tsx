@@ -30,7 +30,7 @@ export default function StaffListPage() {
       <Link href="/administration" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Administration
       </Link>
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">Staff List</h1>
+      <h1 className="mb-6 text-2xl md:text-3xl font-bold text-gray-900">Staff List</h1>
       <div className="overflow-x-auto rounded-xl border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

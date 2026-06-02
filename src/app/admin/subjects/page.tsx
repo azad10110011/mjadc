@@ -40,10 +40,11 @@ const SUBJECT_TYPES = [
 ]
 
 const SUBJECT_GROUPS = [
-  { value: 'Common', label: 'Common' },
+  { value: 'General', label: 'General' },
   { value: 'Science', label: 'Science' },
   { value: 'Business Studies', label: 'Business Studies' },
   { value: 'Humanities', label: 'Humanities' },
+  { value: 'BMT', label: 'BMT' },
 ]
 
 function PartRow({ part, subject, onEdit, onDelete }: {
@@ -78,7 +79,7 @@ export default function AdminSubjectsPage() {
   const [newName, setNewName] = useState('')
   const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState('public')
-  const [newGroup, setNewGroup] = useState('Common')
+  const [newGroup, setNewGroup] = useState('General')
 
   // New paper dialog
   const [addingPaperFor, setAddingPaperFor] = useState<number | null>(null)
@@ -97,10 +98,11 @@ export default function AdminSubjectsPage() {
   const [editPartPass, setEditPartPass] = useState('')
 
   // Rename dialog
-  const [renaming, setRenaming] = useState<{ id: number; name: string; code?: string; group?: string } | null>(null)
+  const [renaming, setRenaming] = useState<{ id: number; name: string; code?: string; group?: string; type?: string } | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [renameCode, setRenameCode] = useState('')
-  const [renameGroup, setRenameGroup] = useState('Common')
+  const [renameGroup, setRenameGroup] = useState('General')
+  const [renameType, setRenameType] = useState('public')
 
   const fetchTree = () => {
     api.get<{ status: number; data: SubjectGroup[] }>('/admin/subjects/tree')
@@ -202,7 +204,12 @@ export default function AdminSubjectsPage() {
   const handleRename = async () => {
     if (!renaming || !renameValue.trim()) return
     try {
-      await api.put(`/admin/subjects/${renaming.id}`, { name: renameValue.trim(), code: renameCode || undefined, group: renameGroup })
+      await api.put(`/admin/subjects/${renaming.id}`, {
+        name: renameValue.trim(),
+        code: renameCode || undefined,
+        group: renameGroup,
+        type: renameType,
+      })
       setRenaming(null)
       fetchTree()
     } catch (err: unknown) {
@@ -269,7 +276,7 @@ export default function AdminSubjectsPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name, code: group.code, group: group.group }); setRenameValue(group.name); setRenameCode(group.code || ''); setRenameGroup(group.group || 'Common') }}>
+                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name, code: group.code, group: group.group, type: group.type }); setRenameValue(group.name); setRenameCode(group.code || ''); setRenameGroup(group.group || 'General'); setRenameType(group.type || 'public') }}>
                     <Edit3 className="mr-1 h-3.5 w-3.5" /> Rename
                   </Button>
                   <Button size="sm" variant="danger" onClick={() => handleDeleteSubject(group.id)}>
@@ -383,6 +390,7 @@ export default function AdminSubjectsPage() {
             <div className="space-y-3">
               <Input label="New name" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRename()} autoFocus />
               <Input label="Subject Code" value={renameCode} onChange={(e) => setRenameCode(e.target.value)} placeholder="e.g. 101" />
+              <Select label="Type" options={SUBJECT_TYPES} value={renameType} onChange={(e) => setRenameType(e.target.value)} />
               <Select label="Group" options={SUBJECT_GROUPS} value={renameGroup} onChange={(e) => setRenameGroup(e.target.value)} />
             </div>
             <div className="mt-4 flex gap-2">

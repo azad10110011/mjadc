@@ -11,6 +11,7 @@ const navItems = [
     label: 'About Us',
     children: [
       { label: 'About MJADC', href: '/about' },
+      { label: 'Achievement', href: '/achievements' },
       { label: 'Academic Approval', href: '/about/academic-approval' },
     ],
   },
@@ -51,6 +52,7 @@ const navItems = [
       { label: 'Science', href: '/departments/science' },
       { label: 'Business Studies', href: '/departments/business-studies' },
       { label: 'Humanities', href: '/departments/humanities' },
+      { label: 'General', href: '/departments/general' },
       { label: 'BMT', href: '/departments/bmt' },
     ],
   },
@@ -61,6 +63,7 @@ const navItems = [
       { label: 'Rover Scout', href: '/co-curricular/rover-scout' },
       { label: 'Science Club', href: '/co-curricular/science-club' },
       { label: 'Debating Club', href: '/co-curricular/debating-club' },
+      { label: 'Gallery', href: '/gallery' },
     ],
   },
   { label: 'Contact Us', href: '/contact' },
@@ -75,19 +78,17 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
-            MJ
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-semibold leading-tight text-gray-900">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <img src="/college_logo.png" alt="MJADC Logo" className="h-9 w-9 md:h-10 md:w-10 rounded-lg object-cover" />
+          <div className="hidden md:block">
+            <p className="text-xs md:text-sm font-semibold leading-tight text-gray-900">
               Miah Jinnah Alam
             </p>
-            <p className="text-xs leading-tight text-gray-500">Degree College</p>
+            <p className="text-[10px] md:text-xs leading-tight text-gray-500">Degree College</p>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden xl:flex items-center gap-0.5">
           {navItems.map((item) => (
             <div
               key={item.label}
@@ -97,10 +98,10 @@ export function Header() {
             >
               <Link
                 href={item.href || '#'}
-                className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                className="flex items-center gap-1 rounded-md px-2 py-2 text-xs 2xl:text-sm font-medium text-gray-700 hover:bg-gray-100 whitespace-nowrap"
               >
                 {item.label}
-                {item.children && <ChevronDown className="h-3.5 w-3.5" />}
+                {item.children && <ChevronDown className="h-3 w-3 2xl:h-3.5 2xl:w-3.5" />}
               </Link>
               {item.children && openDropdown === item.label && (
                 <div className="absolute left-0 top-full z-50 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
@@ -119,12 +120,15 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
           <Link href="/student/login">
-            <Button variant="primary" size="sm">Student Login</Button>
+            <Button variant="primary" size="sm" className="hidden sm:inline-flex text-xs px-2 whitespace-nowrap">Student Login</Button>
+            <Button variant="primary" size="sm" className="sm:hidden px-2" aria-label="Student Login">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </Button>
           </Link>
           <button
-            className="rounded-md p-2 text-gray-700 hover:bg-gray-100 lg:hidden"
+            className="rounded-md p-2 text-gray-700 hover:bg-gray-100 xl:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -133,13 +137,13 @@ export function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-gray-200 bg-white lg:hidden">
+        <div className="border-t border-gray-200 bg-white xl:hidden max-h-[80vh] overflow-y-auto">
           <div className="space-y-1 px-4 py-3">
             {navItems.map((item) => (
               <div key={item.label}>
                 <Link
                   href={item.href || '#'}
-                  className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  className="block rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
                   onClick={() => { setMobileOpen(false); setOpenDropdown(null) }}
                 >
                   {item.label}
@@ -156,6 +160,23 @@ export function Header() {
                 ))}
               </div>
             ))}
+            <div className="border-t border-gray-200 pt-2 mt-2">
+              <Link
+                href="/student/login"
+                className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                onClick={() => setMobileOpen(false)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Student Login
+              </Link>
+              <Link
+                href="/pay-fees"
+                className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                onClick={() => setMobileOpen(false)}
+              >
+                Pay Fees
+              </Link>
+            </div>
           </div>
         </div>
       )}

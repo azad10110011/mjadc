@@ -21,7 +21,7 @@ export default function AcademicApprovalPage() {
       <Link href="/about" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> About Us
       </Link>
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">Academic Approval</h1>
+      <h1 className="mb-6 text-2xl md:text-3xl font-bold text-gray-900">Academic Approval</h1>
       <div className="flex flex-col gap-6">
         {items.map((item) => (
           <div key={item.id} className="rounded-xl border border-gray-200 bg-white p-6">

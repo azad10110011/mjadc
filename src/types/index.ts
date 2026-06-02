@@ -383,6 +383,7 @@ export const DEPARTMENTS = [
   { slug: 'science', name: 'Science' },
   { slug: 'business-studies', name: 'Business Studies' },
   { slug: 'humanities', name: 'Humanities' },
+  { slug: 'general', name: 'General' },
   { slug: 'bmt', name: 'BMT (Business Management & Technology)' },
 ]
 

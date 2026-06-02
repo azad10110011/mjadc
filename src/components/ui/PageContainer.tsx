@@ -60,7 +60,7 @@ export function PageContainer({ children, className = '' }: { children: ReactNod
   }, [fontSize, fontWeight, uid])
 
   return (
-    <div className={`mx-auto px-4 py-12 ${fontClasses} ${uid} ${className}`} style={{ width: `${pageWidth}%` }}>
+    <div className={`mx-auto px-4 py-8 md:py-12 ${fontClasses} ${uid} ${className}`} style={{ width: `${pageWidth}%` }}>
       {children}
     </div>
   )

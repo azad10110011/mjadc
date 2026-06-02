@@ -37,7 +37,7 @@ export default function SyllabusPage() {
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">Syllabus</h1>
+      <h1 className="mb-6 text-2xl md:text-3xl font-bold text-gray-900">Syllabus</h1>
       {classKeys.map((cls) => (
         <div key={cls} className="mb-8">
           <h2 className="mb-4 text-xl font-semibold text-gray-900">{classLabels[cls] || cls}</h2>

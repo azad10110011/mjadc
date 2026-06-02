@@ -21,7 +21,8 @@ const TEACHER_GROUPS = [
   { value: 'Science', label: 'Science' },
   { value: 'Business Studies', label: 'Business Studies' },
   { value: 'Humanities', label: 'Humanities' },
-  { value: 'Common', label: 'Common' },
+  { value: 'General', label: 'General' },
+  { value: 'BMT', label: 'BMT' },
 ]
 
 export default function PrincipalAddTeacherPage() {

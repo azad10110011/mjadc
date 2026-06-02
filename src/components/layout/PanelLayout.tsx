@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, GraduationCap, Users, BookOpen,
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck,
-  DollarSign, ClipboardList, Upload, Download, CheckSquare,
-  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type,
+  ClipboardList, Upload, Download, CheckSquare,
+  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
@@ -73,9 +73,11 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Career Club', href: '/admin/career-club', icon: <Users className="h-4 w-4" /> },
     { label: 'Co-Curricular', href: '/admin/co-curricular', icon: <Users className="h-4 w-4" /> },
     { label: 'Student Info', href: '/admin/student-info', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Achievements', href: '/admin/achievements', icon: <Award className="h-4 w-4" /> },
     { label: 'Academic Approvals', href: '/admin/academic-approvals', icon: <FileText className="h-4 w-4" /> },
     { label: 'Forms', href: '/admin/forms', icon: <Download className="h-4 w-4" /> },
     { label: 'Pages', icon: <FileText className="h-4 w-4" />, children: PAGE_SUB_ITEMS },
+    { label: 'Gallery', href: '/admin/gallery', icon: <Image className="h-4 w-4" /> },
     { label: 'Media', href: '/admin/media', icon: <Image className="h-4 w-4" /> },
     { label: 'Users', icon: <UserCog className="h-4 w-4" />, children: [
       { label: 'All Users', href: '/admin/users' },

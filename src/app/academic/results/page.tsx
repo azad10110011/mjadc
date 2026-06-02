@@ -101,7 +101,7 @@ export default function ResultsPage() {
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">Result Search</h1>
+      <h1 className="mb-6 text-2xl md:text-3xl font-bold text-gray-900">Result Search</h1>
 
       <Card className="mb-8">
         <CardContent className="space-y-4 pt-6">

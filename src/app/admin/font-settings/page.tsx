@@ -76,6 +76,7 @@ const PUBLIC_PAGES: { category: string; pages: { label: string; path: string }[]
       { label: 'Science', path: '/departments/science' },
       { label: 'Business Studies', path: '/departments/business-studies' },
       { label: 'Humanities', path: '/departments/humanities' },
+      { label: 'General', path: '/departments/general' },
       { label: 'BMT', path: '/departments/bmt' },
     ],
   },

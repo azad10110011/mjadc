@@ -68,7 +68,7 @@ export default function AdmissionPage() {
       <Link href="/" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Home
       </Link>
-      <h1 className="mb-2 text-3xl font-bold text-gray-900">Online Admission</h1>
+      <h1 className="mb-2 text-2xl md:text-3xl font-bold text-gray-900">Online Admission</h1>
       <p className="mb-4 text-gray-600">Apply for admission to Miah Jinnah Alam Degree College</p>
 
       <div className="prose max-w-none text-gray-700 mb-8">

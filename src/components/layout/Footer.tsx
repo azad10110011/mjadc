@@ -25,8 +25,8 @@ export function Footer() {
 
   return (
     <footer className="border-t border-gray-200 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 py-10">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:py-10">
+        <div className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-900">Contact</h3>
             <ul className="space-y-2 text-sm text-gray-600">
@@ -72,7 +72,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-gray-200 bg-white py-4 text-center">
-        <p className="text-sm text-gray-500">{footerText}</p>
+        <p className="text-xs md:text-sm text-gray-500 px-4">{footerText}</p>
       </div>
     </footer>
   )

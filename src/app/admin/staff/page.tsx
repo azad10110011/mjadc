@@ -182,6 +182,7 @@ export default function AdminStaffPage() {
           <div><span className="font-medium text-gray-500">NID Number</span><p className="text-gray-900">{s.nid_number || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Joining Date</span><p className="text-gray-900">{s.joining_date || '-'}</p></div>
           <div><span className="font-medium text-gray-500">1st MPO Date</span><p className="text-gray-900">{s.first_mpo_date || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">Experience</span><p className="text-gray-900">{s.experience || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Date of Birth</span><p className="text-gray-900">{s.date_of_birth || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Remaining Job Time</span><p className="text-gray-900">{retirement ? retirement.remaining : '-'}</p></div>
           <div><span className="font-medium text-gray-500">Retired Date</span><p className="text-gray-900">{retirement ? retirement.retiredDate : '-'}</p></div>
@@ -197,6 +198,7 @@ export default function AdminStaffPage() {
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
+    { key: 'experience', label: 'Experience' },
     { key: 'remaining_job_time', label: 'Remaining Job Time' },
     { key: 'retired_date', label: 'Retired Date' },
     { key: 'mobile', label: 'Mobile' },
@@ -209,6 +211,7 @@ export default function AdminStaffPage() {
     ...s,
     sl: i + 1,
     photo: s.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${s.photo_path}`} alt={s.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
+    experience: s.experience || '-',
     remaining_job_time: (calculateRetirement(s.date_of_birth) || {}).remaining || '-',
     retired_date: (calculateRetirement(s.date_of_birth) || {}).retiredDate || '-',
     status: <Badge variant={s.user_status === 'frozen' ? 'danger' : 'success'}>{s.user_status || 'active'}</Badge>,

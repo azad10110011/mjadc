@@ -31,7 +31,7 @@ export default function GoverningBodyPage() {
       <Link href="/administration" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Administration
       </Link>
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">Governing Body</h1>
+      <h1 className="mb-6 text-2xl md:text-3xl font-bold text-gray-900">Governing Body</h1>
       <div className="prose max-w-none text-gray-700 mb-8">
         <DynamicContent pageKey="governing_body" />
       </div>

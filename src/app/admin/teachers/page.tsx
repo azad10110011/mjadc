@@ -37,7 +37,8 @@ const TEACHER_GROUPS = [
   { value: 'Science', label: 'Science' },
   { value: 'Business Studies', label: 'Business Studies' },
   { value: 'Humanities', label: 'Humanities' },
-  { value: 'Common', label: 'Common' },
+  { value: 'General', label: 'General' },
+  { value: 'BMT', label: 'BMT' },
 ]
 
 export default function AdminTeachersPage() {
@@ -209,6 +210,7 @@ export default function AdminTeachersPage() {
           <div><span className="font-medium text-gray-500">NID Number</span><p className="text-gray-900">{t.nid_number || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Joining Date</span><p className="text-gray-900">{t.joining_date || '-'}</p></div>
           <div><span className="font-medium text-gray-500">1st MPO Date</span><p className="text-gray-900">{t.first_mpo_date || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">Experience</span><p className="text-gray-900">{t.experience || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Date of Birth</span><p className="text-gray-900">{t.date_of_birth || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Remaining Job Time</span><p className="text-gray-900">{retirement ? retirement.remaining : '-'}</p></div>
           <div><span className="font-medium text-gray-500">Retired Date</span><p className="text-gray-900">{retirement ? retirement.retiredDate : '-'}</p></div>
@@ -226,6 +228,7 @@ export default function AdminTeachersPage() {
     { key: 'designation', label: 'Designation' },
     { key: 'group', label: 'Group' },
     { key: 'subject', label: 'Subject' },
+    { key: 'experience', label: 'Experience' },
     { key: 'remaining_job_time', label: 'Remaining Job Time' },
     { key: 'retired_date', label: 'Retired Date' },
     { key: 'mobile', label: 'Mobile' },
@@ -238,6 +241,7 @@ export default function AdminTeachersPage() {
     ...t,
     sl: i + 1,
     photo: t.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${t.photo_path}`} alt={t.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
+    experience: t.experience || '-',
     remaining_job_time: (calculateRetirement(t.date_of_birth) || {}).remaining || '-',
     retired_date: (calculateRetirement(t.date_of_birth) || {}).retiredDate || '-',
     status: <Badge variant={t.user_status === 'frozen' ? 'danger' : 'success'}>{t.user_status || 'active'}</Badge>,

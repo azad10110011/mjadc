@@ -24,7 +24,7 @@ export default function StudentInfoPage() {
       <Link href="/academic" className="mb-6 inline-flex items-center text-sm text-gray-600 hover:text-blue-600">
         <ArrowLeft className="mr-1 h-4 w-4" /> Academic
       </Link>
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">Student Info</h1>
+      <h1 className="mb-6 text-2xl md:text-3xl font-bold text-gray-900">Student Info</h1>
 
       {headings.length > 0 ? (
         <div className="overflow-x-auto rounded-xl border border-gray-200">

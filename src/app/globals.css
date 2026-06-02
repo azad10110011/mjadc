@@ -44,3 +44,17 @@ body {
     display: none !important;
   }
 }
+
+.responsive-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.responsive-table table {
+  min-width: 600px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

@@ -1,13 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { GraduationCap, CalendarDays, FileText, Award, ArrowRight } from 'lucide-react'
-import { DynamicContent } from '@/components/ui/DynamicContent'
+import { usePublicFont } from '@/contexts/PublicFontContext'
 import { api, UPLOAD_BASE } from '@/lib/api'
 
 import type { Notice } from '@/types'
+
+const HP_FONT_SIZE_MAP: Record<string, string> = {
+  'text-xs': '0.75rem',
+  'text-sm': '0.875rem',
+  'text-base': '1rem',
+  'text-lg': '1.125rem',
+  'text-xl': '1.25rem',
+  'text-2xl': '1.5rem',
+}
+
+const HP_FONT_WEIGHT_MAP: Record<string, string> = {
+  'font-normal': '400',
+  'font-medium': '500',
+  'font-semibold': '600',
+  'font-bold': '700',
+}
 
 export default function HomePage() {
   const [notices, setNotices] = useState<Notice[]>([])
@@ -16,6 +33,16 @@ export default function HomePage() {
   const [heroImages, setHeroImages] = useState<string[]>([])
   const [heroInterval, setHeroInterval] = useState(2)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [galleryImages, setGalleryImages] = useState<{ id: number; photo_path: string; caption: string; event_name: string }[]>([])
+  const pathname = usePathname()
+  const { getFontForPath } = usePublicFont()
+  const fontClasses = getFontForPath(pathname)
+  const parts = fontClasses.split(' ')
+  const hpFontSizeClass = parts.find((c) => HP_FONT_SIZE_MAP[c])
+  const hpFontWeightClass = parts.find((c) => HP_FONT_WEIGHT_MAP[c])
+  const hpFontSize = hpFontSizeClass ? HP_FONT_SIZE_MAP[hpFontSizeClass] : ''
+  const hpFontWeight = hpFontWeightClass ? HP_FONT_WEIGHT_MAP[hpFontWeightClass] : ''
+  const hpUid = useMemo(() => `hp-${pathname.replace(/[/]/g, '_')}`, [pathname])
 
   useEffect(() => {
     api.get<{ data: Notice[] }>('/notices').then((res) => {
@@ -38,6 +65,9 @@ export default function HomePage() {
     api.get<{ data: { setting_value: string } }>('/settings/hero_interval')
       .then((res) => { const v = parseInt(res.data?.setting_value, 10); if (v > 0) setHeroInterval(v) })
       .catch(() => {})
+    api.get<{ data: { id: number; photo_path: string; caption: string; event_name: string }[] }>('/gallery')
+      .then((res) => setGalleryImages(res.data || []))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -48,9 +78,33 @@ export default function HomePage() {
     return () => clearInterval(timer)
   }, [heroImages.length, heroInterval])
 
+  useEffect(() => {
+    const styleId = `hp-style-${hpUid}`
+    const existing = document.getElementById(styleId)
+    if (existing) existing.remove()
+
+    if (hpFontSize || hpFontWeight) {
+      const style = document.createElement('style')
+      style.id = styleId
+      style.textContent = `
+        .${hpUid},
+        .${hpUid} * {
+          ${hpFontSize ? `font-size: ${hpFontSize} !important;` : ''}
+          ${hpFontWeight ? `font-weight: ${hpFontWeight} !important;` : ''}
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    return () => {
+      const s = document.getElementById(styleId)
+      if (s) s.remove()
+    }
+  }, [hpFontSize, hpFontWeight, hpUid])
+
   return (
     <div>
-      <section className="relative py-24 text-white overflow-hidden">
+      <section className="relative py-16 md:py-24 text-white overflow-hidden min-h-[50vh] md:min-h-[60vh] flex items-center">
         {heroImages.length > 0 ? (
           heroImages.map((img, i) => (
             <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${i === currentSlide ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundImage: `url(${UPLOAD_BASE}/${img})` }} />
@@ -60,24 +114,25 @@ export default function HomePage() {
         )}
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 mx-auto max-w-7xl px-4 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="mb-3 md:mb-4 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight leading-tight">
             মিঞা জিন্নাহ আলম ডিগ্রী কলেজ
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-blue-100">
+          <p className="mx-auto mb-6 md:mb-8 max-w-2xl text-sm sm:text-base md:text-lg text-blue-100">
             Empowering education, building futures — since our founding
           </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/academic/results"><Button variant="primary" size="lg">View Results</Button></Link>
-            <Link href="/admission"><Button variant="secondary" size="lg" className="bg-white/20 text-white hover:bg-white/30">Apply for Admission</Button></Link>
-            <Link href="/pay-fees"><Button variant="secondary" size="lg" className="bg-white/20 text-white hover:bg-white/30">Pay Fees</Button></Link>
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-2 sm:gap-3">
+            <Link href="/achievements"><Button variant="primary" size="lg" className="w-full sm:w-auto text-sm md:text-base">Achievement</Button></Link>
+            <Link href="/academic/results"><Button variant="primary" size="lg" className="w-full sm:w-auto text-sm md:text-base">View Results</Button></Link>
+            <Link href="/admission"><Button variant="primary" size="lg" className="w-full sm:w-auto text-sm md:text-base">Apply for Admission</Button></Link>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-gray-200 bg-white py-3 overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 flex items-center gap-2 text-sm text-gray-600">
-          <FileText className="h-4 w-4 shrink-0 text-blue-600" />
-          <span className="shrink-0 font-medium text-blue-600">Latest Notices:</span>
+      <div className={fontClasses ? `${fontClasses} ${hpUid}` : hpUid}>
+      <section className="border-b border-gray-200 bg-white py-2 md:py-3 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-gray-600">
+          <FileText className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-blue-600" />
+          <span className="shrink-0 font-medium text-blue-600 whitespace-nowrap">Latest Notices:</span>
           <div className="overflow-hidden">
             <div className="animate-scroll flex gap-12 whitespace-nowrap">
               {notices.length > 0 ? (
@@ -101,9 +156,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16">
+      <section className="py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { icon: GraduationCap, title: 'Academic Excellence', desc: 'HSC & Degree programs with dedicated faculty' },
               { icon: Award, title: 'Scholarships', desc: 'Merit-based and need-based financial support' },
@@ -122,11 +177,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-gray-50 py-16">
+      <section className="bg-gray-50 py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="grid items-center gap-12 md:grid-cols-2">
+          <div className="grid items-center gap-8 md:gap-12 md:grid-cols-2">
             <div>
-              <h2 className="mb-4 text-3xl font-bold text-gray-900">About the College</h2>
+              <h2 className="mb-4 text-2xl md:text-3xl font-bold text-gray-900">About the College</h2>
               {aboutContent ? (
                 <p className="mb-6 leading-relaxed text-gray-600">{aboutContent.replace(/<[^>]+>/g, '').substring(0, 300)}...</p>
               ) : (
@@ -151,18 +206,41 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-16">
+      <section className="bg-white py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="prose max-w-none text-gray-700">
-            <DynamicContent pageKey="home" />
+          <h2 className="mb-6 text-center text-xl md:text-2xl font-bold text-gray-900">Gallery</h2>
+          {galleryImages.length > 0 ? (
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+              {galleryImages.slice(0, 8).map((img) => (
+                <Link key={img.id} href="/gallery" className="group relative aspect-video overflow-hidden rounded-xl bg-gray-100">
+                  <img
+                    src={`${UPLOAD_BASE}/${img.photo_path}`}
+                    alt={img.caption || ''}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                  {(img.event_name || img.caption) && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                      {img.event_name && <p className="text-xs font-semibold text-white truncate">{img.event_name}</p>}
+                      {img.caption && <p className="text-[10px] text-gray-200 truncate">{img.caption}</p>}
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500">No images in gallery yet.</p>
+          )}
+          <div className="mt-6 text-center">
+            <Link href="/gallery"><Button variant="outline">View All Photos</Button></Link>
           </div>
         </div>
       </section>
 
-      <section className="py-16">
+      <section className="py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-8 text-center text-2xl font-bold text-gray-900">Quick Links</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <h2 className="mb-6 md:mb-8 text-center text-xl md:text-2xl font-bold text-gray-900">Quick Links</h2>
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: 'Class Routine', href: '/academic/routine' },
               { label: 'Syllabus', href: '/academic/syllabus' },
@@ -179,6 +257,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      </div>
     </div>
   )
 }
