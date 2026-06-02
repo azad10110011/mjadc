@@ -10,6 +10,7 @@ export function Footer() {
   const [contactAddress, setContactAddress] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [contactEmail, setContactEmail] = useState('')
+  const [lastUpdated, setLastUpdated] = useState('')
 
   useEffect(() => {
     api.get<{ data: { setting_value: string } }>('/settings/footer-text')
@@ -20,6 +21,15 @@ export function Footer() {
         setContactAddress(res.data.address || '')
         setContactPhone(res.data.phone || '')
         setContactEmail(res.data.email || '')
+      }).catch(() => {})
+    api.get<{ status: number; data: { last_updated: string } }>('/settings/last-updated')
+      .then((res) => {
+        const date = new Date(res.data.last_updated)
+        const formatted = date.toLocaleString('bn-BD', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        })
+        setLastUpdated(`সাইটটি শেষ হাল-নাগাদ করা হয়েছে: ${formatted}`)
       }).catch(() => {})
   }, [])
 
@@ -73,6 +83,9 @@ export function Footer() {
       </div>
       <div className="border-t border-gray-200 bg-white py-4 text-center">
         <p className="text-xs md:text-sm text-gray-500 px-4">{footerText}</p>
+        {lastUpdated && (
+          <p className="mt-1 text-xs text-gray-400 px-4">{lastUpdated}</p>
+        )}
       </div>
     </footer>
   )
