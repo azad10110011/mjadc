@@ -24,10 +24,11 @@ export function Footer() {
       }).catch(() => {})
     api.get<{ status: number; data: { last_updated: string } }>('/settings/last-updated')
       .then((res) => {
-        const date = new Date(res.data.last_updated)
+        const date = new Date(res.data.last_updated.replace(' ', 'T') + '+06:00')
         const formatted = date.toLocaleString('bn-BD', {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          hour12: false, timeZone: 'Asia/Dhaka',
         })
         setLastUpdated(`সাইটটি শেষ হাল-নাগাদ করা হয়েছে: ${formatted}`)
       }).catch(() => {})

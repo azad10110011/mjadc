@@ -34,6 +34,9 @@ export default function HomePage() {
   const [heroInterval, setHeroInterval] = useState(2)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [galleryImages, setGalleryImages] = useState<{ id: number; photo_path: string; caption: string; event_name: string }[]>([])
+  const [homeLinkLabel, setHomeLinkLabel] = useState('')
+  const [homeLinkUrl, setHomeLinkUrl] = useState('')
+  const [menuSections, setMenuSections] = useState<{ title: string; titleSize: string; titleColor: string; titleStyle: string; titleAlign: string; bgColor: string; links: { label: string; url: string }[] }[]>([])
   const pathname = usePathname()
   const { getFontForPath } = usePublicFont()
   const fontClasses = getFontForPath(pathname)
@@ -67,6 +70,18 @@ export default function HomePage() {
       .catch(() => {})
     api.get<{ data: { id: number; photo_path: string; caption: string; event_name: string }[] }>('/gallery')
       .then((res) => setGalleryImages(res.data || []))
+      .catch(() => {})
+    api.get<{ data: { setting_value: string } }>('/settings/homepage_link_label')
+      .then((res) => setHomeLinkLabel(res.data?.setting_value || ''))
+      .catch(() => {})
+    api.get<{ data: { setting_value: string } }>('/settings/homepage_link_url')
+      .then((res) => setHomeLinkUrl(res.data?.setting_value || ''))
+      .catch(() => {})
+    api.get<{ data: { setting_value: string } }>('/settings/homepage_menu_sections')
+      .then((res) => {
+        try { const parsed = JSON.parse(res.data?.setting_value || '[]'); if (Array.isArray(parsed)) setMenuSections(parsed) }
+        catch {}
+      })
       .catch(() => {})
   }, [])
 
@@ -237,27 +252,52 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 md:py-16">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-6 md:mb-8 text-center text-xl md:text-2xl font-bold text-gray-900">Quick Links</h2>
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: 'Class Routine', href: '/academic/routine' },
-              { label: 'Syllabus', href: '/academic/syllabus' },
-              { label: 'Results', href: '/academic/results' },
-              { label: 'Notice Board', href: '/notices' },
-            ].map((link) => (
-              <Link key={link.href} href={link.href}
-                className="rounded-xl border border-gray-200 bg-white p-4 text-center text-sm font-medium text-gray-700 transition-all hover:border-blue-300 hover:text-blue-600 hover:shadow-md"
-              >
-                {link.label}
-              </Link>
-            ))}
+      {homeLinkLabel && homeLinkUrl && (
+        <section className="border-y border-gray-200 bg-blue-50 py-10 md:py-14">
+          <div className="mx-auto max-w-7xl px-4 text-center">
+            <Link href={homeLinkUrl}
+              className="inline-block rounded-xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white transition-all hover:bg-blue-700 hover:shadow-lg"
+            >
+              {homeLinkLabel}
+            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       </div>
+
+      {menuSections.length > 0 && (
+        <section className="py-12 md:py-16">
+          <div className="mx-auto max-w-7xl px-4">
+            <div className="grid gap-8 md:grid-cols-3">
+              {menuSections.map((section, si) => (
+                <div key={si} className="rounded-xl p-5" style={{ backgroundColor: section.bgColor || '#ffffff' }}>
+                  {section.title && (
+                    <h3 className={`mb-4 ${section.titleStyle || 'font-bold'} ${section.titleAlign || 'text-left'}`}
+                      style={{ fontSize: HP_FONT_SIZE_MAP[section.titleSize || 'text-lg'] || '1.125rem', color: section.titleColor || '#111827' }}
+                    >
+                      {section.title}
+                    </h3>
+                  )}
+                  {section.links.length > 0 && (
+                    <ul className="space-y-2">
+                      {section.links.filter((l) => l.label && l.url).map((link, li) => (
+                        <li key={li}>
+                          <Link href={link.url}
+                            className="block rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-700 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                          >
+                            {link.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

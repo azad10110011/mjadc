@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
-import { Button, Input, Card, CardContent } from '@/components/ui'
-import { Save, Image, Trash2 } from 'lucide-react'
+import { Button, Input, Card, CardContent, Select } from '@/components/ui'
+import { Save, Image, Trash2, Link as LinkIcon, Plus, GripVertical } from 'lucide-react'
 import { api, UPLOAD_BASE } from '@/lib/api'
 
 export default function AdminSettingsPage() {
@@ -14,6 +14,11 @@ export default function AdminSettingsPage() {
   const [heroImages, setHeroImages] = useState<string[]>([])
   const [heroFile, setHeroFile] = useState<File | null>(null)
   const [heroInterval, setHeroInterval] = useState('2')
+  const [homeLinkLabel, setHomeLinkLabel] = useState('')
+  const [homeLinkUrl, setHomeLinkUrl] = useState('')
+  const [menuSections, setMenuSections] = useState<{ title: string; titleSize: string; titleColor: string; titleStyle: string; titleAlign: string; bgColor: string; links: { label: string; url: string }[] }[]>(
+    Array.from({ length: 3 }, () => ({ title: '', titleSize: 'text-lg', titleColor: '#111827', titleStyle: 'font-bold', titleAlign: 'text-left', bgColor: '#ffffff', links: [{ label: '', url: '' }] }))
+  )
 
   useEffect(() => {
     api.get<{ status: number; data: { setting_key: string; setting_value: string }[] }>('/admin/settings')
@@ -31,6 +36,15 @@ export default function AdminSettingsPage() {
         }
         const interval = res.data.find((s) => s.setting_key === 'hero_interval')
         if (interval) setHeroInterval(interval.setting_value)
+        const hll = res.data.find((s) => s.setting_key === 'homepage_link_label')
+        if (hll) setHomeLinkLabel(hll.setting_value)
+        const hlu = res.data.find((s) => s.setting_key === 'homepage_link_url')
+        if (hlu) setHomeLinkUrl(hlu.setting_value)
+        const ms = res.data.find((s) => s.setting_key === 'homepage_menu_sections')
+        if (ms) {
+          try { const parsed = JSON.parse(ms.setting_value); if (Array.isArray(parsed) && parsed.length === 3) setMenuSections(parsed) }
+          catch {}
+        }
       })
       .catch(() => {})
   }, [])
@@ -167,6 +181,169 @@ export default function AdminSettingsPage() {
                 <Save className="mr-2 h-4 w-4" /> Save
               </Button>
             </div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">Homepage Quick Menu Sections</h3>
+            <p className="mb-4 text-sm text-gray-500">
+              Manage the 3-column link section on the homepage. Each column has a title, title size, and multiple links.
+            </p>
+            <div className="space-y-6">
+              {menuSections.map((section, si) => (
+                <div key={si} className="rounded-lg border border-gray-200 p-4">
+                  <h4 className="mb-3 text-sm font-semibold text-gray-700">Section {si + 1}</h4>
+                  <div className="mb-3 grid gap-3 sm:grid-cols-2">
+                    <Input label="Section Title" placeholder="e.g. Academics" value={section.title}
+                      onChange={(e) => {
+                        const copy = [...menuSections]
+                        copy[si] = { ...copy[si], title: e.target.value }
+                        setMenuSections(copy)
+                      }}
+                    />
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Title Size</label>
+                      <select className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={section.titleSize}
+                        onChange={(e) => {
+                          const copy = [...menuSections]
+                          copy[si] = { ...copy[si], titleSize: e.target.value }
+                          setMenuSections(copy)
+                        }}
+                      >
+                        <option value="text-sm">Small</option>
+                        <option value="text-base">Normal</option>
+                        <option value="text-lg">Large</option>
+                        <option value="text-xl">Extra Large</option>
+                        <option value="text-2xl">2XL</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Title Color</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={section.titleColor}
+                          onChange={(e) => {
+                            const copy = [...menuSections]
+                            copy[si] = { ...copy[si], titleColor: e.target.value }
+                            setMenuSections(copy)
+                          }}
+                          className="h-9 w-12 cursor-pointer rounded border border-gray-300"
+                        />
+                        <span className="text-xs text-gray-500">{section.titleColor}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Title Style</label>
+                      <select className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={section.titleStyle}
+                        onChange={(e) => {
+                          const copy = [...menuSections]
+                          copy[si] = { ...copy[si], titleStyle: e.target.value }
+                          setMenuSections(copy)
+                        }}
+                      >
+                        <option value="font-normal">Normal</option>
+                        <option value="font-bold">Bold</option>
+                        <option value="italic">Italic</option>
+                        <option value="font-bold italic">Bold Italic</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Title Alignment</label>
+                      <select className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={section.titleAlign}
+                        onChange={(e) => {
+                          const copy = [...menuSections]
+                          copy[si] = { ...copy[si], titleAlign: e.target.value }
+                          setMenuSections(copy)
+                        }}
+                      >
+                        <option value="text-left">Left</option>
+                        <option value="text-center">Center</option>
+                        <option value="text-right">Right</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Section Background</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={section.bgColor}
+                          onChange={(e) => {
+                            const copy = [...menuSections]
+                            copy[si] = { ...copy[si], bgColor: e.target.value }
+                            setMenuSections(copy)
+                          }}
+                          className="h-9 w-12 cursor-pointer rounded border border-gray-300"
+                        />
+                        <span className="text-xs text-gray-500">{section.bgColor}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {section.links.map((link, li) => (
+                      <div key={li} className="flex items-center gap-2">
+                        <GripVertical className="h-4 w-4 shrink-0 text-gray-400" />
+                        <Input placeholder="Link text" value={link.label}
+                          onChange={(e) => {
+                            const copy = [...menuSections]
+                            copy[si].links[li] = { ...copy[si].links[li], label: e.target.value }
+                            setMenuSections(copy)
+                          }}
+                          className="flex-1"
+                        />
+                        <Input placeholder="URL" value={link.url}
+                          onChange={(e) => {
+                            const copy = [...menuSections]
+                            copy[si].links[li] = { ...copy[si].links[li], url: e.target.value }
+                            setMenuSections(copy)
+                          }}
+                          className="flex-1"
+                        />
+                        <button onClick={() => {
+                          const copy = [...menuSections]
+                          copy[si] = { ...copy[si], links: copy[si].links.filter((_, j) => j !== li) }
+                          setMenuSections(copy)
+                        }} className="rounded-md p-1 text-red-500 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      const copy = [...menuSections]
+                      copy[si] = { ...copy[si], links: [...copy[si].links, { label: '', url: '' }] }
+                      setMenuSections(copy)
+                    }}>
+                      <Plus className="mr-1 h-3 w-3" /> Add Link
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button className="mt-4" onClick={async () => {
+              await api.put('/admin/settings/homepage_menu_sections', { setting_value: JSON.stringify(menuSections) })
+              alert('Quick menu sections saved')
+            }}>
+              <Save className="mr-2 h-4 w-4" /> Save All Sections
+            </Button>
+          </div>
+
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">Homepage Custom Link</h3>
+            <p className="mb-2 text-sm text-gray-500">
+              A link shown between Gallery and Quick Links on the homepage. Leave blank to hide.
+            </p>
+            <div className="flex items-start gap-3">
+              <LinkIcon className="mt-2 h-5 w-5 shrink-0 text-blue-600" />
+              <div className="flex-1 space-y-3">
+                <Input label="Link Text" placeholder="e.g. Admission 2026" value={homeLinkLabel} onChange={(e) => setHomeLinkLabel(e.target.value)} />
+                <Input label="Link URL" placeholder="e.g. /admission or https://example.com" value={homeLinkUrl} onChange={(e) => setHomeLinkUrl(e.target.value)} />
+              </div>
+            </div>
+            <Button className="mt-4" onClick={async () => {
+              await api.put('/admin/settings/homepage_link_label', { setting_value: homeLinkLabel })
+              await api.put('/admin/settings/homepage_link_url', { setting_value: homeLinkUrl })
+              alert('Homepage link saved')
+            }}>
+              <Save className="mr-2 h-4 w-4" /> Save
+            </Button>
           </div>
 
           <div className="border-t border-gray-200 pt-6">

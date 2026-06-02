@@ -266,47 +266,49 @@ export default function AdminTeachersPage() {
 
   return (
     <PanelLayout role="admin" title="Add New Teacher">
-      <Card className="mb-6">
-        <CardContent className="space-y-6 pt-6">
-          <div className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-blue-600" />
-            <h3 className="font-semibold text-gray-900">{editingId ? 'Edit Teacher' : 'Teacher Information'}</h3>
-            {editingId && <Button variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Name (English)" placeholder="Full name in English" required value={name} onChange={(e) => setName(e.target.value)} />
-            <Input label="Name (Bangla)" placeholder="পূর্ণ নাম বাংলায়" value={nameBangla} onChange={(e) => setNameBangla(e.target.value)} />
-            <Select label="Designation" options={designations} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Select" />
-            <Select label="Group" options={TEACHER_GROUPS} value={teacherGroup} onChange={(e) => setTeacherGroup(e.target.value)} placeholder="Select Group" />
-            <Select label="Subject" options={(teacherGroup ? filteredSubjects : publicSubjects).map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
-            <Input label="Joining Date" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} required />
-            <Input label="1st MPO Date" type="date" value={firstMpoDate} onChange={(e) => setFirstMpoDate(e.target.value)} />
-            <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-            <Select label="Gender" options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Select" />
-            <Input label="NID Number" placeholder="National ID number" value={nidNumber} onChange={(e) => setNidNumber(e.target.value)} />
-            <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} required />
-            <Input label="WhatsApp Number" placeholder="01XXXXXXXXX" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
-            <Input label="E-mail" type="email" placeholder="teacher@mjadc.ac.bd" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
-            <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
-            <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
-          </div>
-          <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Saving...' : editingId ? 'Update Teacher' : 'Add Teacher'}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="mx-auto w-full" style={{ maxWidth: '90vw' }}>
+        <Card className="mb-6">
+          <CardContent className="space-y-6 pt-6">
+            <div className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-blue-600" />
+              <h3 className="font-semibold text-gray-900">{editingId ? 'Edit Teacher' : 'Teacher Information'}</h3>
+              {editingId && <Button variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Name (English)" placeholder="Full name in English" required value={name} onChange={(e) => setName(e.target.value)} />
+              <Input label="Name (Bangla)" placeholder="পূর্ণ নাম বাংলায়" value={nameBangla} onChange={(e) => setNameBangla(e.target.value)} />
+              <Select label="Designation" options={designations} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Select" />
+              <Select label="Group" options={TEACHER_GROUPS} value={teacherGroup} onChange={(e) => setTeacherGroup(e.target.value)} placeholder="Select Group" />
+              <Select label="Subject" options={(teacherGroup ? filteredSubjects : publicSubjects).map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
+              <Input label="Joining Date" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} required />
+              <Input label="1st MPO Date" type="date" value={firstMpoDate} onChange={(e) => setFirstMpoDate(e.target.value)} />
+              <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+              <Select label="Gender" options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Select" />
+              <Input label="NID Number" placeholder="National ID number" value={nidNumber} onChange={(e) => setNidNumber(e.target.value)} />
+              <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} required />
+              <Input label="WhatsApp Number" placeholder="01XXXXXXXXX" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
+              <Input label="E-mail" type="email" placeholder="teacher@mjadc.ac.bd" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
+              <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
+              <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
+            </div>
+            <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Saving...' : editingId ? 'Update Teacher' : 'Add Teacher'}
+            </Button>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="mb-4 font-semibold text-gray-900">Existing Teachers</h3>
-          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No teachers added yet" />
-        </CardContent>
-      </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="mb-4 font-semibold text-gray-900">Existing Teachers</h3>
+            <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No teachers added yet" />
+          </CardContent>
+        </Card>
 
-      <Modal open={!!viewingTeacher} onClose={() => setViewingTeacher(null)} title="Teacher Details">
-        {viewingTeacher && viewDetail(viewingTeacher)}
-      </Modal>
+        <Modal open={!!viewingTeacher} onClose={() => setViewingTeacher(null)} title="Teacher Details">
+          {viewingTeacher && viewDetail(viewingTeacher)}
+        </Modal>
+      </div>
     </PanelLayout>
   )
 }
