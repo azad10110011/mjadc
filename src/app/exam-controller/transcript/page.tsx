@@ -13,6 +13,8 @@ interface SubjectRow {
   grade: string
   gpa: number
   status: string
+  is_optional?: boolean
+  paper_count?: number
 }
 
 interface Transcript {
@@ -113,11 +115,9 @@ export default function ExamControllerTranscriptPage() {
       {transcripts.length > 0 && (
         <div ref={printRef} className="transcript-print-container">
           {transcripts.map((t, idx) => {
-            const mainSubjects = t.optional_subject
-              ? t.subjects.filter((s) => s.subject !== t.optional_subject)
-              : t.subjects
-            const hasOptional = Boolean(t.optional_subject && t.subjects.some((s) => s.subject === t.optional_subject))
-            const optionalSubjectData = hasOptional ? t.subjects.find((s) => s.subject === t.optional_subject) : null
+            const mainSubjects = t.subjects.filter((s) => !s.is_optional)
+            const hasOptional = t.subjects.some((s) => s.is_optional)
+            const optionalSubjectData = hasOptional ? t.subjects.find((s) => s.is_optional) : null
 
             return (
               <div key={t.student_id} className={`transcript-page${idx < transcripts.length - 1 ? ' break-after' : ''}`}>
