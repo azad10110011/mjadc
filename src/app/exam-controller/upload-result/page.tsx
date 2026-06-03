@@ -19,18 +19,8 @@ export default function ExamControllerUploadResultPage() {
   const [examSubjects, setExamSubjects] = useState<string[]>([])
 
   useEffect(() => {
-    api.get<{ status: number; data: { name: string; papers: { name: string }[] }[] }>('/admin/subjects/tree')
-      .then((res) => {
-        const list: string[] = []
-        for (const group of res.data) {
-          if (group.papers.length > 0) {
-            for (const paper of group.papers) list.push(paper.name)
-          } else {
-            list.push(group.name)
-          }
-        }
-        setExamSubjects(list)
-      })
+    api.get<{ status: number; data: string[] }>('/exam-controller/subjects')
+      .then((res) => setExamSubjects(res.data || []))
       .catch(() => {})
   }, [])
 

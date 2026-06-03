@@ -67,10 +67,11 @@ export default function AdminStudentsPage() {
   }
 
   useEffect(() => {
-    api.get<{ status: number; data: string[] }>('/subjects')
+    const query = studentGroup ? `/subjects?group=${encodeURIComponent(studentGroup)}` : '/subjects'
+    api.get<{ status: number; data: string[] }>(query)
       .then((res) => setPublicSubjects(res.data))
       .catch(() => {})
-  }, [])
+  }, [studentGroup])
 
   useEffect(() => { fetchStudents() }, [])
 
@@ -364,6 +365,9 @@ export default function AdminStudentsPage() {
                 </div>
               )
             })()}
+            {viewingStudent.optional_subject && (
+              <div><span className="text-sm font-medium text-gray-700">Optional Subject:</span> <span className="text-sm text-gray-600">{viewingStudent.optional_subject}</span></div>
+            )}
             {viewingStudent.user_id && (
               <div className="border-t border-gray-200 pt-4">
                 <details className="group">

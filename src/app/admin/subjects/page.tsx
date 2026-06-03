@@ -98,7 +98,7 @@ export default function AdminSubjectsPage() {
   const [editPartPass, setEditPartPass] = useState('')
 
   // Rename dialog
-  const [renaming, setRenaming] = useState<{ id: number; name: string; code?: string; group?: string; type?: string } | null>(null)
+  const [renaming, setRenaming] = useState<{ id: number; name: string; code?: string; group?: string; type?: string; isPaper?: boolean } | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [renameCode, setRenameCode] = useState('')
   const [renameGroup, setRenameGroup] = useState('General')
@@ -204,12 +204,15 @@ export default function AdminSubjectsPage() {
   const handleRename = async () => {
     if (!renaming || !renameValue.trim()) return
     try {
-      await api.put(`/admin/subjects/${renaming.id}`, {
+      const payload: any = {
         name: renameValue.trim(),
         code: renameCode || undefined,
-        group: renameGroup,
-        type: renameType,
-      })
+      }
+      if (!renaming.isPaper) {
+        payload.group = renameGroup
+        payload.type = renameType
+      }
+      await api.put(`/admin/subjects/${renaming.id}`, payload)
       setRenaming(null)
       fetchTree()
     } catch (err: unknown) {
@@ -276,7 +279,7 @@ export default function AdminSubjectsPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name, code: group.code, group: group.group, type: group.type }); setRenameValue(group.name); setRenameCode(group.code || ''); setRenameGroup(group.group || 'General'); setRenameType(group.type || 'public') }}>
+                  <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: group.id, name: group.name, code: group.code, group: group.group, type: group.type, isPaper: false }); setRenameValue(group.name); setRenameCode(group.code || ''); setRenameGroup(group.group || 'General'); setRenameType(group.type || 'public') }}>
                     <Edit3 className="mr-1 h-3.5 w-3.5" /> Rename
                   </Button>
                   <Button size="sm" variant="danger" onClick={() => handleDeleteSubject(group.id)}>
@@ -313,7 +316,7 @@ export default function AdminSubjectsPage() {
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">Paper</span>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: paper.id, name: paper.name }); setRenameValue(paper.name) }}>
+                          <Button size="sm" variant="ghost" onClick={() => { setRenaming({ id: paper.id, name: paper.name, code: paper.code, isPaper: true }); setRenameValue(paper.name); setRenameCode(paper.code || ''); setRenameGroup('General'); setRenameType('public') }}>
                             <Edit3 className="h-3.5 w-3.5" />
                           </Button>
                           <Button size="sm" variant="danger" onClick={() => handleDeletePaper(paper.id)}>
@@ -390,8 +393,12 @@ export default function AdminSubjectsPage() {
             <div className="space-y-3">
               <Input label="New name" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRename()} autoFocus />
               <Input label="Subject Code" value={renameCode} onChange={(e) => setRenameCode(e.target.value)} placeholder="e.g. 101" />
-              <Select label="Type" options={SUBJECT_TYPES} value={renameType} onChange={(e) => setRenameType(e.target.value)} />
-              <Select label="Group" options={SUBJECT_GROUPS} value={renameGroup} onChange={(e) => setRenameGroup(e.target.value)} />
+              {!renaming.isPaper && (
+                <Select label="Type" options={SUBJECT_TYPES} value={renameType} onChange={(e) => setRenameType(e.target.value)} />
+              )}
+              {!renaming.isPaper && (
+                <Select label="Group" options={SUBJECT_GROUPS} value={renameGroup} onChange={(e) => setRenameGroup(e.target.value)} />
+              )}
             </div>
             <div className="mt-4 flex gap-2">
               <Button variant="primary" onClick={handleRename}>Save</Button>

@@ -21,6 +21,14 @@ const calculateRetirement = (dob: string | null | undefined) => {
   return { remaining: `${years}y ${months}m ${days}d`, retiredDate: retired.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
 }
 
+const AVAILABLE_ROLES = [
+  { value: 'teacher', label: 'Teacher' },
+  { value: 'exam_controller', label: 'Exam Controller' },
+  { value: 'administration', label: 'Administration' },
+  { value: 'principal', label: 'Principal' },
+  { value: 'staff', label: 'Staff' },
+]
+
 const designations = [
   { value: 'Principal', label: 'Principal' },
   { value: 'Vice-Principal', label: 'Vice-Principal' },
@@ -54,6 +62,7 @@ export default function AdminTeachersPage() {
   const [designation, setDesignation] = useState('')
   const [teacherGroup, setTeacherGroup] = useState('')
   const [subject, setSubject] = useState('')
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [joiningDate, setJoiningDate] = useState('')
   const [firstMpoDate, setFirstMpoDate] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
@@ -64,6 +73,8 @@ export default function AdminTeachersPage() {
   const [email, setEmail] = useState('')
   const [presentAddress, setPresentAddress] = useState('')
   const [permanentAddress, setPermanentAddress] = useState('')
+  const [password, setPassword] = useState('')
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(['teacher'])
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
   const [viewingTeacher, setViewingTeacher] = useState<any | null>(null)
@@ -89,8 +100,8 @@ export default function AdminTeachersPage() {
   }, [teacherGroup, fetchSubjects])
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setTeacherGroup(''); setSubject('')
-    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPhotoFile(null); setExistingPhotoPath(null)
+    setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setTeacherGroup(''); setSubject(''); setSelectedSubjects([])
+    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['teacher']); setPhotoFile(null); setExistingPhotoPath(null)
   }
 
   const fetchTeachers = () => {
@@ -121,13 +132,16 @@ export default function AdminTeachersPage() {
         present_address: presentAddress || undefined,
         permanent_address: permanentAddress || undefined,
       }
-      const payload = {
+      const payload: Record<string, any> = {
         name, designation, subject: subject || undefined,
+        subjects: selectedSubjects.length > 0 ? selectedSubjects : undefined,
         group: teacherGroup || undefined,
         joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email,
+        roles: selectedRoles,
         ...extraFields,
         ...(photoPath && { photo_path: photoPath }),
       }
+      if (password) payload.password = password
       if (editingId) {
         await api.put(`/admin/teachers-staff/teacher/${editingId}`, payload)
         alert('Teacher updated successfully')
@@ -148,9 +162,11 @@ export default function AdminTeachersPage() {
   const handleEdit = (t: any) => {
     setEditingId(t.id); setName(t.name); setNameBangla(t.name_bangla || '')
     setDesignation(t.designation); setTeacherGroup(t.group || '')
-    setSubject(t.subject || ''); setJoiningDate(t.joining_date || ''); setFirstMpoDate(t.first_mpo_date || '')
+    setSubject(t.subject || '')
+    setSelectedSubjects(t.subjects && t.subjects.length > 0 ? t.subjects : (t.subject ? [t.subject] : []))
+    setJoiningDate(t.joining_date || ''); setFirstMpoDate(t.first_mpo_date || '')
     setDateOfBirth(t.date_of_birth || ''); setGender(t.gender || ''); setMobile(t.mobile || ''); setWhatsappNumber(t.whatsapp_number || ''); setNidNumber(t.nid_number || ''); setEmail(t.email || ''); setPresentAddress(t.present_address || ''); setPermanentAddress(t.permanent_address || '')
-    setExistingPhotoPath(t.photo_path || null); setPhotoFile(null)
+    setExistingPhotoPath(t.photo_path || null); setPhotoFile(null); setPassword(''); setSelectedRoles(['teacher'])
   }
 
   const handleDelete = (id: number) => {
@@ -244,6 +260,7 @@ export default function AdminTeachersPage() {
     experience: t.experience || '-',
     remaining_job_time: (calculateRetirement(t.date_of_birth) || {}).remaining || '-',
     retired_date: (calculateRetirement(t.date_of_birth) || {}).retiredDate || '-',
+    subject: (t.subjects && t.subjects.length > 0) ? t.subjects.join(', ') : (t.subject || '-'),
     status: <Badge variant={t.user_status === 'frozen' ? 'danger' : 'success'}>{t.user_status || 'active'}</Badge>,
     actions: (
     <div className="flex gap-1">
@@ -279,7 +296,23 @@ export default function AdminTeachersPage() {
               <Input label="Name (Bangla)" placeholder="পূর্ণ নাম বাংলায়" value={nameBangla} onChange={(e) => setNameBangla(e.target.value)} />
               <Select label="Designation" options={designations} value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Select" />
               <Select label="Group" options={TEACHER_GROUPS} value={teacherGroup} onChange={(e) => setTeacherGroup(e.target.value)} placeholder="Select Group" />
-              <Select label="Subject" options={(teacherGroup ? filteredSubjects : publicSubjects).map((s) => ({ value: s, label: s }))} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Select" />
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Subjects</label>
+                <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
+                  {(teacherGroup ? filteredSubjects : publicSubjects).map((s) => (
+                    <label key={s} className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100">
+                      <input type="checkbox" checked={selectedSubjects.includes(s)} onChange={() => {
+                        const next = selectedSubjects.includes(s)
+                          ? selectedSubjects.filter((x) => x !== s)
+                          : [...selectedSubjects, s]
+                        setSelectedSubjects(next)
+                        if (next.length > 0 && !next.includes(subject)) setSubject(next[0])
+                        else if (next.length === 0) setSubject('')
+                      }} /> {s}
+                    </label>
+                  ))}
+                </div>
+              </div>
               <Input label="Joining Date" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} required />
               <Input label="1st MPO Date" type="date" value={firstMpoDate} onChange={(e) => setFirstMpoDate(e.target.value)} />
               <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
@@ -288,6 +321,20 @@ export default function AdminTeachersPage() {
               <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} required />
               <Input label="WhatsApp Number" placeholder="01XXXXXXXXX" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
               <Input label="E-mail" type="email" placeholder="teacher@mjadc.ac.bd" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input label="Password" type="password" placeholder={editingId ? 'Leave blank to keep current' : 'Default: password123'} value={password} onChange={(e) => setPassword(e.target.value)} />
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">User Roles</label>
+                <div className="flex flex-wrap gap-3">
+                  {AVAILABLE_ROLES.map((r) => (
+                    <label key={r.value} className="flex items-center gap-1.5 text-sm">
+                      <input type="checkbox" checked={selectedRoles.includes(r.value)} onChange={(e) => {
+                        setSelectedRoles(e.target.checked ? [...selectedRoles, r.value] : selectedRoles.filter((v) => v !== r.value))
+                      }} className="h-4 w-4 rounded border-gray-300 text-blue-600" />
+                      {r.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
               <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
               <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
               <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />

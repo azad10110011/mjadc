@@ -2,16 +2,19 @@
 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, GraduationCap, Users, BookOpen,
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck,
   ClipboardList, Upload, Download, CheckSquare,
   UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign,
+  ArrowLeftRight,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui'
+import { useAuth } from '@/contexts/AuthContext'
+import type { UserRole } from '@/types'
 
 export type PanelRole = 'admin' | 'student' | 'teacher' | 'staff' | 'exam_controller' | 'principal' | 'administration'
 
@@ -20,6 +23,28 @@ interface PanelLayoutProps {
   role: PanelRole
   title: string
 }
+
+const ROLE_HOME: Record<PanelRole, string> = {
+  admin: '/admin',
+  student: '/student/dashboard',
+  teacher: '/teacher',
+  staff: '/staff/leave-management',
+  exam_controller: '/exam-controller',
+  principal: '/principal',
+  administration: '/administration-panel',
+}
+
+const ROLE_LABELS: Record<PanelRole, string> = {
+  admin: 'Admin',
+  student: 'Student',
+  teacher: 'Teacher',
+  staff: 'Staff',
+  exam_controller: 'Exam Controller',
+  principal: 'Principal',
+  administration: 'Administration',
+}
+
+const ROLE_PRIORITY: PanelRole[] = ['admin', 'principal', 'administration', 'exam_controller', 'teacher', 'staff', 'student']
 
 interface SubNavItem {
   label: string
@@ -137,6 +162,8 @@ const panelNav: Record<PanelRole, NavItem[]> = {
 
 export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(() => {
     const expanded: Record<string, boolean> = {}
@@ -144,6 +171,14 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     if (pathname.startsWith('/admin/users') || pathname.startsWith('/admin/students')) expanded['Users'] = true
     return expanded
   })
+
+  const availableRoles = useMemo(() => {
+    if (!user?.roles) return [role]
+    const userRoles = new Set(user.roles as UserRole[])
+    return ROLE_PRIORITY.filter((r) => userRoles.has(r as unknown as UserRole))
+  }, [user, role])
+
+  const showRoleSwitcher = availableRoles.length > 1
   const navItems = panelNav[role]
 
   const toggleMenu = (label: string) => {
@@ -156,12 +191,32 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
         'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform lg:relative lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
+        <div className="shrink-0 border-b border-gray-200 px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">MJ</div>
             <span className="text-sm font-semibold text-gray-900">College Portal</span>
           </Link>
-          <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100 lg:hidden" onClick={() => setSidebarOpen(false)}>
+          {showRoleSwitcher && (
+            <div className="mt-2">
+              <label className="text-xs font-medium text-gray-500">Active Role</label>
+              <div className="relative mt-1">
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    const newRole = e.target.value as PanelRole
+                    router.push(ROLE_HOME[newRole])
+                  }}
+                  className="w-full appearance-none rounded-md border border-gray-300 bg-gray-50 px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {availableRoles.map((r) => (
+                    <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                  ))}
+                </select>
+                <ArrowLeftRight className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+          )}
+          <button className="absolute right-4 top-3 rounded-md p-1 text-gray-500 hover:bg-gray-100 lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-4 w-4" />
           </button>
         </div>

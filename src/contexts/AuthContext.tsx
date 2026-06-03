@@ -22,8 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
-      api.get<User>('/auth/me')
-        .then(setUser)
+      api.get<{ status: number; data: User }>('/auth/me')
+        .then((res) => setUser(res.data))
         .catch(() => localStorage.removeItem('token'))
         .finally(() => setLoading(false))
     } else {
@@ -32,9 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await api.post<{ token: string; user: User }>('/auth/login', { email, password })
-    localStorage.setItem('token', res.token)
-    setUser(res.user)
+    const res = await api.post<{ status: number; data: { token: string; user: User } }>('/auth/login', { email, password })
+    localStorage.setItem('token', res.data.token)
+    setUser(res.data.user)
   }, [])
 
   const logout = useCallback(() => {

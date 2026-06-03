@@ -42,19 +42,9 @@ export default function TeacherUploadResultPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
-  const [isExamController, setIsExamController] = useState(false)
   const [partConfigs, setPartConfigs] = useState<SubjectPart[]>([])
 
   useEffect(() => {
-    api.get<{ status: number; data: any }>('/teacher/profile')
-      .then((res) => {
-        const currentUser = res.data
-        if (!currentUser) return
-        const roles: string[] = currentUser.roles || []
-        setIsExamController(roles.includes('exam_controller'))
-      })
-      .catch(() => {})
-
     api.get<{ status: number; data: string[] }>('/teacher/subjects')
       .then((res) => setAvailableSubjects(res.data || []))
       .catch(() => {})
@@ -199,10 +189,7 @@ export default function TeacherUploadResultPage() {
     <PanelLayout role="teacher" title="Upload Result">
       <Card className="mb-6">
         <CardContent className="space-y-4 pt-6">
-          {isExamController && (
-            <p className="text-xs text-blue-600">Exam Controller: You can upload marks for all subjects.</p>
-          )}
-          {!isExamController && availableSubjects.length === 0 && (
+          {availableSubjects.length === 0 && (
             <p className="text-xs text-amber-600">No subjects assigned. Contact admin to assign subjects.</p>
           )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

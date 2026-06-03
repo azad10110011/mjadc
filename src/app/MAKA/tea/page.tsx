@@ -34,9 +34,20 @@ export default function TeacherLoginPage() {
       }
 
       localStorage.setItem('token', data.data.token)
-      const roles = data.data.user.roles
+      const userData = data.data.user
+      const roles = userData.roles
+      const defaultRole = userData.default_role
 
-      if (roles.includes('teacher')) router.push('/teacher')
+      if (defaultRole) {
+        const home: Record<string, string> = {
+          teacher: '/teacher',
+          staff: '/staff/leave-management',
+          exam_controller: '/exam-controller',
+          principal: '/principal',
+          administration: '/administration-panel',
+        }
+        router.push(home[defaultRole] || '/teacher')
+      } else if (roles.includes('teacher')) router.push('/teacher')
       else if (roles.includes('staff')) router.push('/staff/leave-management')
       else if (roles.includes('exam_controller')) router.push('/exam-controller')
       else if (roles.includes('principal')) router.push('/principal')

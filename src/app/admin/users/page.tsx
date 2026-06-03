@@ -12,6 +12,7 @@ interface User {
   email: string
   gender: string
   date_of_birth: string | null
+  default_role: string | null
   status: string
   roles: string[]
   subjects?: string[]
@@ -26,6 +27,7 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
+  const [defaultRole, setDefaultRole] = useState<string>('')
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [selectedResultSubjects, setSelectedResultSubjects] = useState<string[]>([])
   const [examSubjects, setExamSubjects] = useState<string[]>([])
@@ -37,7 +39,7 @@ export default function AdminUsersPage() {
   const [resetPwLoading, setResetPwLoading] = useState(false)
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setEmail(''); setPassword(''); setSelectedRoles([]); setSelectedSubjects([]); setSelectedResultSubjects([]); setCreateError('')
+    setEditingId(null); setName(''); setEmail(''); setPassword(''); setSelectedRoles([]); setDefaultRole(''); setSelectedSubjects([]); setSelectedResultSubjects([]); setCreateError('')
   }
 
   const fetchUsers = () => {
@@ -73,7 +75,7 @@ export default function AdminUsersPage() {
     if (!name || !email) { setCreateError('Name and email are required'); return }
     if (!editingId && !password) { setCreateError('Password is required for new users'); return }
     try {
-      const payload: any = { name, email, roles: selectedRoles }
+      const payload: any = { name, email, roles: selectedRoles, default_role: defaultRole || null }
       const isTeacher = selectedRoles.includes('teacher')
       if (isTeacher) {
         payload.subjects = selectedSubjects
@@ -95,7 +97,7 @@ export default function AdminUsersPage() {
 
   const handleEdit = (u: User) => {
     setEditingId(u.id); setName(u.name); setEmail(u.email); setSelectedRoles(u.roles)
-    setSelectedSubjects(u.subjects || []); setSelectedResultSubjects(u.result_subjects || [])
+    setDefaultRole(u.default_role || ''); setSelectedSubjects(u.subjects || []); setSelectedResultSubjects(u.result_subjects || [])
     setPassword(''); setCreateError('')
   }
 
@@ -181,6 +183,7 @@ export default function AdminUsersPage() {
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
     { key: 'roles', label: 'Roles' },
+    { key: 'default_role', label: 'Default Panel' },
     { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Actions' },
   ]
@@ -188,6 +191,7 @@ export default function AdminUsersPage() {
   const rows = users.map((u) => ({
     ...u,
     roles: u.roles.join(', '),
+    default_role: u.default_role ? u.default_role.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—',
     status: <Badge variant={u.status === 'frozen' ? 'danger' : 'success'}>{u.status}</Badge>,
     actions: (
       <div className="flex gap-2">
@@ -225,6 +229,21 @@ export default function AdminUsersPage() {
               ))}
             </div>
           </div>
+          {selectedRoles.length > 0 && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Default Panel (on login)</label>
+              <select
+                value={defaultRole}
+                onChange={(e) => setDefaultRole(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">— Auto-detect —</option>
+                {selectedRoles.map((r) => (
+                  <option key={r} value={r}>{r.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+                ))}
+              </select>
+            </div>
+          )}
           {selectedRoles.includes('teacher') && (
             <>
               <div>

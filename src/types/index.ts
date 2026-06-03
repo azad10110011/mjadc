@@ -7,6 +7,7 @@ export interface User {
   password_hash: string
   gender: 'male' | 'female'
   roles: UserRole[]
+  default_role?: string
   status: 'active' | 'frozen'
   created_at: string
 }

@@ -21,6 +21,14 @@ const calculateRetirement = (dob: string | null | undefined) => {
   return { remaining: `${years}y ${months}m ${days}d`, retiredDate: retired.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
 }
 
+const AVAILABLE_ROLES = [
+  { value: 'administration', label: 'Administration' },
+  { value: 'staff', label: 'Staff' },
+  { value: 'exam_controller', label: 'Exam Controller' },
+  { value: 'principal', label: 'Principal' },
+  { value: 'teacher', label: 'Teacher' },
+]
+
 const staffDesignations = [
   { value: 'Lab Assistant', label: 'Lab Assistant' },
   { value: '3rd Class Employee', label: '3rd Class Employee' },
@@ -55,13 +63,15 @@ export default function AdminStaffPage() {
   const [email, setEmail] = useState('')
   const [presentAddress, setPresentAddress] = useState('')
   const [permanentAddress, setPermanentAddress] = useState('')
+  const [password, setPassword] = useState('')
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(['administration'])
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
   const [viewingStaff, setViewingStaff] = useState<any | null>(null)
 
   const resetForm = () => {
     setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setSubject('')
-    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPhotoFile(null); setExistingPhotoPath(null)
+    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['administration']); setPhotoFile(null); setExistingPhotoPath(null)
   }
 
   const fetchStaff = () => {
@@ -92,21 +102,19 @@ export default function AdminStaffPage() {
         present_address: presentAddress || undefined,
         permanent_address: permanentAddress || undefined,
       }
+      const payload: Record<string, any> = {
+        name, designation, subject: subject || undefined,
+        joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email: email || undefined,
+        roles: selectedRoles,
+        ...extraFields,
+        ...(photoPath && { photo_path: photoPath }),
+      }
+      if (password) payload.password = password
       if (editingId) {
-        await api.put(`/admin/teachers-staff/staff/${editingId}`, {
-          name, designation, subject: subject || undefined,
-          joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email: email || undefined,
-          ...extraFields,
-          ...(photoPath && { photo_path: photoPath }),
-        })
+        await api.put(`/admin/teachers-staff/staff/${editingId}`, payload)
         alert('Staff updated successfully')
       } else {
-        await api.post('/admin/teachers-staff/staff', {
-          name, designation, subject: subject || undefined,
-          joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email: email || undefined,
-          ...extraFields,
-          ...(photoPath && { photo_path: photoPath }),
-        })
+        await api.post('/admin/teachers-staff/staff', payload)
         alert('Staff added successfully')
       }
       resetForm()
@@ -124,7 +132,7 @@ export default function AdminStaffPage() {
     setDesignation(s.designation)
     setSubject(s.subject || ''); setJoiningDate(s.joining_date || ''); setFirstMpoDate(s.first_mpo_date || '')
     setDateOfBirth(s.date_of_birth || ''); setGender(s.gender || ''); setMobile(s.mobile || ''); setWhatsappNumber(s.whatsapp_number || ''); setNidNumber(s.nid_number || ''); setEmail(s.email || ''); setPresentAddress(s.present_address || ''); setPermanentAddress(s.permanent_address || '')
-    setExistingPhotoPath(s.photo_path || null); setPhotoFile(null)
+    setExistingPhotoPath(s.photo_path || null); setPhotoFile(null); setPassword(''); setSelectedRoles(['administration'])
   }
 
   const handleDelete = (id: number) => {
@@ -254,8 +262,22 @@ export default function AdminStaffPage() {
             <Input label="NID Number" placeholder="National ID number" value={nidNumber} onChange={(e) => setNidNumber(e.target.value)} />
             <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} required />
             <Input label="WhatsApp Number" placeholder="01XXXXXXXXX" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
-            <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
+              <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input label="Password" type="password" placeholder={editingId ? 'Leave blank to keep current' : 'Default: password123'} value={password} onChange={(e) => setPassword(e.target.value)} />
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">User Roles</label>
+                <div className="flex flex-wrap gap-3">
+                  {AVAILABLE_ROLES.map((r) => (
+                    <label key={r.value} className="flex items-center gap-1.5 text-sm">
+                      <input type="checkbox" checked={selectedRoles.includes(r.value)} onChange={(e) => {
+                        setSelectedRoles(e.target.checked ? [...selectedRoles, r.value] : selectedRoles.filter((v) => v !== r.value))
+                      }} className="h-4 w-4 rounded border-gray-300 text-blue-600" />
+                      {r.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
             <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
             <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
           </div>
