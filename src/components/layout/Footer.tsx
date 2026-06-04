@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
+import { api, UPLOAD_BASE } from '@/lib/api'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import Link from 'next/link'
+import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
 
 export function Footer() {
   const [footerText, setFooterText] = useState('© 2026-MJADC. WebSite Created & Designed By MAK Azad, Lecturer (ICT)')
+  const [footerPhoto, setFooterPhoto] = useState('')
   const [contactAddress, setContactAddress] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [contactEmail, setContactEmail] = useState('')
@@ -15,6 +17,9 @@ export function Footer() {
   useEffect(() => {
     api.get<{ data: { setting_value: string } }>('/settings/footer-text')
       .then((res) => setFooterText(res.data.setting_value))
+      .catch(() => {})
+    api.get<{ data: { setting_value: string } }>('/settings/footer_photo')
+      .then((res) => setFooterPhoto(res.data.setting_value))
       .catch(() => {})
     api.get<{ status: number; data: { address: string; phone: string; email: string } }>('/contact')
       .then((res) => {
@@ -82,10 +87,15 @@ export function Footer() {
           </div>
         </div>
       </div>
-      <div className="border-t border-gray-200 bg-white py-4 text-center">
-        <p className="text-xs md:text-sm text-gray-500 px-4">{footerText}</p>
+      <div className="border-t border-gray-200 bg-white py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4">
+          <p className="text-xs md:text-sm text-gray-500">{footerText}</p>
+          {footerPhoto && (
+            <PhotoWithPreview src={`${UPLOAD_BASE}/${footerPhoto}`} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+          )}
+        </div>
         {lastUpdated && (
-          <p className="mt-1 text-xs text-gray-400 px-4">{lastUpdated}</p>
+          <p className="mt-1 text-center text-xs text-gray-400 px-4">{lastUpdated}</p>
         )}
       </div>
     </footer>

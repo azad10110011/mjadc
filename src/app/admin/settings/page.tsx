@@ -8,6 +8,8 @@ import { api, UPLOAD_BASE } from '@/lib/api'
 
 export default function AdminSettingsPage() {
   const [footerText, setFooterText] = useState('')
+  const [footerPhoto, setFooterPhoto] = useState('')
+  const [footerPhotoFile, setFooterPhotoFile] = useState<File | null>(null)
   const [pageWidth, setPageWidth] = useState('90')
   const [collegePhoto, setCollegePhoto] = useState('')
   const [collegePhotoFile, setCollegePhotoFile] = useState<File | null>(null)
@@ -25,6 +27,8 @@ export default function AdminSettingsPage() {
       .then((res) => {
         const footer = res.data.find((s) => s.setting_key === 'footer_text')
         if (footer) setFooterText(footer.setting_value)
+        const fphoto = res.data.find((s) => s.setting_key === 'footer_photo')
+        if (fphoto) setFooterPhoto(fphoto.setting_value)
         const width = res.data.find((s) => s.setting_key === 'page_width')
         if (width) setPageWidth(width.setting_value)
         const photo = res.data.find((s) => s.setting_key === 'college_photo')
@@ -80,6 +84,34 @@ export default function AdminSettingsPage() {
             <Button className="mt-4" onClick={handleSaveFooter}>
               <Save className="mr-2 h-4 w-4" /> Save
             </Button>
+          </div>
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">Footer Photo</h3>
+            <p className="mb-2 text-sm text-gray-500">
+              A small logo or image displayed in the footer.
+            </p>
+            <div className="flex items-start gap-4">
+              <div className="flex-1 space-y-3">
+                {footerPhoto && (
+                  <img src={`${UPLOAD_BASE}/${footerPhoto}`} alt="Footer" className="h-16 w-auto rounded border object-contain" />
+                )}
+                <Input type="file" accept=".jpg,.jpeg,.png,.gif,.webp" onChange={(e) => setFooterPhotoFile(e.target.files?.[0] || null)} />
+                <Button onClick={async () => {
+                  if (!footerPhotoFile) { alert('Select a file first'); return }
+                  const formData = new FormData()
+                  formData.append('file', footerPhotoFile)
+                  formData.append('directory', 'profiles')
+                  const res: any = await api.upload('/admin/media/upload', formData)
+                  if (!res.data?.path) { alert('Upload failed'); return }
+                  await api.put('/admin/settings/footer_photo', { setting_value: res.data.path })
+                  setFooterPhoto(res.data.path)
+                  setFooterPhotoFile(null)
+                  alert('Footer photo saved')
+                }}>
+                  <Image className="mr-2 h-4 w-4" /> Upload & Save
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="border-t border-gray-200 pt-6">
