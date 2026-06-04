@@ -75,6 +75,8 @@ export default function AdminTeachersPage() {
   const [permanentAddress, setPermanentAddress] = useState('')
   const [password, setPassword] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<string[]>(['teacher'])
+  const [pdsId, setPdsId] = useState('')
+  const [mpoIndex, setMpoIndex] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
   const [viewingTeacher, setViewingTeacher] = useState<any | null>(null)
@@ -101,7 +103,7 @@ export default function AdminTeachersPage() {
 
   const resetForm = () => {
     setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setTeacherGroup(''); setSubject(''); setSelectedSubjects([])
-    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['teacher']); setPhotoFile(null); setExistingPhotoPath(null)
+    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['teacher']); setPdsId(''); setMpoIndex(''); setPhotoFile(null); setExistingPhotoPath(null)
   }
 
   const fetchTeachers = () => {
@@ -131,6 +133,8 @@ export default function AdminTeachersPage() {
         whatsapp_number: whatsappNumber || undefined,
         present_address: presentAddress || undefined,
         permanent_address: permanentAddress || undefined,
+        pds_id: pdsId || undefined,
+        mpo_index: mpoIndex || undefined,
       }
       const payload: Record<string, any> = {
         name, designation, subject: subject || undefined,
@@ -166,6 +170,7 @@ export default function AdminTeachersPage() {
     setSelectedSubjects(t.subjects && t.subjects.length > 0 ? t.subjects : (t.subject ? [t.subject] : []))
     setJoiningDate(t.joining_date || ''); setFirstMpoDate(t.first_mpo_date || '')
     setDateOfBirth(t.date_of_birth || ''); setGender(t.gender || ''); setMobile(t.mobile || ''); setWhatsappNumber(t.whatsapp_number || ''); setNidNumber(t.nid_number || ''); setEmail(t.email || ''); setPresentAddress(t.present_address || ''); setPermanentAddress(t.permanent_address || '')
+    setPdsId(t.pds_id || ''); setMpoIndex(t.mpo_index || '')
     setExistingPhotoPath(t.photo_path || null); setPhotoFile(null); setPassword(''); setSelectedRoles(['teacher'])
   }
 
@@ -223,6 +228,8 @@ export default function AdminTeachersPage() {
           <div><span className="font-medium text-gray-500">Mobile</span><p className="text-gray-900">{t.mobile}</p></div>
           <div><span className="font-medium text-gray-500">Email</span><p className="text-gray-900">{t.email || '-'}</p></div>
           <div><span className="font-medium text-gray-500">WhatsApp</span><p className="text-gray-900">{t.whatsapp_number || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">PDS ID</span><p className="text-gray-900">{t.pds_id || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">MPO Index</span><p className="text-gray-900">{t.mpo_index || '-'}</p></div>
           <div><span className="font-medium text-gray-500">NID Number</span><p className="text-gray-900">{t.nid_number || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Joining Date</span><p className="text-gray-900">{t.joining_date || '-'}</p></div>
           <div><span className="font-medium text-gray-500">1st MPO Date</span><p className="text-gray-900">{t.first_mpo_date || '-'}</p></div>
@@ -239,6 +246,8 @@ export default function AdminTeachersPage() {
 
   const columns = [
     { key: 'sl', label: 'SL' },
+    { key: 'pds_id', label: 'PDS ID' },
+    { key: 'mpo_index', label: 'MPO Index' },
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
@@ -283,8 +292,7 @@ export default function AdminTeachersPage() {
 
   return (
     <PanelLayout role="admin" title="Add New Teacher">
-      <div className="mx-auto w-full" style={{ maxWidth: '90vw' }}>
-        <Card className="mb-6">
+      <Card className="mb-6">
           <CardContent className="space-y-6 pt-6">
             <div className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-blue-600" />
@@ -337,6 +345,8 @@ export default function AdminTeachersPage() {
               </div>
               <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
               <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
+              <Input label="PDS ID" placeholder="PDS ID" value={pdsId} onChange={(e) => setPdsId(e.target.value)} />
+              <Input label="MPO Index" placeholder="MPO Index" value={mpoIndex} onChange={(e) => setMpoIndex(e.target.value)} />
               <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
             </div>
             <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
@@ -355,7 +365,6 @@ export default function AdminTeachersPage() {
         <Modal open={!!viewingTeacher} onClose={() => setViewingTeacher(null)} title="Teacher Details">
           {viewingTeacher && viewDetail(viewingTeacher)}
         </Modal>
-      </div>
     </PanelLayout>
   )
 }

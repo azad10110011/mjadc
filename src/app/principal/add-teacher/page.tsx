@@ -47,6 +47,8 @@ export default function PrincipalAddTeacherPage() {
   const [email, setEmail] = useState('')
   const [presentAddress, setPresentAddress] = useState('')
   const [permanentAddress, setPermanentAddress] = useState('')
+  const [pdsId, setPdsId] = useState('')
+  const [mpoIndex, setMpoIndex] = useState('')
 
   const fetchSubjects = useCallback((group: string) => {
     const query = group ? `/subjects?group=${encodeURIComponent(group)}` : '/subjects'
@@ -86,9 +88,11 @@ export default function PrincipalAddTeacherPage() {
         whatsapp_number: whatsappNumber || undefined,
         present_address: presentAddress || undefined,
         permanent_address: permanentAddress || undefined,
+        pds_id: pdsId || undefined,
+        mpo_index: mpoIndex || undefined,
       })
       alert('Teacher added successfully')
-      setName(''); setNameBangla(''); setDesignation(''); setTeacherGroup(''); setSubject(''); setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress('')
+      setName(''); setNameBangla(''); setDesignation(''); setTeacherGroup(''); setSubject(''); setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPdsId(''); setMpoIndex('')
       const r: any = await api.get('/principal/teachers')
       setTeachers(r.data || [])
     } catch (e: any) {
@@ -99,6 +103,8 @@ export default function PrincipalAddTeacherPage() {
   }
 
   const teacherColumns = [
+    { key: 'pds_id', label: 'PDS ID' },
+    { key: 'mpo_index', label: 'MPO Index' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
     { key: 'subject', label: 'Subject' },
@@ -128,6 +134,8 @@ export default function PrincipalAddTeacherPage() {
               <Input label="E-mail" type="email" placeholder="teacher@mjadc.ac.bd" value={email} onChange={(e) => setEmail(e.target.value)} />
               <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
               <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
+              <Input label="PDS ID" placeholder="PDS ID" value={pdsId} onChange={(e) => setPdsId(e.target.value)} />
+              <Input label="MPO Index" placeholder="MPO Index" value={mpoIndex} onChange={(e) => setMpoIndex(e.target.value)} />
               <Input label="Picture" type="file" accept=".png,.jpg" />
             </div>
             <Button variant="primary" onClick={handleSubmit} disabled={submitting}>

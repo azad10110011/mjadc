@@ -17,6 +17,11 @@ const subjects = [
   { value: 'Physics', label: 'Physics' },
   { value: 'Chemistry', label: 'Chemistry' },
   { value: 'Biology', label: 'Biology' },
+  { value: 'Accountant', label: 'Accountant' },
+  { value: 'Office Assistant cum Accounts Assistant', label: 'Office Assistant cum Accounts Assistant' },
+  { value: 'Office Assistant cum Computer Operator', label: 'Office Assistant cum Computer Operator' },
+  { value: 'Office Assistant', label: 'Office Assistant' },
+  { value: 'Night Guard', label: 'Night Guard' },
 ]
 
 const genders = [
@@ -43,6 +48,8 @@ export default function PrincipalAddStaffPage() {
   const [email, setEmail] = useState('')
   const [presentAddress, setPresentAddress] = useState('')
   const [permanentAddress, setPermanentAddress] = useState('')
+  const [pdsId, setPdsId] = useState('')
+  const [mpoIndex, setMpoIndex] = useState('')
 
   useEffect(() => {
     api.get('/principal/staff').then((r: any) => setStaff(r.data || [])).catch(() => {}).finally(() => setLoading(false))
@@ -61,9 +68,11 @@ export default function PrincipalAddStaffPage() {
         whatsapp_number: whatsappNumber || undefined,
         present_address: presentAddress || undefined,
         permanent_address: permanentAddress || undefined,
+        pds_id: pdsId || undefined,
+        mpo_index: mpoIndex || undefined,
       })
       alert('Staff added successfully')
-      setName(''); setNameBangla(''); setDesignation(''); setSubject(''); setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress('')
+      setName(''); setNameBangla(''); setDesignation(''); setSubject(''); setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPdsId(''); setMpoIndex('')
       const r: any = await api.get('/principal/staff')
       setStaff(r.data || [])
     } catch (e: any) {
@@ -74,6 +83,8 @@ export default function PrincipalAddStaffPage() {
   }
 
   const staffColumns = [
+    { key: 'pds_id', label: 'PDS ID' },
+    { key: 'mpo_index', label: 'MPO Index' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
     { key: 'mobile', label: 'Mobile' },
@@ -100,6 +111,8 @@ export default function PrincipalAddStaffPage() {
             <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
             <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
+            <Input label="PDS ID" placeholder="PDS ID" value={pdsId} onChange={(e) => setPdsId(e.target.value)} />
+            <Input label="MPO Index" placeholder="MPO Index" value={mpoIndex} onChange={(e) => setMpoIndex(e.target.value)} />
             <Input label="Picture" type="file" accept=".png,.jpg" />
           </div>
           <Button variant="primary" onClick={handleSubmit} disabled={submitting}>

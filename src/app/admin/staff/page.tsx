@@ -41,6 +41,11 @@ const subjects = [
   { value: 'Physics', label: 'Physics' },
   { value: 'Chemistry', label: 'Chemistry' },
   { value: 'Biology', label: 'Biology' },
+  { value: 'Accountant', label: 'Accountant' },
+  { value: 'Office Assistant cum Accounts Assistant', label: 'Office Assistant cum Accounts Assistant' },
+  { value: 'Office Assistant cum Computer Operator', label: 'Office Assistant cum Computer Operator' },
+  { value: 'Office Assistant', label: 'Office Assistant' },
+  { value: 'Night Guard', label: 'Night Guard' },
 ]
 
 export default function AdminStaffPage() {
@@ -65,13 +70,15 @@ export default function AdminStaffPage() {
   const [permanentAddress, setPermanentAddress] = useState('')
   const [password, setPassword] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<string[]>(['administration'])
+  const [pdsId, setPdsId] = useState('')
+  const [mpoIndex, setMpoIndex] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
   const [viewingStaff, setViewingStaff] = useState<any | null>(null)
 
   const resetForm = () => {
     setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setSubject('')
-    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['administration']); setPhotoFile(null); setExistingPhotoPath(null)
+    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['administration']); setPdsId(''); setMpoIndex(''); setPhotoFile(null); setExistingPhotoPath(null)
   }
 
   const fetchStaff = () => {
@@ -101,6 +108,8 @@ export default function AdminStaffPage() {
         whatsapp_number: whatsappNumber || undefined,
         present_address: presentAddress || undefined,
         permanent_address: permanentAddress || undefined,
+        pds_id: pdsId || undefined,
+        mpo_index: mpoIndex || undefined,
       }
       const payload: Record<string, any> = {
         name, designation, subject: subject || undefined,
@@ -132,6 +141,7 @@ export default function AdminStaffPage() {
     setDesignation(s.designation)
     setSubject(s.subject || ''); setJoiningDate(s.joining_date || ''); setFirstMpoDate(s.first_mpo_date || '')
     setDateOfBirth(s.date_of_birth || ''); setGender(s.gender || ''); setMobile(s.mobile || ''); setWhatsappNumber(s.whatsapp_number || ''); setNidNumber(s.nid_number || ''); setEmail(s.email || ''); setPresentAddress(s.present_address || ''); setPermanentAddress(s.permanent_address || '')
+    setPdsId(s.pds_id || ''); setMpoIndex(s.mpo_index || '')
     setExistingPhotoPath(s.photo_path || null); setPhotoFile(null); setPassword(''); setSelectedRoles(['administration'])
   }
 
@@ -187,6 +197,8 @@ export default function AdminStaffPage() {
           <div><span className="font-medium text-gray-500">Mobile</span><p className="text-gray-900">{s.mobile}</p></div>
           <div><span className="font-medium text-gray-500">Email</span><p className="text-gray-900">{s.email || '-'}</p></div>
           <div><span className="font-medium text-gray-500">WhatsApp</span><p className="text-gray-900">{s.whatsapp_number || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">PDS ID</span><p className="text-gray-900">{s.pds_id || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">MPO Index</span><p className="text-gray-900">{s.mpo_index || '-'}</p></div>
           <div><span className="font-medium text-gray-500">NID Number</span><p className="text-gray-900">{s.nid_number || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Joining Date</span><p className="text-gray-900">{s.joining_date || '-'}</p></div>
           <div><span className="font-medium text-gray-500">1st MPO Date</span><p className="text-gray-900">{s.first_mpo_date || '-'}</p></div>
@@ -203,6 +215,8 @@ export default function AdminStaffPage() {
 
   const columns = [
     { key: 'sl', label: 'SL' },
+    { key: 'pds_id', label: 'PDS ID' },
+    { key: 'mpo_index', label: 'MPO Index' },
     { key: 'photo', label: 'Photo' },
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
@@ -278,7 +292,9 @@ export default function AdminStaffPage() {
                 </div>
               </div>
               <Input label="Present Address" placeholder="Present address" value={presentAddress} onChange={(e) => setPresentAddress(e.target.value)} />
-            <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
+              <Input label="Permanent Address" placeholder="Permanent address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
+            <Input label="PDS ID" placeholder="PDS ID" value={pdsId} onChange={(e) => setPdsId(e.target.value)} />
+            <Input label="MPO Index" placeholder="MPO Index" value={mpoIndex} onChange={(e) => setMpoIndex(e.target.value)} />
             <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
           </div>
           <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
