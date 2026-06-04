@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
-import { Button, Input, Card, CardContent } from '@/components/ui'
+import { Button, Input, Card, CardContent, Modal } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
-import { Trash2, Upload, Expand } from 'lucide-react'
+import { Trash2, Upload, Expand, Pencil } from 'lucide-react'
 import ImageSlider from '@/components/ui/ImageSlider'
 
 interface GalleryImage {
@@ -25,6 +25,10 @@ export default function AdminGalleryPage() {
   const [uploading, setUploading] = useState(false)
   const [sliderIndex, setSliderIndex] = useState(0)
   const [sliderOpen, setSliderOpen] = useState(false)
+  const [editingImg, setEditingImg] = useState<GalleryImage | null>(null)
+  const [editCaption, setEditCaption] = useState('')
+  const [editEventName, setEditEventName] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const fetchImages = () => {
     api.get<{ data: GalleryImage[] }>('/admin/gallery')
@@ -54,6 +58,29 @@ export default function AdminGalleryPage() {
       alert(e.message || 'Upload failed')
     } finally {
       setUploading(false)
+    }
+  }
+
+  const openEdit = (img: GalleryImage) => {
+    setEditingImg(img)
+    setEditCaption(img.caption || '')
+    setEditEventName(img.event_name || '')
+  }
+
+  const handleUpdate = async () => {
+    if (!editingImg) return
+    setSaving(true)
+    try {
+      await api.put(`/admin/gallery/${editingImg.id}`, {
+        caption: editCaption,
+        event_name: editEventName,
+      })
+      setEditingImg(null)
+      fetchImages()
+    } catch (e: any) {
+      alert(e.message || 'Update failed')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -99,14 +126,14 @@ export default function AdminGalleryPage() {
           ) : (
             Object.entries(
               images.reduce<Record<string, GalleryImage[]>>((acc, img) => {
-                const key = img.event_name || 'Uncategorized'
+                const key = img.event_name || ''
                 if (!acc[key]) acc[key] = []
                 acc[key].push(img)
                 return acc
               }, {})
             ).map(([eventName, imgs]) => (
-              <div key={eventName} className="mb-6">
-                <h4 className="mb-2 text-sm font-bold text-gray-700 border-b pb-1">{eventName}</h4>
+              <div key={eventName || '__none__'} className="mb-6">
+                {eventName && <h4 className="mb-2 text-sm font-bold text-gray-700 border-b pb-1">{eventName}</h4>}
                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                   {imgs.map((img, i) => {
                     const globalIndex = images.findIndex((x) => x.id === img.id)
@@ -124,6 +151,12 @@ export default function AdminGalleryPage() {
                             <p className="text-[10px] text-gray-200 truncate">{img.caption}</p>
                           </div>
                         )}
+                        <button
+                          onClick={() => openEdit(img)}
+                          className="absolute top-1 right-10 rounded-full bg-blue-500 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => handleDelete(img.id)}
                           className="absolute top-1 right-1 rounded-full bg-red-500 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
@@ -145,6 +178,21 @@ export default function AdminGalleryPage() {
           )}
         </CardContent>
       </Card>
+      <Modal open={!!editingImg} onClose={() => setEditingImg(null)} title="Edit Image">
+        {editingImg && (
+          <div className="space-y-4">
+            <img src={`${UPLOAD_BASE}/${editingImg.photo_path}`} alt="" className="h-40 w-full rounded object-cover" />
+            <Input label="Caption" value={editCaption} onChange={(e) => setEditCaption(e.target.value)} />
+            <Input label="Event Name" value={editEventName} onChange={(e) => setEditEventName(e.target.value)} />
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setEditingImg(null)}>Cancel</Button>
+              <Button variant="primary" onClick={handleUpdate} disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
       <ImageSlider
         images={images}
         currentIndex={sliderIndex}

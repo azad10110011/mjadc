@@ -26,7 +26,7 @@ export default function GalleryPage() {
   }, [])
 
   const groups = images.reduce<Record<string, GalleryImage[]>>((acc, img) => {
-    const key = img.event_name || 'Uncategorized'
+    const key = img.event_name || ''
     if (!acc[key]) acc[key] = []
     acc[key].push(img)
     return acc
@@ -55,8 +55,8 @@ export default function GalleryPage() {
       </Link>
       <h1 className="mb-6 text-2xl md:text-3xl font-bold text-gray-900">Photo Gallery</h1>
       {Object.entries(groups).map(([eventName, imgs]) => (
-        <div key={eventName} className="mb-8">
-          <h2 className="mb-3 text-lg font-bold text-gray-800 border-b pb-1">{eventName}</h2>
+        <div key={eventName || '__none__'} className="mb-8">
+          {eventName && <h2 className="mb-3 text-lg font-bold text-gray-800 border-b pb-1">{eventName}</h2>}
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {imgs.map((img) => (
               <div
