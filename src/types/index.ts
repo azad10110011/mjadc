@@ -269,6 +269,7 @@ export interface TeachersCouncilMember {
   name: string
   designation: string
   position?: string
+  mobile?: string
   photo_path?: string
   sort_order: number
 }
@@ -278,6 +279,7 @@ export interface CareerClubMember {
   name: string
   designation: string
   position?: string
+  mobile?: string
   photo_path?: string
   sort_order: number
 }

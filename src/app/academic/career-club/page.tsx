@@ -31,7 +31,7 @@ export default function CareerClubPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {['SL No', 'Name', 'Designation', 'Position', 'Picture'].map((h) => (
+              {['SL No', 'Name', 'Designation', 'Position', 'Mobile', 'Picture'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{h}</th>
               ))}
             </tr>
@@ -43,6 +43,7 @@ export default function CareerClubPage() {
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{m.name}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{m.designation}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{m.position || 'Member'}</td>
+                <td className="px-4 py-3 text-sm text-gray-700">{m.mobile}</td>
                 <td className="px-4 py-3">
                   {m.photo_path ? (
                     <PhotoWithPreview src={`${UPLOAD_BASE}/${m.photo_path}`} alt={m.name} className="h-10 w-10 rounded-full object-cover" />
@@ -53,7 +54,7 @@ export default function CareerClubPage() {
               </tr>
             ))}
             {members.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">No members listed.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">No members listed.</td></tr>
             )}
           </tbody>
         </table>

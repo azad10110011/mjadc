@@ -16,11 +16,12 @@ export default function AdminTeachersCouncilPage() {
   const [name, setName] = useState('')
   const [designation, setDesignation] = useState('')
   const [position, setPosition] = useState('')
+  const [mobile, setMobile] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setDesignation(''); setPosition('')
+    setEditingId(null); setName(''); setDesignation(''); setPosition(''); setMobile('')
     setPhotoFile(null); setExistingPhotoPath(null)
   }
 
@@ -46,12 +47,12 @@ export default function AdminTeachersCouncilPage() {
       const photoPath = photoFile ? await uploadPhoto() : existingPhotoPath
       if (editingId) {
         await api.put(`/admin/teachers-council/${editingId}`, {
-          name, designation, position: position || undefined,
+          name, designation, position: position || undefined, mobile: mobile || undefined,
           ...(photoPath && { photo_path: photoPath }),
         })
       } else {
         await api.post('/admin/teachers-council', {
-          name, designation, position: position || undefined,
+          name, designation, position: position || undefined, mobile: mobile || undefined,
           ...(photoPath && { photo_path: photoPath }),
         })
       }
@@ -67,7 +68,7 @@ export default function AdminTeachersCouncilPage() {
 
   const handleEdit = (m: TeachersCouncilMember) => {
     setEditingId(m.id); setName(m.name); setDesignation(m.designation)
-    setPosition(m.position || ''); setExistingPhotoPath(m.photo_path || null); setPhotoFile(null)
+    setPosition(m.position || ''); setMobile(m.mobile || ''); setExistingPhotoPath(m.photo_path || null); setPhotoFile(null)
   }
 
   const handleDelete = (id: number) => {
@@ -89,6 +90,7 @@ export default function AdminTeachersCouncilPage() {
     { key: 'name', label: 'Name' },
     { key: 'designation', label: 'Designation' },
     { key: 'position', label: 'Position' },
+    { key: 'mobile', label: 'Mobile' },
     { key: 'actions', label: 'Actions' },
   ]
 
@@ -119,6 +121,7 @@ export default function AdminTeachersCouncilPage() {
             <Input label="Name" placeholder="Full name" required value={name} onChange={(e) => setName(e.target.value)} />
             <Input label="Designation" placeholder="e.g. Assistant Professor" required value={designation} onChange={(e) => setDesignation(e.target.value)} />
             <Input label="Position" placeholder="e.g. Member / President" value={position} onChange={(e) => setPosition(e.target.value)} />
+            <Input label="Mobile" placeholder="01XXXXXXXXX" value={mobile} onChange={(e) => setMobile(e.target.value)} />
             <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
           </div>
           <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
