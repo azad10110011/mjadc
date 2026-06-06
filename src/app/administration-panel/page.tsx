@@ -39,7 +39,8 @@ export default function AdministrationDashboardPage() {
 
   return (
     <PanelLayout role="administration" title="Administration Panel">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="overflow-x-auto pb-2 mb-6 scrollbar-thin">
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(150px, 1fr))' }}>
         {statCards.map((item) => (
           <Card key={item.label}>
             <CardContent className="pt-6">
@@ -48,9 +49,11 @@ export default function AdministrationDashboardPage() {
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
       <h3 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">Quick Access</h3>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="overflow-x-auto pb-2 scrollbar-thin">
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(180px, 1fr))' }}>
         {quickLinks.map((item) => (
           <Link key={item.href} href={item.href}>
             <Card className="cursor-pointer transition-shadow hover:shadow-md">
@@ -63,6 +66,7 @@ export default function AdministrationDashboardPage() {
             </Card>
           </Link>
         ))}
+        </div>
       </div>
     </PanelLayout>
   )

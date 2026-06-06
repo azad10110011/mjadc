@@ -57,7 +57,8 @@ export default function GalleryPage() {
       {Object.entries(groups).map(([eventName, imgs]) => (
         <div key={eventName || '__none__'} className="mb-8">
           {eventName && <h2 className="mb-3 text-lg font-bold text-gray-800 border-b pb-1">{eventName}</h2>}
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="overflow-x-auto pb-2 scrollbar-thin">
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(220px, 1fr))' }}>
             {imgs.map((img) => (
               <div
                 key={img.id}
@@ -77,6 +78,7 @@ export default function GalleryPage() {
                 )}
               </div>
             ))}
+            </div>
           </div>
         </div>
       ))}

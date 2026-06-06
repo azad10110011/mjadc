@@ -134,7 +134,8 @@ export default function AdminGalleryPage() {
             ).map(([eventName, imgs]) => (
               <div key={eventName || '__none__'} className="mb-6">
                 {eventName && <h4 className="mb-2 text-sm font-bold text-gray-700 border-b pb-1">{eventName}</h4>}
-                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+                <div className="overflow-x-auto pb-2 scrollbar-thin">
+                  <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(180px, 1fr))' }}>
                   {imgs.map((img, i) => {
                     const globalIndex = images.findIndex((x) => x.id === img.id)
                     return (
@@ -172,6 +173,7 @@ export default function AdminGalleryPage() {
                       </div>
                     )
                   })}
+                </div>
                 </div>
               </div>
             ))

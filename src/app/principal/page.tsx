@@ -8,7 +8,8 @@ import Link from 'next/link'
 export default function PrincipalDashboardPage() {
   return (
     <PanelLayout role="principal" title="Principal Dashboard">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="overflow-x-auto pb-2 scrollbar-thin">
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(200px, 1fr))' }}>
         {[
           { label: 'Add Teacher', href: '/principal/add-teacher', icon: UserPlus, color: 'text-blue-600 bg-blue-100' },
           { label: 'Add Staff', href: '/principal/add-staff', icon: UserPlus, color: 'text-green-600 bg-green-100' },
@@ -27,6 +28,7 @@ export default function PrincipalDashboardPage() {
             </Card>
           </Link>
         ))}
+        </div>
       </div>
     </PanelLayout>
   )

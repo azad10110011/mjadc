@@ -41,7 +41,8 @@ export default function SyllabusPage() {
       {classKeys.map((cls) => (
         <div key={cls} className="mb-8">
           <h2 className="mb-4 text-xl font-semibold text-gray-900">{classLabels[cls] || cls}</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="overflow-x-auto pb-2 scrollbar-thin">
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(3, minmax(240px, 1fr))' }}>
             {(byClass[cls]?.length > 0 ? byClass[cls] : (syllabi.length === 0 ? [] : [])).map((s) => (
               <div key={s.id} className="rounded-xl border border-gray-200 bg-white p-4">
                 <h3 className="mb-3 font-medium text-gray-900">{s.department || s.subject}</h3>
@@ -56,6 +57,7 @@ export default function SyllabusPage() {
                 No syllabus uploaded for {classLabels[cls] || cls} yet.
               </div>
             )}
+            </div>
           </div>
         </div>
       ))}

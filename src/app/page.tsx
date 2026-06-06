@@ -85,6 +85,9 @@ export default function HomePage() {
       .catch(() => {})
   }, [])
 
+  const [fadeLayer, setFadeLayer] = useState(0)
+  const [layerSrcs, setLayerSrcs] = useState<[string, string]>(['', ''])
+
   useEffect(() => {
     if (heroImages.length < 2) return
     const timer = setInterval(() => {
@@ -92,6 +95,23 @@ export default function HomePage() {
     }, heroInterval * 1000)
     return () => clearInterval(timer)
   }, [heroImages.length, heroInterval])
+
+  useEffect(() => {
+    if (heroImages.length === 0) return
+    const nextLayer = 1 - fadeLayer
+    setLayerSrcs((prev) => {
+      const next = [...prev] as [string, string]
+      next[nextLayer] = heroImages[currentSlide]
+      return next
+    })
+    setFadeLayer(nextLayer)
+  }, [currentSlide, heroImages.length])
+
+  useEffect(() => {
+    setCurrentSlide(0)
+    setFadeLayer(0)
+    setLayerSrcs(heroImages.length > 0 ? [heroImages[0], ''] : ['', ''])
+  }, [heroImages])
 
   useEffect(() => {
     const styleId = `hp-style-${hpUid}`
@@ -119,34 +139,37 @@ export default function HomePage() {
 
   return (
     <div>
-      <section className="relative py-16 md:py-24 text-white overflow-hidden min-h-[50vh] md:min-h-[60vh] flex items-center">
+      {/* Hero */}
+      <section className="relative text-white overflow-hidden min-h-[55vh]" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f2640 100%)' }}>
         {heroImages.length > 0 ? (
-          heroImages.map((img, i) => (
-            <div key={i} className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${i === currentSlide ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundImage: `url(${UPLOAD_BASE}/${img})` }} />
-          ))
+          <>
+            <img src={layerSrcs[0] ? `${UPLOAD_BASE}/${layerSrcs[0]}` : ''} alt="" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${fadeLayer === 0 ? 'opacity-100' : 'opacity-0'}`} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+            <img src={layerSrcs[1] ? `${UPLOAD_BASE}/${layerSrcs[1]}` : ''} alt="" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${fadeLayer === 1 ? 'opacity-100' : 'opacity-0'}`} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          </>
         ) : (
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(/bg_clg.jpg)` }} />
+          <img src="/bg_clg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
         )}
         <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 mx-auto max-w-7xl px-4 text-center">
-          <h1 className="mb-3 md:mb-4 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight leading-tight">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center justify-center px-4 text-center min-h-[55vh] py-16">
+          <h1 className="mb-4 text-[clamp(1.5rem,5vw,3.75rem)] font-bold tracking-tight leading-tight">
             মিঞা জিন্নাহ আলম ডিগ্রী কলেজ
           </h1>
-          <p className="mx-auto mb-6 md:mb-8 max-w-2xl text-sm sm:text-base md:text-lg text-blue-100">
+          <p className="mx-auto mb-8 max-w-2xl text-[clamp(0.875rem,2vw,1.125rem)] text-blue-100">
             Empowering education, building futures — since our founding
           </p>
-          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-2 sm:gap-3">
-            <Link href="/achievements"><Button variant="primary" size="lg" className="w-full sm:w-auto text-sm md:text-base">Achievement</Button></Link>
-            <Link href="/academic/results"><Button variant="primary" size="lg" className="w-full sm:w-auto text-sm md:text-base">View Results</Button></Link>
-            <Link href="/admission"><Button variant="primary" size="lg" className="w-full sm:w-auto text-sm md:text-base">Apply for Admission</Button></Link>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/achievements"><Button variant="primary" size="lg" className="text-sm">Achievement</Button></Link>
+            <Link href="/academic/results"><Button variant="primary" size="lg" className="text-sm">View Results</Button></Link>
+            <Link href="/admission"><Button variant="primary" size="lg" className="text-sm">Apply for Admission</Button></Link>
           </div>
         </div>
       </section>
 
       <div className={fontClasses ? `${fontClasses} ${hpUid}` : hpUid}>
-      <section className="border-b border-gray-200 bg-white py-2 md:py-3 overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-gray-600">
-          <FileText className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-blue-600" />
+      {/* Notices ticker */}
+      <section className="border-b border-gray-200 bg-white py-2 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 flex items-center gap-2 text-sm text-gray-600">
+          <FileText className="h-4 w-4 shrink-0 text-blue-600" />
           <span className="shrink-0 font-medium text-blue-600 whitespace-nowrap">Latest Notices:</span>
           <div className="overflow-hidden">
             <div className="animate-scroll flex gap-12 whitespace-nowrap">
@@ -171,9 +194,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 md:py-16">
+      {/* Feature cards */}
+      <section className="py-12">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
+            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(4, minmax(240px, 1fr))' }}>
             {[
               { icon: GraduationCap, title: 'Academic Excellence', desc: 'HSC & Degree programs with dedicated faculty' },
               { icon: Award, title: 'Scholarships', desc: 'Merit-based and need-based financial support' },
@@ -188,15 +213,17 @@ export default function HomePage() {
                 <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
             ))}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-gray-50 py-12 md:py-16">
+      {/* About */}
+      <section className="bg-gray-50 py-12">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="grid items-center gap-8 md:gap-12 md:grid-cols-2">
+          <div className="flex flex-col gap-8">
             <div>
-              <h2 className="mb-4 text-2xl md:text-3xl font-bold text-gray-900">About the College</h2>
+              <h2 className="mb-4 text-[clamp(1.25rem,3vw,1.875rem)] font-bold text-gray-900">About the College</h2>
               {aboutContent ? (
                 <p className="mb-6 leading-relaxed text-gray-600">{aboutContent.replace(/<[^>]+>/g, '').substring(0, 300)}...</p>
               ) : (
@@ -212,7 +239,12 @@ export default function HomePage() {
             </div>
             <div className="aspect-video rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center text-blue-400 overflow-hidden">
               {collegePhoto ? (
-                <img src={`${UPLOAD_BASE}/${collegePhoto}`} alt="College Photo" className="w-full h-full object-cover" />
+                <img
+                  src={`${UPLOAD_BASE}/${collegePhoto}`}
+                  alt="College Photo"
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
               ) : (
                 'College Photo'
               )}
@@ -221,11 +253,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-12 md:py-16">
+      {/* Gallery */}
+      <section className="bg-white py-12">
         <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-6 text-center text-xl md:text-2xl font-bold text-gray-900">Gallery</h2>
+          <h2 className="mb-6 text-center text-[clamp(1.125rem,2.5vw,1.5rem)] font-bold text-gray-900">Gallery</h2>
           {galleryImages.length > 0 ? (
-            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
+              <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(200px, 1fr))' }}>
               {galleryImages.slice(0, 8).map((img) => (
                 <Link key={img.id} href="/gallery" className="group relative aspect-video overflow-hidden rounded-xl bg-gray-100">
                   <img
@@ -243,6 +277,7 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
+            </div>
           ) : (
             <p className="text-center text-gray-500">No images in gallery yet.</p>
           )}
@@ -253,7 +288,7 @@ export default function HomePage() {
       </section>
 
       {homeLinkLabel && homeLinkUrl && (
-        <section className="border-y border-gray-200 bg-blue-50 py-10 md:py-14">
+        <section className="border-y border-gray-200 bg-blue-50 py-10">
           <div className="mx-auto max-w-7xl px-4 text-center">
             <Link href={homeLinkUrl}
               className="inline-block rounded-xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white transition-all hover:bg-blue-700 hover:shadow-lg"
@@ -266,10 +301,12 @@ export default function HomePage() {
 
       </div>
 
+      {/* Menu sections */}
       {menuSections.length > 0 && (
-        <section className="py-12 md:py-16">
+        <section className="py-12">
           <div className="mx-auto max-w-7xl px-4">
-            <div className="grid gap-8 md:grid-cols-3">
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
+              <div className="grid gap-8" style={{ gridTemplateColumns: 'repeat(3, minmax(280px, 1fr))' }}>
               {menuSections.map((section, si) => (
                 <div key={si} className="rounded-xl p-5" style={{ backgroundColor: section.bgColor || '#ffffff' }}>
                   {section.title && (
@@ -294,6 +331,7 @@ export default function HomePage() {
                   )}
                 </div>
               ))}
+            </div>
             </div>
           </div>
         </section>

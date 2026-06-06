@@ -20,7 +20,8 @@ export default function AdminDashboardPage() {
 
   return (
     <PanelLayout role="admin" title="Admin Dashboard">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="overflow-x-auto pb-2 scrollbar-thin">
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))' }}>
         {[
           { label: 'Published Notices', value: noticeCount, color: 'text-blue-600' },
           { label: 'Pending Approvals', value: '0', color: 'text-yellow-600' },
@@ -34,6 +35,7 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
     </PanelLayout>
   )

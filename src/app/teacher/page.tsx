@@ -8,7 +8,8 @@ import Link from 'next/link'
 export default function TeacherDashboardPage() {
   return (
     <PanelLayout role="teacher" title="Teacher Dashboard">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="overflow-x-auto pb-2 scrollbar-thin">
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(200px, 1fr))' }}>
         {[
           { label: 'Upload Result', href: '/teacher/upload-result', icon: Upload, color: 'text-blue-600 bg-blue-100' },
           { label: 'Update Result', href: '/teacher/update-result', icon: FileText, color: 'text-green-600 bg-green-100' },
@@ -26,6 +27,7 @@ export default function TeacherDashboardPage() {
             </Card>
           </Link>
         ))}
+        </div>
       </div>
     </PanelLayout>
   )
