@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
+import { exportToExcel, exportToPDF, type ExportColumn } from '@/lib/export'
 import { UserPlus, ArrowUp, ArrowDown } from 'lucide-react'
 
 const CLUBS = [
@@ -93,16 +94,17 @@ export default function AdminCoCurricularPage() {
   }
 
   const handleMoveUp = (id: number) => {
-    api.post(`/admin/co-curricular/${selectedClub}/${id}/move-up`, {})
-      .then(() => fetchMembers())
-      .catch(() => alert('Already at top'))
+    api.post(`/admin/co-curricular/${selectedClub}/${id}/move-up`, {}).then(() => fetchMembers()).catch(() => alert('Already at top'))
   }
 
   const handleMoveDown = (id: number) => {
-    api.post(`/admin/co-curricular/${selectedClub}/${id}/move-down`, {})
-      .then(() => fetchMembers())
-      .catch(() => alert('Already at bottom'))
+    api.post(`/admin/co-curricular/${selectedClub}/${id}/move-down`, {}).then(() => fetchMembers()).catch(() => alert('Already at bottom'))
   }
+
+  const handleReorder = useCallback((reordered: Record<string, unknown>[]) => {
+    const ids = reordered.map((row) => row.id as number)
+    api.post(`/admin/co-curricular/${selectedClub}/reorder`, { ids }).then(() => fetchMembers()).catch(() => {})
+  }, [selectedClub])
 
   const columns = [
     { key: 'sl', label: 'SL' },
@@ -162,8 +164,26 @@ export default function AdminCoCurricularPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <h3 className="mb-4 font-semibold text-gray-900">{CLUBS.find((c) => c.slug === selectedClub)?.name} Members</h3>
-          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No members added yet" />
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">{CLUBS.find((c) => c.slug === selectedClub)?.name} Members</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => {
+                const cols: ExportColumn[] = [
+                  { key: 'name', label: 'Name' }, { key: 'designation', label: 'Designation' },
+                  { key: 'mobile', label: 'Mobile' },
+                ]
+                exportToExcel(members, cols, `${selectedClub}_members`)
+              }}>Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                const cols: ExportColumn[] = [
+                  { key: 'name', label: 'Name' }, { key: 'designation', label: 'Designation' },
+                  { key: 'mobile', label: 'Mobile' },
+                ]
+                exportToPDF(members, cols, `${CLUBS.find((c) => c.slug === selectedClub)?.name} Members`, `${selectedClub}_members`)
+              }}>PDF</Button>
+            </div>
+          </div>
+          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No members added yet" onRowReorder={handleReorder} />
         </CardContent>
       </Card>
     </PanelLayout>

@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 
 const designations = [
   { value: 'Principal', label: 'Principal' },
+  { value: 'Principal (Acting)', label: 'Principal (Acting)' },
   { value: 'Vice-Principal', label: 'Vice-Principal' },
   { value: 'Assistant Professor', label: 'Assistant Professor' },
   { value: 'Lecturer', label: 'Lecturer' },

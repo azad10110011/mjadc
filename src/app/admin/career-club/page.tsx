@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Card, CardContent, DataTable } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
-import { ArrowUp, ArrowDown, UserPlus } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 import type { CareerClubMember } from '@/types'
 
 export default function AdminCareerClubPage() {
@@ -76,13 +76,10 @@ export default function AdminCareerClubPage() {
     api.delete(`/admin/career-club/${id}`).then(() => fetchMembers()).catch(() => {})
   }
 
-  const handleMoveUp = (id: number) => {
-    api.post(`/admin/career-club/${id}/move-up`, {}).then(() => fetchMembers()).catch(() => {})
-  }
-
-  const handleMoveDown = (id: number) => {
-    api.post(`/admin/career-club/${id}/move-down`, {}).then(() => fetchMembers()).catch(() => {})
-  }
+  const handleReorder = useCallback((reordered: Record<string, unknown>[]) => {
+    const ids = reordered.map((row) => row.id as number)
+    api.post('/admin/career-club/reorder', { ids }).then(() => fetchMembers()).catch(() => {})
+  }, [])
 
   const columns = [
     { key: 'sl', label: 'SL' },
@@ -100,8 +97,6 @@ export default function AdminCareerClubPage() {
     photo: m.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${m.photo_path}`} alt={m.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
     actions: (
       <div className="flex gap-1">
-        <Button variant="ghost" size="sm" onClick={() => handleMoveUp(m.id)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="sm" onClick={() => handleMoveDown(m.id)} disabled={i === members.length - 1}><ArrowDown className="h-4 w-4" /></Button>
         <Button variant="secondary" size="sm" onClick={() => handleEdit(m)}>Edit</Button>
         <Button variant="danger" size="sm" onClick={() => handleDelete(m.id)}>Delete</Button>
       </div>
@@ -133,7 +128,7 @@ export default function AdminCareerClubPage() {
       <Card>
         <CardContent className="pt-6">
           <h3 className="mb-4 font-semibold text-gray-900">Career Club Members</h3>
-          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No members added yet" />
+          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No members added yet" onRowReorder={handleReorder} />
         </CardContent>
       </Card>
     </PanelLayout>

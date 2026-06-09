@@ -15,6 +15,7 @@ const GROUPS = [
 const CLASSES = [
   { value: '11th', label: '11th' },
   { value: '12th', label: '12th' },
+  { value: 'Old', label: 'Old (Ex-Student)' },
 ]
 
 const COMPULSORY_SUBJECTS = ['Bangla', 'English', 'ICT']

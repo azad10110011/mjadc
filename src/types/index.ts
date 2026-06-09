@@ -89,7 +89,7 @@ export type StaffDesignation =
 
 export type Subject = string
 
-export type StudentClass = '11th' | '12th'
+export type StudentClass = '11th' | '12th' | 'Old'
 
 export type ExamName =
   | 'Half Yearly' | 'Year Final' | 'Model Test'
@@ -98,6 +98,7 @@ export type ExamName =
 export const EXAM_NAMES: Record<StudentClass, ExamName[]> = {
   '11th': ['Half Yearly', 'Year Final', 'Model Test'],
   '12th': ['Pre-Test', 'Test', 'Model Test'],
+  'Old': [],
 }
 
 export interface ExamResult {

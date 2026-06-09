@@ -35,7 +35,7 @@ interface SubjectGroup {
 
 const SUBJECT_TYPES = [
   { value: 'public', label: 'Public (teacher directory)' },
-  { value: 'result', label: 'Paper (exam)"' },
+  { value: 'result', label: 'Paper (exam)' },
   { value: 'both', label: 'Both' },
 ]
 
@@ -141,13 +141,14 @@ export default function AdminSubjectsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Delete failed') }
   }
 
-  const handleAddPaper = async (parentId: number) => {
+  const handleAddPaper = async (parentId: number, group: string) => {
     if (!newPaperName.trim()) return
     try {
       await api.post('/admin/subjects', {
         name: newPaperName.trim(),
         code: newPaperCode || undefined,
         type: 'result',
+        group,
         parent_id: parentId,
       })
       setNewPaperName('')
@@ -359,7 +360,7 @@ export default function AdminSubjectsPage() {
                       placeholder="e.g. Bangla-1"
                       value={newPaperName}
                       onChange={(e) => setNewPaperName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddPaper(group.id)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddPaper(group.id, group.group)}
                       autoFocus
                     />
                     <input
@@ -368,7 +369,7 @@ export default function AdminSubjectsPage() {
                       value={newPaperCode}
                       onChange={(e) => setNewPaperCode(e.target.value)}
                     />
-                    <Button size="sm" variant="primary" onClick={() => handleAddPaper(group.id)}>Add</Button>
+                    <Button size="sm" variant="primary" onClick={() => handleAddPaper(group.id, group.group)}>Add</Button>
                     <Button size="sm" variant="ghost" onClick={() => setAddingPaperFor(null)}>Cancel</Button>
                   </div>
                 ) : (

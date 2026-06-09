@@ -5,12 +5,13 @@ import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, Modal } from '@/components/ui'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
-import { UserPlus, ArrowUp, ArrowDown } from 'lucide-react'
+import { exportToExcel, exportToPDF, type ExportColumn } from '@/lib/export'
+import { UserPlus, ArrowUp, ArrowDown, Copy } from 'lucide-react'
 
 const calculateRetirement = (dob: string | null | undefined) => {
   if (!dob) return null
   const birth = new Date(dob)
-  const retired = new Date(birth.getFullYear() + 60, birth.getMonth(), birth.getDate())
+  const retired = new Date(birth.getFullYear() + 60, birth.getMonth(), birth.getDate() - 1)
   const now = new Date()
   if (retired <= now) return { remaining: 'Retired', retiredDate: retired.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
   let years = retired.getFullYear() - now.getFullYear()
@@ -31,6 +32,7 @@ const AVAILABLE_ROLES = [
 
 const designations = [
   { value: 'Principal', label: 'Principal' },
+  { value: 'Principal (Acting)', label: 'Principal (Acting)' },
   { value: 'Vice-Principal', label: 'Vice-Principal' },
   { value: 'Assistant Professor', label: 'Assistant Professor' },
   { value: 'Lecturer', label: 'Lecturer' },
@@ -80,6 +82,44 @@ export default function AdminTeachersPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
   const [viewingTeacher, setViewingTeacher] = useState<any | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [copiedField, setCopiedField] = useState('')
+
+  const copySingle = (val: string, field: string) => {
+    if (!val || val === '-') return
+    navigator.clipboard.writeText(val)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(''), 1500)
+  }
+
+  const copyTeacherText = (t: any) => {
+    const r = calculateRetirement(t.date_of_birth)
+    const lines = [
+      `Name: ${t.name}`,
+      t.name_bangla && `Name (Bangla): ${t.name_bangla}`,
+      `Designation: ${t.designation}${t.subject ? ` (${t.subject})` : ''}`,
+      t.group && `Group: ${t.group}`,
+      `Gender: ${t.gender}`,
+      `Mobile: ${t.mobile}`,
+      `Email: ${t.email || '-'}`,
+      `WhatsApp: ${t.whatsapp_number || '-'}`,
+      `PDS ID: ${t.pds_id || '-'}`,
+      `MPO Index: ${t.mpo_index || '-'}`,
+      `NID Number: ${t.nid_number || '-'}`,
+      `Joining Date: ${t.joining_date || '-'}`,
+      `1st MPO Date: ${t.first_mpo_date || '-'}`,
+      `Experience: ${t.experience || '-'}`,
+      `Date of Birth: ${t.date_of_birth || '-'}`,
+      r ? `Remaining Job Time: ${r.remaining}` : null,
+      r ? `Retired Date: ${r.retiredDate}` : null,
+      `Present Address: ${t.present_address || '-'}`,
+      `Permanent Address: ${t.permanent_address || '-'}`,
+    ].filter(Boolean).join('\n')
+    navigator.clipboard.writeText(lines).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const fetchSubjects = useCallback((group: string) => {
     const query = group ? `/subjects?group=${encodeURIComponent(group)}` : '/subjects'
@@ -215,8 +255,11 @@ export default function AdminTeachersPage() {
           ) : (
             <div className="h-20 w-20 rounded-full bg-gray-200" />
           )}
-          <div>
-            <h3 className="text-xl font-semibold">{t.name}</h3>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl font-semibold">{t.name}</h3>
+              <button onClick={() => copyTeacherText(t)} className="rounded px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50">{copied ? 'Copied!' : 'Copy'}</button>
+            </div>
             {t.name_bangla && <p className="text-sm text-gray-500">{t.name_bangla}</p>}
             <p className="text-sm text-gray-600">{t.designation}{t.subject ? ` (${t.subject})` : ''}</p>
             {t.group && <p className="text-xs text-gray-400">Group: {t.group}</p>}
@@ -225,9 +268,9 @@ export default function AdminTeachersPage() {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div><span className="font-medium text-gray-500">Group</span><p className="text-gray-900">{t.group || '-'}</p></div>
           <div><span className="font-medium text-gray-500">Gender</span><p className="text-gray-900 capitalize">{t.gender}</p></div>
-          <div><span className="font-medium text-gray-500">Mobile</span><p className="text-gray-900">{t.mobile}</p></div>
+          <div><span className="font-medium text-gray-500">Mobile</span><p className="text-gray-900">{t.mobile}{t.mobile && t.mobile !== '-' ? <button onClick={() => copySingle(t.mobile, 'm')} className="ml-1.5 inline align-middle text-blue-400 hover:text-blue-600">{copiedField === 'm' ? <span className="text-xs text-green-600">Copied!</span> : <Copy className="inline h-3 w-3" />}</button> : null}</p></div>
           <div><span className="font-medium text-gray-500">Email</span><p className="text-gray-900">{t.email || '-'}</p></div>
-          <div><span className="font-medium text-gray-500">WhatsApp</span><p className="text-gray-900">{t.whatsapp_number || '-'}</p></div>
+          <div><span className="font-medium text-gray-500">WhatsApp</span><p className="text-gray-900">{t.whatsapp_number || '-'}{t.whatsapp_number && t.whatsapp_number !== '-' ? <button onClick={() => copySingle(t.whatsapp_number, 'w')} className="ml-1.5 inline align-middle text-blue-400 hover:text-blue-600">{copiedField === 'w' ? <span className="text-xs text-green-600">Copied!</span> : <Copy className="inline h-3 w-3" />}</button> : null}</p></div>
           <div><span className="font-medium text-gray-500">PDS ID</span><p className="text-gray-900">{t.pds_id || '-'}</p></div>
           <div><span className="font-medium text-gray-500">MPO Index</span><p className="text-gray-900">{t.mpo_index || '-'}</p></div>
           <div><span className="font-medium text-gray-500">NID Number</span><p className="text-gray-900">{t.nid_number || '-'}</p></div>
@@ -244,7 +287,7 @@ export default function AdminTeachersPage() {
     )
   }
 
-  const columns = [
+  const defaultColumns = [
     { key: 'sl', label: 'SL' },
     { key: 'pds_id', label: 'PDS ID' },
     { key: 'mpo_index', label: 'MPO Index' },
@@ -253,19 +296,43 @@ export default function AdminTeachersPage() {
     { key: 'designation', label: 'Designation' },
     { key: 'group', label: 'Group' },
     { key: 'subject', label: 'Subject' },
+    { key: 'date_of_birth', label: 'DOB' },
+    { key: 'joining_date', label: 'Joining Date' },
     { key: 'experience', label: 'Experience' },
     { key: 'remaining_job_time', label: 'Remaining Job Time' },
     { key: 'retired_date', label: 'Retired Date' },
     { key: 'mobile', label: 'Mobile' },
+    { key: 'whatsapp_number', label: 'WhatsApp' },
     { key: 'email', label: 'Email' },
     { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Actions' },
   ]
+  const [columns, setColumns] = useState(() => {
+    if (typeof window === 'undefined') return defaultColumns
+    const saved = localStorage.getItem('admin_teachers_columns')
+    return saved ? JSON.parse(saved) : defaultColumns
+  })
+
+  const handleColumnReorder = useCallback((next: typeof defaultColumns) => {
+    setColumns(next)
+    localStorage.setItem('admin_teachers_columns', JSON.stringify(next))
+  }, [])
+
+  const handleRowReorder = useCallback(async (reordered: Record<string, unknown>[]) => {
+    const ids = reordered.map((r: any) => r.id)
+    setTeachers(reordered as any[])
+    try {
+      await api.post('/admin/teachers-staff/teacher/reorder', { ids })
+    } catch { /* ignore */ }
+  }, [])
 
   const rows = teachers.map((t, i) => ({
     ...t,
     sl: i + 1,
     photo: t.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${t.photo_path}`} alt={t.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
+    joining_date: t.joining_date ? new Date(t.joining_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-',
+    date_of_birth: t.date_of_birth ? new Date(t.date_of_birth).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-',
+    whatsapp_number: t.whatsapp_number || '-',
     experience: t.experience || '-',
     remaining_job_time: (calculateRetirement(t.date_of_birth) || {}).remaining || '-',
     retired_date: (calculateRetirement(t.date_of_birth) || {}).retiredDate || '-',
@@ -357,8 +424,42 @@ export default function AdminTeachersPage() {
 
         <Card>
           <CardContent className="pt-6">
-            <h3 className="mb-4 font-semibold text-gray-900">Existing Teachers</h3>
-            <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No teachers added yet" />
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Existing Teachers</h3>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  const cols: ExportColumn[] = [
+                    { key: 'pds_id', label: 'PDS ID' }, { key: 'mpo_index', label: 'MPO Index' },
+                    { key: 'name', label: 'Name' }, { key: 'name_bangla', label: 'Name (Bangla)' },
+                    { key: 'designation', label: 'Designation' }, { key: 'group', label: 'Group' },
+                    { key: 'subject', label: 'Subject' }, { key: 'date_of_birth', label: 'DOB' },
+                    { key: 'joining_date', label: 'Joining' }, { key: 'first_mpo_date', label: '1st MPO' },
+                    { key: 'experience', label: 'Experience' }, { key: 'gender', label: 'Gender' },
+                    { key: 'mobile', label: 'Mobile' }, { key: 'whatsapp_number', label: 'WhatsApp' },
+                    { key: 'email', label: 'Email' }, { key: 'nid_number', label: 'NID' },
+                    { key: 'present_address', label: 'Present Address' },
+                    { key: 'permanent_address', label: 'Permanent Address' },
+                  ]
+                  exportToExcel(teachers, cols, 'Teachers')
+                }}>Excel</Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const cols: ExportColumn[] = [
+                    { key: 'pds_id', label: 'PDS ID' }, { key: 'mpo_index', label: 'MPO Index' },
+                    { key: 'name', label: 'Name' }, { key: 'name_bangla', label: 'Name (Bangla)' },
+                    { key: 'designation', label: 'Designation' }, { key: 'group', label: 'Group' },
+                    { key: 'subject', label: 'Subject' }, { key: 'date_of_birth', label: 'DOB' },
+                    { key: 'joining_date', label: 'Joining' }, { key: 'first_mpo_date', label: '1st MPO' },
+                    { key: 'experience', label: 'Experience' }, { key: 'gender', label: 'Gender' },
+                    { key: 'mobile', label: 'Mobile' }, { key: 'whatsapp_number', label: 'WhatsApp' },
+                    { key: 'email', label: 'Email' }, { key: 'nid_number', label: 'NID' },
+                    { key: 'present_address', label: 'Present Address' },
+                    { key: 'permanent_address', label: 'Permanent Address' },
+                  ]
+                  exportToPDF(teachers, cols, 'Teachers List', 'Teachers')
+                }}>PDF</Button>
+              </div>
+            </div>
+            <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No teachers added yet" rowKey="id" onColumnReorder={handleColumnReorder} onRowReorder={handleRowReorder} />
           </CardContent>
         </Card>
 

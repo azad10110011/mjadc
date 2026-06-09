@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, PhotoWithPreview } from '@/components/ui'
-import { ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, Copy } from 'lucide-react'
 
 import { api, UPLOAD_BASE } from '@/lib/api'
+import { exportToExcel, exportToPDF, type ExportColumn } from '@/lib/export'
 
 const GROUPS = [
   { value: 'Science', label: 'Science' },
@@ -16,6 +17,7 @@ const GROUPS = [
 const CLASSES = [
   { value: '11th', label: '11th' },
   { value: '12th', label: '12th' },
+  { value: 'Old', label: 'Old (Ex-Student)' },
 ]
 
 const COMPULSORY_SUBJECTS = ['Bangla', 'English', 'ICT']
@@ -49,6 +51,50 @@ export default function AdminStudentsPage() {
   const [resetPwValue, setResetPwValue] = useState('')
   const [resetPwResult, setResetPwResult] = useState('')
   const [resetPwLoading, setResetPwLoading] = useState(false)
+  const [bulkFromClass, setBulkFromClass] = useState('11th')
+  const [bulkToClass, setBulkToClass] = useState('12th')
+  const [bulkMessage, setBulkMessage] = useState('')
+  const [bulkSubmitting, setBulkSubmitting] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [copiedField, setCopiedField] = useState('')
+
+  const copySingle = (val: string, field: string) => {
+    if (!val || val === '-') return
+    navigator.clipboard.writeText(val)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(''), 1500)
+  }
+
+  const copyStudentText = (s: any) => {
+    const subs = (() => {
+      const raw = s.selective_subjects
+      if (Array.isArray(raw)) return raw.join(', ')
+      if (typeof raw === 'string') { try { return JSON.parse(raw).join(', ') } catch { return raw } }
+      return '-'
+    })()
+    const lines = [
+      `Student ID: ${s.student_id}`,
+      `Name: ${s.name}`,
+      `Father's Name: ${s.father_name || '-'}`,
+      `Mother's Name: ${s.mother_name || '-'}`,
+      `Date of Birth: ${s.date_of_birth ? s.date_of_birth.slice(0, 10) : '-'}`,
+      `Class: ${s.class}`,
+      `Section: ${s.section || '-'}`,
+      `Group: ${s.student_group || '-'}`,
+      `Gender: ${s.gender}`,
+      `Mobile: ${s.mobile || '-'}`,
+      `Parent Mobile: ${s.parent_mobile || '-'}`,
+      `WhatsApp: ${s.whatsapp || '-'}`,
+      `Selective Subjects: ${subs}`,
+      `Optional Subject: ${s.optional_subject || '-'}`,
+      `Present Address: ${s.present_address || '-'}`,
+      `Permanent Address: ${s.permanent_address || '-'}`,
+    ].join('\n')
+    navigator.clipboard.writeText(lines).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const resetForm = () => {
     setEditingId(null)
@@ -181,17 +227,27 @@ export default function AdminStudentsPage() {
     }
   }
 
-  const handleMoveUp = (id: number) => {
-    api.post(`/admin/students/${id}/move-up`, {})
-      .then(() => fetchStudents())
-      .catch(() => alert('Already at top'))
+  const handleBulkChangeClass = async () => {
+    if (!confirm(`Move ALL students from "${bulkFromClass}" to "${bulkToClass}"?`)) return
+    setBulkSubmitting(true)
+    setBulkMessage('')
+    try {
+      const res = await api.post<{ message: string }>('/admin/students/bulk-change-class', {
+        from_class: bulkFromClass,
+        to_class: bulkToClass,
+      })
+      setBulkMessage(res.message)
+      fetchStudents()
+    } catch (err: unknown) {
+      setBulkMessage(err instanceof Error ? err.message : 'Failed to change class')
+    }
+    setBulkSubmitting(false)
   }
 
-  const handleMoveDown = (id: number) => {
-    api.post(`/admin/students/${id}/move-down`, {})
-      .then(() => fetchStudents())
-      .catch(() => alert('Already at bottom'))
-  }
+  const handleReorder = useCallback((reordered: Record<string, unknown>[]) => {
+    const ids = reordered.map((row) => row.id as number)
+    api.post('/admin/students/reorder', { ids }).then(() => fetchStudents()).catch(() => {})
+  }, [])
 
   const handleFreeze = (userId: number) => {
     api.post(`/admin/users/${userId}/freeze`, {})
@@ -209,6 +265,14 @@ export default function AdminStudentsPage() {
     setSelectiveSubjects((prev) =>
       prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
     )
+  }
+
+  const handleMoveUp = (id: number) => {
+    api.post(`/admin/students/${id}/move-up`, {}).then(() => fetchStudents()).catch(() => alert('Already at top'))
+  }
+
+  const handleMoveDown = (id: number) => {
+    api.post(`/admin/students/${id}/move-down`, {}).then(() => fetchStudents()).catch(() => alert('Already at bottom'))
   }
 
   const columns = [
@@ -318,7 +382,10 @@ export default function AdminStudentsPage() {
           <CardContent className="space-y-4 pt-6">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Student Details</h3>
-              <Button variant="ghost" size="sm" onClick={() => setViewingStudent(null)}>Close</Button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => copyStudentText(viewingStudent)} className="rounded px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50">{copied ? 'Copied!' : 'Copy'}</button>
+                <Button variant="ghost" size="sm" onClick={() => setViewingStudent(null)}>Close</Button>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               {viewingStudent.photo_path ? (
@@ -339,9 +406,9 @@ export default function AdminStudentsPage() {
               <div><span className="font-medium text-gray-700">Section:</span> <span className="text-gray-600">{viewingStudent.section || '-'}</span></div>
               <div><span className="font-medium text-gray-700">Group:</span> <span className="text-gray-600">{viewingStudent.student_group || '-'}</span></div>
               <div><span className="font-medium text-gray-700">Gender:</span> <span className="text-gray-600">{viewingStudent.gender}</span></div>
-              <div><span className="font-medium text-gray-700">Mobile:</span> <span className="text-gray-600">{viewingStudent.mobile || '-'}</span></div>
-              <div><span className="font-medium text-gray-700">Parent Mobile:</span> <span className="text-gray-600">{viewingStudent.parent_mobile || '-'}</span></div>
-              <div><span className="font-medium text-gray-700">WhatsApp:</span> <span className="text-gray-600">{viewingStudent.whatsapp || '-'}</span></div>
+              <div><span className="font-medium text-gray-700">Mobile:</span> <span className="text-gray-600">{viewingStudent.mobile || '-'}</span>{viewingStudent.mobile ? <button onClick={() => copySingle(viewingStudent.mobile, 'm')} className="ml-1.5 inline align-middle text-blue-400 hover:text-blue-600">{copiedField === 'm' ? <span className="text-xs text-green-600">Copied!</span> : <Copy className="inline h-3 w-3" />}</button> : null}</div>
+              <div><span className="font-medium text-gray-700">Parent Mobile:</span> <span className="text-gray-600">{viewingStudent.parent_mobile || '-'}</span>{viewingStudent.parent_mobile ? <button onClick={() => copySingle(viewingStudent.parent_mobile, 'p')} className="ml-1.5 inline align-middle text-blue-400 hover:text-blue-600">{copiedField === 'p' ? <span className="text-xs text-green-600">Copied!</span> : <Copy className="inline h-3 w-3" />}</button> : null}</div>
+              <div><span className="font-medium text-gray-700">WhatsApp:</span> <span className="text-gray-600">{viewingStudent.whatsapp || '-'}</span>{viewingStudent.whatsapp ? <button onClick={() => copySingle(viewingStudent.whatsapp, 'w')} className="ml-1.5 inline align-middle text-blue-400 hover:text-blue-600">{copiedField === 'w' ? <span className="text-xs text-green-600">Copied!</span> : <Copy className="inline h-3 w-3" />}</button> : null}</div>
               <div className="sm:col-span-2"><span className="font-medium text-gray-700">Present Address:</span> <span className="text-gray-600">{viewingStudent.present_address || '-'}</span></div>
               <div className="sm:col-span-2"><span className="font-medium text-gray-700">Permanent Address:</span> <span className="text-gray-600">{viewingStudent.permanent_address || '-'}</span></div>
             </div>
@@ -387,10 +454,55 @@ export default function AdminStudentsPage() {
           </CardContent>
         </Card>
       )}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <h3 className="mb-4 font-semibold text-gray-900">Bulk Class Change</h3>
+          <div className="flex items-end gap-4">
+            <Select label="From Class" options={CLASSES} value={bulkFromClass} onChange={(e) => setBulkFromClass(e.target.value)} />
+            <Select label="To Class" options={CLASSES} value={bulkToClass} onChange={(e) => setBulkToClass(e.target.value)} />
+            <Button variant="primary" onClick={handleBulkChangeClass} disabled={bulkSubmitting}>
+              {bulkSubmitting ? 'Changing...' : 'Change All'}
+            </Button>
+          </div>
+          {bulkMessage && <p className="mt-3 text-sm font-medium text-blue-700">{bulkMessage}</p>}
+        </CardContent>
+      </Card>
       <Card>
         <CardContent className="pt-6">
-          <h3 className="mb-4 font-semibold text-gray-900">All Students</h3>
-          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No students" />
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">All Students</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => {
+                const cols: ExportColumn[] = [
+                  { key: 'student_id', label: 'Student ID' }, { key: 'name', label: 'Name' },
+                  { key: 'father_name', label: 'Father' }, { key: 'mother_name', label: 'Mother' },
+                  { key: 'date_of_birth', label: 'DOB' }, { key: 'class', label: 'Class' },
+                  { key: 'section', label: 'Section' }, { key: 'student_group', label: 'Group' },
+                  { key: 'gender', label: 'Gender' }, { key: 'mobile', label: 'Mobile' },
+                  { key: 'parent_mobile', label: 'Parent Mobile' }, { key: 'whatsapp', label: 'WhatsApp' },
+                  { key: 'present_address', label: 'Present Address' },
+                  { key: 'permanent_address', label: 'Permanent Address' },
+                  { key: 'optional_subject', label: 'Optional Subject' },
+                ]
+                exportToExcel(students, cols, 'Students')
+              }}>Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                const cols: ExportColumn[] = [
+                  { key: 'student_id', label: 'Student ID' }, { key: 'name', label: 'Name' },
+                  { key: 'father_name', label: 'Father' }, { key: 'mother_name', label: 'Mother' },
+                  { key: 'date_of_birth', label: 'DOB' }, { key: 'class', label: 'Class' },
+                  { key: 'section', label: 'Section' }, { key: 'student_group', label: 'Group' },
+                  { key: 'gender', label: 'Gender' }, { key: 'mobile', label: 'Mobile' },
+                  { key: 'parent_mobile', label: 'Parent Mobile' }, { key: 'whatsapp', label: 'WhatsApp' },
+                  { key: 'present_address', label: 'Present Address' },
+                  { key: 'permanent_address', label: 'Permanent Address' },
+                  { key: 'optional_subject', label: 'Optional Subject' },
+                ]
+                exportToPDF(students, cols, 'Students List', 'Students')
+              }}>PDF</Button>
+            </div>
+          </div>
+          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No students" onRowReorder={handleReorder} />
         </CardContent>
       </Card>
     </PanelLayout>
