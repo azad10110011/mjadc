@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
-import { Header } from "@/components/layout/Header"
+import { Header, TopNav } from "@/components/layout"
 import { Footer } from "@/components/layout/Footer"
 import { Providers } from "@/components/layout/Providers"
 import { PublicFontMain } from "@/components/layout/PublicFontMain"
@@ -32,6 +32,7 @@ export default function RootLayout({
       <body className="flex min-h-screen flex-col antialiased">
         <Providers>
           <Header />
+          <TopNav />
           <PublicFontMain>{children}</PublicFontMain>
           <Footer />
         </Providers>

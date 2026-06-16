@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<User>
   logout: () => void
   hasRole: (role: UserRole) => boolean
   hasAnyRole: (roles: UserRole[]) => boolean
@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await api.post<{ status: number; data: { token: string; user: User } }>('/auth/login', { email, password })
     localStorage.setItem('token', res.data.token)
     setUser(res.data.user)
+    return res.data.user
   }, [])
 
   const logout = useCallback(() => {

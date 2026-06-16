@@ -81,7 +81,7 @@ export function Footer() {
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-900">Portals</h3>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href="/student/login" className="hover:text-blue-600">Student Login</Link></li>
+              <li><Link href="/p_G9n4s/login" className="hover:text-blue-600">Student Login</Link></li>
               <li><Link href="/pay-fees" className="hover:text-blue-600">Pay Fees</Link></li>
             </ul>
           </div>

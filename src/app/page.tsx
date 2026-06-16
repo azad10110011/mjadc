@@ -4,11 +4,21 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui'
-import { GraduationCap, CalendarDays, FileText, Award, ArrowRight } from 'lucide-react'
+import { GraduationCap, CalendarDays, FileText, Award, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePublicFont } from '@/contexts/PublicFontContext'
 import { api, UPLOAD_BASE } from '@/lib/api'
 
 import type { Notice } from '@/types'
+
+interface HeroSlide {
+  path: string
+  cropX: number
+  cropY: number
+  title?: string
+  subtitle?: string
+  buttonText?: string
+  buttonLink?: string
+}
 
 const HP_FONT_SIZE_MAP: Record<string, string> = {
   'text-xs': '0.75rem',
@@ -26,17 +36,30 @@ const HP_FONT_WEIGHT_MAP: Record<string, string> = {
   'font-bold': '700',
 }
 
+const resp = (val: string, min = 0.6, max = 1.5) => {
+  const v = parseFloat(val)
+  return v ? `clamp(${Math.round(v * min)}px, ${(v / 19.2).toFixed(2)}vw, ${Math.round(v * max)}px)` : undefined
+}
+
 export default function HomePage() {
   const [notices, setNotices] = useState<Notice[]>([])
   const [aboutContent, setAboutContent] = useState('')
   const [collegePhoto, setCollegePhoto] = useState('')
-  const [heroImages, setHeroImages] = useState<string[]>([])
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([])
   const [heroInterval, setHeroInterval] = useState(2)
+  const [heroWidth, setHeroWidth] = useState(100)
+  const [heroHeight, setHeroHeight] = useState(55)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [galleryImages, setGalleryImages] = useState<{ id: number; photo_path: string; caption: string; event_name: string }[]>([])
   const [homeLinkLabel, setHomeLinkLabel] = useState('')
   const [homeLinkUrl, setHomeLinkUrl] = useState('')
   const [menuSections, setMenuSections] = useState<{ title: string; titleSize: string; titleColor: string; titleStyle: string; titleAlign: string; bgColor: string; links: { label: string; url: string }[] }[]>([])
+  const [noticeBg, setNoticeBg] = useState('#ffffff')
+  const [noticeTextColor, setNoticeTextColor] = useState('#4b5563')
+  const [noticeFontSize, setNoticeFontSize] = useState('')
+  const [sliderBg, setSliderBg] = useState('#1e3a5f')
+  const [collegePhotoWidth, setCollegePhotoWidth] = useState('')
+  const [collegePhotoHeight, setCollegePhotoHeight] = useState('')
   const pathname = usePathname()
   const { getFontForPath } = usePublicFont()
   const fontClasses = getFontForPath(pathname)
@@ -61,12 +84,18 @@ export default function HomePage() {
       .then((res) => {
         try {
           const parsed = JSON.parse(res.data?.setting_value || '[]')
-          if (Array.isArray(parsed) && parsed.length > 0) setHeroImages(parsed)
-        } catch { setHeroImages([]) }
+          if (Array.isArray(parsed) && parsed.length > 0) setHeroSlides(parsed.map((p: any) => typeof p === 'string' ? { path: p, cropX: 50, cropY: 50 } : p))
+        } catch { setHeroSlides([]) }
       })
       .catch(() => {})
     api.get<{ data: { setting_value: string } }>('/settings/hero_interval')
       .then((res) => { const v = parseInt(res.data?.setting_value, 10); if (v > 0) setHeroInterval(v) })
+      .catch(() => {})
+    api.get<{ data: { setting_value: string } }>('/settings/hero_slider_width')
+      .then((res) => { const v = parseInt(res.data?.setting_value, 10); if (v > 0 && v <= 100) setHeroWidth(v) })
+      .catch(() => {})
+    api.get<{ data: { setting_value: string } }>('/settings/hero_slider_height')
+      .then((res) => { const v = parseInt(res.data?.setting_value, 10); if (v > 0 && v <= 100) setHeroHeight(v) })
       .catch(() => {})
     api.get<{ data: { id: number; photo_path: string; caption: string; event_name: string }[] }>('/gallery')
       .then((res) => setGalleryImages(res.data || []))
@@ -77,41 +106,42 @@ export default function HomePage() {
     api.get<{ data: { setting_value: string } }>('/settings/homepage_link_url')
       .then((res) => setHomeLinkUrl(res.data?.setting_value || ''))
       .catch(() => {})
-    api.get<{ data: { setting_value: string } }>('/settings/homepage_menu_sections')
-      .then((res) => {
-        try { const parsed = JSON.parse(res.data?.setting_value || '[]'); if (Array.isArray(parsed)) setMenuSections(parsed) }
-        catch {}
-      })
-      .catch(() => {})
+
+    const extraKeys = ['notice_bg', 'notice_text_color', 'notice_font_size', 'slider_bg', 'homepage_menu_sections', 'college_photo_width', 'college_photo_height']
+    Promise.all(extraKeys.map((k) =>
+      api.get<{ data: { setting_value: string } }>(`/settings/${k}`).then((r) => ({ key: k, value: r.data?.setting_value })).catch(() => ({ key: k, value: null }))
+    )).then((results) => {
+      for (const r of results) {
+        if (!r.value) continue
+        if (r.key === 'notice_bg') setNoticeBg(r.value)
+        if (r.key === 'notice_text_color') setNoticeTextColor(r.value)
+        if (r.key === 'slider_bg') setSliderBg(r.value)
+        if (r.key === 'notice_font_size') setNoticeFontSize(r.value)
+        if (r.key === 'college_photo_width') setCollegePhotoWidth(r.value)
+        if (r.key === 'college_photo_height') setCollegePhotoHeight(r.value)
+        if (r.key === 'homepage_menu_sections') {
+          try { const parsed = JSON.parse(r.value); if (Array.isArray(parsed) && parsed.length > 0) setMenuSections(parsed) }
+          catch {}
+        }
+      }
+    })
   }, [])
 
-  const [fadeLayer, setFadeLayer] = useState(0)
-  const [layerSrcs, setLayerSrcs] = useState<[string, string]>(['', ''])
-
   useEffect(() => {
-    if (heroImages.length < 2) return
+    if (heroSlides.length < 2) return
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroImages.length)
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
     }, heroInterval * 1000)
     return () => clearInterval(timer)
-  }, [heroImages.length, heroInterval])
-
-  useEffect(() => {
-    if (heroImages.length === 0) return
-    const nextLayer = 1 - fadeLayer
-    setLayerSrcs((prev) => {
-      const next = [...prev] as [string, string]
-      next[nextLayer] = heroImages[currentSlide]
-      return next
-    })
-    setFadeLayer(nextLayer)
-  }, [currentSlide, heroImages.length])
+  }, [heroSlides.length, heroInterval])
 
   useEffect(() => {
     setCurrentSlide(0)
-    setFadeLayer(0)
-    setLayerSrcs(heroImages.length > 0 ? [heroImages[0], ''] : ['', ''])
-  }, [heroImages])
+  }, [heroSlides])
+
+  const goToSlide = (idx: number) => setCurrentSlide(idx)
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
 
   useEffect(() => {
     const styleId = `hp-style-${hpUid}`
@@ -137,51 +167,88 @@ export default function HomePage() {
     }
   }, [hpFontSize, hpFontWeight, hpUid])
 
+  const slide = heroSlides[currentSlide]
+
   return (
     <div>
-      {/* Hero */}
-      <section className="relative text-white overflow-hidden min-h-[55vh]" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f2640 100%)' }}>
-        {heroImages.length > 0 ? (
-          <>
-            <img src={layerSrcs[0] ? `${UPLOAD_BASE}/${layerSrcs[0]}` : ''} alt="" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${fadeLayer === 0 ? 'opacity-100' : 'opacity-0'}`} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <img src={layerSrcs[1] ? `${UPLOAD_BASE}/${layerSrcs[1]}` : ''} alt="" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${fadeLayer === 1 ? 'opacity-100' : 'opacity-0'}`} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-          </>
-        ) : (
-          <img src="/bg_clg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-        )}
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center justify-center px-4 text-center min-h-[55vh] py-16">
-          <h1 className="mb-4 text-[clamp(1.5rem,5vw,3.75rem)] font-bold tracking-tight leading-tight">
-            মিঞা জিন্নাহ আলম ডিগ্রী কলেজ
-          </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-[clamp(0.875rem,2vw,1.125rem)] text-blue-100">
-            Empowering education, building futures — since our founding
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/achievements"><Button variant="primary" size="lg" className="text-sm">Achievement</Button></Link>
-            <Link href="/academic/results"><Button variant="primary" size="lg" className="text-sm">View Results</Button></Link>
-            <Link href="/admission"><Button variant="primary" size="lg" className="text-sm">Apply for Admission</Button></Link>
+      {/* Hero Slider */}
+      <section style={{ backgroundColor: sliderBg, position: 'relative', minWidth: '100vw' }}>
+        <div className="mx-auto relative" style={{ width: `${heroWidth}vw`, height: `${heroHeight}vh`, maxWidth: '100vw' }}>
+          <div className="absolute inset-0 overflow-hidden rounded-none">
+            {heroSlides.length > 0 && slide ? (
+              <div className="w-full h-full bg-no-repeat" style={{ backgroundImage: `url(${UPLOAD_BASE}/${slide.path})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(20px)', WebkitFilter: 'blur(20px)', transform: 'scale(1.1)' }} />
+            ) : (
+              <div className="w-full h-full bg-no-repeat" style={{ backgroundImage: `url(/bg_clg.jpg)`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(20px)', WebkitFilter: 'blur(20px)', transform: 'scale(1.1)' }} />
+            )}
           </div>
+          {heroSlides.length > 0 && slide ? (
+            <>
+              <div className="absolute inset-0 bg-black/40" />
+              <div key={currentSlide} className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: `url(${UPLOAD_BASE}/${slide.path})`, backgroundSize: 'contain', backgroundPosition: 'center' }} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-white z-10">
+                {slide.title && (
+                  <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-center mb-3 drop-shadow-lg max-w-3xl">
+                    {slide.title}
+                  </h2>
+                )}
+                {slide.subtitle && (
+                  <p className="text-sm md:text-lg text-center mb-6 drop-shadow-md max-w-2xl opacity-90">
+                    {slide.subtitle}
+                  </p>
+                )}
+                {slide.buttonText && slide.buttonLink && (
+                  <Link href={slide.buttonLink}>
+                    <Button variant="primary" size="lg" className="text-sm md:text-base font-semibold shadow-lg">
+                      {slide.buttonText}
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-black/40" />
+              <div className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: `url(/bg_clg.jpg)`, backgroundSize: 'contain', backgroundPosition: 'center' }} />
+            </>
+          )}
         </div>
+        {heroSlides.length > 1 && (
+          <>
+            <button onClick={prevSlide} className="absolute z-20 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white hover:bg-black/50 transition-colors" style={{ left: '12px' }}>
+              <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+            <button onClick={nextSlide} className="absolute z-20 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white hover:bg-black/50 transition-colors" style={{ right: '12px' }}>
+              <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+              {heroSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => goToSlide(idx)}
+                  className={`h-2.5 rounded-full transition-all ${idx === currentSlide ? 'w-8 bg-white' : 'w-2.5 bg-white/50 hover:bg-white/80'}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
-      <div className={fontClasses ? `${fontClasses} ${hpUid}` : hpUid}>
-      {/* Notices ticker */}
-      <section className="border-b border-gray-200 bg-white py-2 overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 flex items-center gap-2 text-sm text-gray-600">
-          <FileText className="h-4 w-4 shrink-0 text-blue-600" />
-          <span className="shrink-0 font-medium text-blue-600 whitespace-nowrap">Latest Notices:</span>
-          <div className="overflow-hidden">
+      {/* Scrolling Notice */}
+      <section className="border-b border-gray-200 overflow-hidden" style={{ backgroundColor: noticeBg, borderColor: noticeTextColor, minWidth: '100vw' }}>
+        <div className="mx-auto max-w-7xl px-4 flex items-center gap-2 py-2" style={{ color: noticeTextColor, fontSize: resp(noticeFontSize) }}>
+          <FileText className="h-4 w-4 shrink-0" />
+          <span className="shrink-0 font-semibold whitespace-nowrap">Notice:</span>
+          <div className="overflow-hidden flex-1">
             <div className="animate-scroll flex gap-12 whitespace-nowrap">
               {notices.length > 0 ? (
                 <>
                   {notices.map((n) => (
-                    <Link key={n.id} href={`/notices/${n.id}`} className="hover:text-blue-600 transition-colors">
+                    <Link key={n.id} href={n.pdf_path ? `${UPLOAD_BASE}/${n.pdf_path}` : '/notices'} target={n.pdf_path ? '_blank' : undefined} className="hover:underline transition-colors" style={{ color: noticeTextColor }}>
                       {n.title}
                     </Link>
                   ))}
                   {notices.map((n) => (
-                    <Link key={`dup-${n.id}`} href={`/notices/${n.id}`} className="hover:text-blue-600 transition-colors">
+                    <Link key={`dup-${n.id}`} href={n.pdf_path ? `${UPLOAD_BASE}/${n.pdf_path}` : '/notices'} target={n.pdf_path ? '_blank' : undefined} className="hover:underline transition-colors" style={{ color: noticeTextColor }}>
                       {n.title}
                     </Link>
                   ))}
@@ -194,6 +261,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <div className={fontClasses ? `${fontClasses} ${hpUid}` : hpUid}>
       {/* Feature cards */}
       <section className="py-12">
         <div className="mx-auto max-w-7xl px-4">
@@ -222,7 +290,7 @@ export default function HomePage() {
       <section className="bg-gray-50 py-12">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col gap-8">
-            <div>
+    <div className="overflow-x-hidden">
               <h2 className="mb-4 text-[clamp(1.25rem,3vw,1.875rem)] font-bold text-gray-900">About the College</h2>
               {aboutContent ? (
                 <p className="mb-6 leading-relaxed text-gray-600">{aboutContent.replace(/<[^>]+>/g, '').substring(0, 300)}...</p>
@@ -237,7 +305,13 @@ export default function HomePage() {
                 <Button variant="outline">Read More <ArrowRight className="ml-2 h-4 w-4" /></Button>
               </Link>
             </div>
-            <div className="aspect-video rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center text-blue-400 overflow-hidden">
+            <div className="rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center text-blue-400 overflow-hidden"
+              style={{
+                width: collegePhotoWidth ? `${collegePhotoWidth}%` : undefined,
+                height: collegePhotoHeight ? `${collegePhotoHeight}%` : undefined,
+                aspectRatio: collegePhotoWidth && collegePhotoHeight ? 'auto' : '16 / 9',
+              }}
+            >
               {collegePhoto ? (
                 <img
                   src={`${UPLOAD_BASE}/${collegePhoto}`}
@@ -303,10 +377,10 @@ export default function HomePage() {
 
       {/* Menu sections */}
       {menuSections.length > 0 && (
-        <section className="py-12">
+        <section className="py-12 border-t border-gray-200">
           <div className="mx-auto max-w-7xl px-4">
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
-              <div className="grid gap-8" style={{ gridTemplateColumns: 'repeat(3, minmax(280px, 1fr))' }}>
+            <h2 className="mb-6 text-center text-[clamp(1.125rem,2.5vw,1.5rem)] font-bold text-gray-900">Quick Menu</h2>
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {menuSections.map((section, si) => (
                 <div key={si} className="rounded-xl p-5" style={{ backgroundColor: section.bgColor || '#ffffff' }}>
                   {section.title && (
@@ -331,7 +405,6 @@ export default function HomePage() {
                   )}
                 </div>
               ))}
-            </div>
             </div>
           </div>
         </section>

@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Input, Card, CardContent } from '@/components/ui'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const { login: authLogin } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,29 +19,10 @@ export default function AdminLoginPage() {
     setLoading(true)
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://mjadc.makafoodbd.com/mjadc-api/api'}/auth/login`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        }
-      )
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.message || 'Login failed')
-        return
-      }
-
-      localStorage.setItem('token', data.data.token)
-      const roles = data.data.user.roles
-
-      if (roles.includes('admin')) router.push('/admin')
-      else setError('Admin access only')
-    } catch {
-      setError('Connection error')
+      await authLogin(email, password)
+      router.push('/p_Xk7mN')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }

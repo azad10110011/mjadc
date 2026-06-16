@@ -8,13 +8,16 @@ import {
   LayoutDashboard, FileText, GraduationCap, Users, BookOpen,
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck,
   ClipboardList, Upload, Download, CheckSquare,
-  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign,
+  UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign, CreditCard,
   ArrowLeftRight,
 } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { UserRole } from '@/types'
+
+const INACTIVITY_MS = 5 * 60 * 1000
+const CHECK_INTERVAL_MS = 30 * 1000
 
 export type PanelRole = 'admin' | 'student' | 'teacher' | 'staff' | 'exam_controller' | 'principal' | 'administration'
 
@@ -25,13 +28,13 @@ interface PanelLayoutProps {
 }
 
 const ROLE_HOME: Record<PanelRole, string> = {
-  admin: '/admin',
-  student: '/student/dashboard',
-  teacher: '/teacher',
-  staff: '/staff/leave-management',
-  exam_controller: '/exam-controller',
-  principal: '/principal',
-  administration: '/administration-panel',
+  admin: '/p_Xk7mN',
+  student: '/p_G9n4s/dashboard',
+  teacher: '/p_R2t9b',
+  staff: '/p_L8p1x/leave-management',
+  exam_controller: '/p_H3v5d',
+  principal: '/p_W4q6z',
+  administration: '/p_F7c2j',
 }
 
 const ROLE_LABELS: Record<PanelRole, string> = {
@@ -59,118 +62,165 @@ interface NavItem {
 }
 
 const PAGE_SUB_ITEMS: SubNavItem[] = [
-  { label: 'All Pages', href: '/admin/pages' },
-  { label: 'Home', href: '/admin/pages/home' },
-  { label: 'About Us', href: '/admin/pages/about' },
-  { label: 'Scholarship Info', href: '/admin/pages/scholarship' },
-  { label: 'Admission Info', href: '/admin/pages/admission_info' },
-  { label: 'Career Club', href: '/admin/pages/career_club' },
-  { label: 'Contact Us', href: '/admin/pages/contact' },
-  { label: 'Principal', href: '/admin/pages/principal' },
-  { label: 'Governing Body', href: '/admin/pages/governing_body' },
-  { label: 'Teachers Council', href: '/admin/pages/teachers_council' },
-  { label: 'Departments', href: '/admin/pages/departments_intro' },
-  { label: 'Co-curricular', href: '/admin/pages/co_curricular_intro' },
-  { label: 'Academic Forms', href: '/admin/pages/academic_forms' },
-  { label: 'Annual Reports', href: '/admin/pages/annual_reports' },
-  { label: 'Gallery', href: '/admin/pages/gallery_intro' },
-  { label: 'Events', href: '/admin/pages/events_intro' },
-  { label: 'Notices', href: '/admin/pages/notices_intro' },
+  { label: 'All Pages', href: '/p_Xk7mN/pages' },
+  { label: 'Home', href: '/p_Xk7mN/pages/home' },
+  { label: 'About Us', href: '/p_Xk7mN/pages/about' },
+  { label: 'Scholarship Info', href: '/p_Xk7mN/pages/scholarship' },
+  { label: 'Admission Info', href: '/p_Xk7mN/pages/admission_info' },
+  { label: 'Career Club', href: '/p_Xk7mN/pages/career_club' },
+  { label: 'Contact Us', href: '/p_Xk7mN/pages/contact' },
+  { label: 'Principal', href: '/p_Xk7mN/pages/principal' },
+  { label: 'Governing Body', href: '/p_Xk7mN/pages/governing_body' },
+  { label: 'Teachers Council', href: '/p_Xk7mN/pages/teachers_council' },
+  { label: 'Departments', href: '/p_Xk7mN/pages/departments_intro' },
+  { label: 'Co-curricular', href: '/p_Xk7mN/pages/co_curricular_intro' },
+  { label: 'Academic Forms', href: '/p_Xk7mN/pages/academic_forms' },
+  { label: 'Annual Reports', href: '/p_Xk7mN/pages/annual_reports' },
+  { label: 'Gallery', href: '/p_Xk7mN/pages/gallery_intro' },
+  { label: 'Events', href: '/p_Xk7mN/pages/events_intro' },
+  { label: 'Notices', href: '/p_Xk7mN/pages/notices_intro' },
 ]
 
 const panelNav: Record<PanelRole, NavItem[]> = {
   admin: [
-    { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Notices', href: '/admin/notices', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Dashboard', href: '/p_Xk7mN', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Notices', href: '/p_Xk7mN/notices', icon: <FileText className="h-4 w-4" /> },
     { label: 'Results', icon: <GraduationCap className="h-4 w-4" />, children: [
-      { label: 'All Results', href: '/admin/results' },
-      { label: 'Transcript', href: '/admin/transcript' },
+      { label: 'All Results', href: '/p_Xk7mN/results' },
+      { label: 'Transcript', href: '/p_Xk7mN/transcript' },
     ] },
-    { label: 'Subjects', href: '/admin/subjects', icon: <BookOpen className="h-4 w-4" /> },
-    { label: 'User History', href: '/admin/user-history', icon: <ClipboardList className="h-4 w-4" /> },
-    { label: 'Routines', href: '/admin/routines', icon: <Calendar className="h-4 w-4" /> },
-    { label: 'Syllabus', href: '/admin/syllabus', icon: <BookOpen className="h-4 w-4" /> },
-    { label: 'Teachers', href: '/admin/teachers', icon: <GraduationCap className="h-4 w-4" /> },
-    { label: 'Staff', href: '/admin/staff', icon: <Users className="h-4 w-4" /> },
-    { label: 'Governing Body', href: '/admin/governing-body', icon: <UserCheck className="h-4 w-4" /> },
-    { label: 'Principal & Vice-Principal', href: '/admin/principals', icon: <UserCheck className="h-4 w-4" /> },
-    { label: "Teachers Council", href: '/admin/teachers-council', icon: <GraduationCap className="h-4 w-4" /> },
-    { label: 'Career Club', href: '/admin/career-club', icon: <Users className="h-4 w-4" /> },
-    { label: 'Co-Curricular', href: '/admin/co-curricular', icon: <Users className="h-4 w-4" /> },
-    { label: 'Student Info', href: '/admin/student-info', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Achievements', href: '/admin/achievements', icon: <Award className="h-4 w-4" /> },
-    { label: 'Academic Approvals', href: '/admin/academic-approvals', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Forms', href: '/admin/forms', icon: <Download className="h-4 w-4" /> },
+    { label: 'Subjects', href: '/p_Xk7mN/subjects', icon: <BookOpen className="h-4 w-4" /> },
+    { label: 'User History', href: '/p_Xk7mN/user-history', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Routines', href: '/p_Xk7mN/routines', icon: <Calendar className="h-4 w-4" /> },
+    { label: 'Syllabus', href: '/p_Xk7mN/syllabus', icon: <BookOpen className="h-4 w-4" /> },
+    { label: 'Teachers', href: '/p_Xk7mN/teachers', icon: <GraduationCap className="h-4 w-4" /> },
+    { label: 'Staff', href: '/p_Xk7mN/staff', icon: <Users className="h-4 w-4" /> },
+    { label: 'Governing Body', href: '/p_Xk7mN/governing-body', icon: <UserCheck className="h-4 w-4" /> },
+    { label: 'Principal & Vice-Principal', href: '/p_Xk7mN/principals', icon: <UserCheck className="h-4 w-4" /> },
+    { label: "Teachers Council", href: '/p_Xk7mN/teachers-council', icon: <GraduationCap className="h-4 w-4" /> },
+    { label: 'Career Club', href: '/p_Xk7mN/career-club', icon: <Users className="h-4 w-4" /> },
+    { label: 'Co-Curricular', href: '/p_Xk7mN/co-curricular', icon: <Users className="h-4 w-4" /> },
+    { label: 'Student Info', href: '/p_Xk7mN/student-info', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Attendance', href: '/p_Xk7mN/attendance', icon: <UserCheck className="h-4 w-4" /> },
+    { label: 'Achievements', href: '/p_Xk7mN/achievements', icon: <Award className="h-4 w-4" /> },
+    { label: 'Academic Approvals', href: '/p_Xk7mN/academic-approvals', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Forms', href: '/p_Xk7mN/forms', icon: <Download className="h-4 w-4" /> },
     { label: 'Pages', icon: <FileText className="h-4 w-4" />, children: PAGE_SUB_ITEMS },
-    { label: 'Gallery', href: '/admin/gallery', icon: <Image className="h-4 w-4" /> },
-    { label: 'Media', href: '/admin/media', icon: <Image className="h-4 w-4" /> },
+    { label: 'Gallery', href: '/p_Xk7mN/gallery', icon: <Image className="h-4 w-4" /> },
+    { label: 'Media', href: '/p_Xk7mN/media', icon: <Image className="h-4 w-4" /> },
     { label: 'Users', icon: <UserCog className="h-4 w-4" />, children: [
-      { label: 'All Users', href: '/admin/users' },
-      { label: 'Teacher/Staff', href: '/admin/users/teacher-staff' },
-      { label: 'Students', href: '/admin/students' },
+      { label: 'All Users', href: '/p_Xk7mN/users' },
+      { label: 'Teacher/Staff', href: '/p_Xk7mN/users/teacher-staff' },
+      { label: 'Students', href: '/p_Xk7mN/students' },
     ] },
-    { label: 'Tuition Fees', href: '/admin/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },
-    { label: 'Transactions', href: '/admin/transactions', icon: <Receipt className="h-4 w-4" /> },
-    { label: 'Leave Management', href: '/admin/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
-    { label: 'Collected Summary', href: '/admin/collected-summary', icon: <ClipboardList className="h-4 w-4" /> },
-    { label: 'Contact Info', href: '/admin/contact', icon: <MapPin className="h-4 w-4" /> },
-    { label: 'Font Settings', href: '/admin/font-settings', icon: <Type className="h-4 w-4" /> },
-    { label: 'Settings', href: '/admin/settings', icon: <Settings className="h-4 w-4" /> },
+    { label: 'Tuition Fees', href: '/p_Xk7mN/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },
+    { label: 'Transactions', href: '/p_Xk7mN/transactions', icon: <Receipt className="h-4 w-4" /> },
+    { label: 'Leave Management', href: '/p_Xk7mN/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Collected Summary', href: '/p_Xk7mN/collected-summary', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Contact Info', href: '/p_Xk7mN/contact', icon: <MapPin className="h-4 w-4" /> },
+    { label: 'Font Settings', href: '/p_Xk7mN/font-settings', icon: <Type className="h-4 w-4" /> },
+    { label: 'Settings', href: '/p_Xk7mN/settings', icon: <Settings className="h-4 w-4" /> },
+    { label: 'ID Cards', href: '/p_Xk7mN/id-cards', icon: <CreditCard className="h-4 w-4" /> },
   ],
   student: [
-    { label: 'Dashboard', href: '/student/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Pay Fees', href: '/student/pay-fees', icon: <DollarSign className="h-4 w-4" /> },
+    { label: 'Dashboard', href: '/p_G9n4s/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Pay Fees', href: '/p_G9n4s/pay-fees', icon: <DollarSign className="h-4 w-4" /> },
   ],
   teacher: [
-    { label: 'Dashboard', href: '/teacher', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Upload Result', href: '/teacher/upload-result', icon: <Upload className="h-4 w-4" /> },
-    { label: 'Update Result', href: '/teacher/update-result', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Leave Management', href: '/teacher/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
-    { label: 'Form Download', href: '/teacher/form-download', icon: <Download className="h-4 w-4" /> },
+    { label: 'Dashboard', href: '/p_R2t9b', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Upload Result', href: '/p_R2t9b/upload-result', icon: <Upload className="h-4 w-4" /> },
+    { label: 'Update Result', href: '/p_R2t9b/update-result', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Attendance', href: '/p_R2t9b/attendance', icon: <UserCheck className="h-4 w-4" /> },
+    { label: 'Leave Management', href: '/p_R2t9b/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Form Download', href: '/p_R2t9b/form-download', icon: <Download className="h-4 w-4" /> },
   ],
   staff: [
-    { label: 'Leave Management', href: '/staff/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Leave Management', href: '/p_L8p1x/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
   ],
   exam_controller: [
-    { label: 'Dashboard', href: '/exam-controller', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Dashboard', href: '/p_H3v5d', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Results', icon: <GraduationCap className="h-4 w-4" />, children: [
-      { label: 'Upload Result', href: '/exam-controller/upload-result' },
-      { label: 'Approve Result', href: '/exam-controller/approve-result' },
-      { label: 'Transcript', href: '/exam-controller/transcript' },
+      { label: 'Upload Result', href: '/p_H3v5d/upload-result' },
+      { label: 'Approve Result', href: '/p_H3v5d/approve-result' },
+      { label: 'Transcript', href: '/p_H3v5d/transcript' },
     ] },
   ],
   principal: [
-    { label: 'Dashboard', href: '/principal', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Add Teacher', href: '/principal/add-teacher', icon: <UserPlus className="h-4 w-4" /> },
-    { label: 'Add Staff', href: '/principal/add-staff', icon: <UserPlus className="h-4 w-4" /> },
-    { label: 'Result Publish', href: '/principal/result-publish', icon: <CheckSquare className="h-4 w-4" /> },
-    { label: 'Tuition Fee', href: '/principal/tuition-fee', icon: <DollarSign className="h-4 w-4" /> },
-    { label: 'Leave Management', href: '/principal/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Dashboard', href: '/p_W4q6z', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Add Teacher', href: '/p_W4q6z/add-teacher', icon: <UserPlus className="h-4 w-4" /> },
+    { label: 'Add Staff', href: '/p_W4q6z/add-staff', icon: <UserPlus className="h-4 w-4" /> },
+    { label: 'Result Publish', href: '/p_W4q6z/result-publish', icon: <CheckSquare className="h-4 w-4" /> },
+    { label: 'Tuition Fee', href: '/p_W4q6z/tuition-fee', icon: <DollarSign className="h-4 w-4" /> },
+    { label: 'Leave Management', href: '/p_W4q6z/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
   ],
   administration: [
-    { label: 'Dashboard', href: '/administration-panel', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Notices', href: '/administration-panel/notices', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Results', href: '/administration-panel/results', icon: <GraduationCap className="h-4 w-4" /> },
-    { label: 'Syllabus', href: '/administration-panel/syllabus', icon: <BookOpen className="h-4 w-4" /> },
-    { label: 'Routine', href: '/administration-panel/routine', icon: <Calendar className="h-4 w-4" /> },
-    { label: 'Fee Collection', href: '/administration-panel/fee-collection', icon: <DollarSign className="h-4 w-4" /> },
-    { label: 'Collected Summary', href: '/administration-panel/collected-summary', icon: <Receipt className="h-4 w-4" /> },
-    { label: 'Students', href: '/administration-panel/students', icon: <Users className="h-4 w-4" /> },
-    { label: 'Forms', href: '/administration-panel/forms', icon: <Download className="h-4 w-4" /> },
+    { label: 'Dashboard', href: '/p_F7c2j', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Notices', href: '/p_F7c2j/notices', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Results', href: '/p_F7c2j/results', icon: <GraduationCap className="h-4 w-4" /> },
+    { label: 'Syllabus', href: '/p_F7c2j/syllabus', icon: <BookOpen className="h-4 w-4" /> },
+    { label: 'Routine', href: '/p_F7c2j/routine', icon: <Calendar className="h-4 w-4" /> },
+    { label: 'Fee Collection', href: '/p_F7c2j/fee-collection', icon: <DollarSign className="h-4 w-4" /> },
+    { label: 'Collected Summary', href: '/p_F7c2j/collected-summary', icon: <Receipt className="h-4 w-4" /> },
+    { label: 'Students', href: '/p_F7c2j/students', icon: <Users className="h-4 w-4" /> },
+    { label: 'Forms', href: '/p_F7c2j/forms', icon: <Download className="h-4 w-4" /> },
   ],
 }
 
 export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, loading, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(() => {
     const expanded: Record<string, boolean> = {}
-    if (pathname.startsWith('/admin/pages')) expanded['Pages'] = true
-    if (pathname.startsWith('/admin/users') || pathname.startsWith('/admin/students')) expanded['Users'] = true
+    if (pathname.startsWith('/p_Xk7mN/pages')) expanded['Pages'] = true
+    if (pathname.startsWith('/p_Xk7mN/users') || pathname.startsWith('/p_Xk7mN/students')) expanded['Users'] = true
     return expanded
   })
+
+  const lastActivityRef = useRef(Date.now())
+  const tickingRef = useRef(false)
+
+  const doLogout = useCallback(() => {
+    logout()
+    router.push('/')
+  }, [logout, router])
+
+  useEffect(() => {
+    if (loading) return
+    if (!user || !user.roles.includes(role as unknown as UserRole)) {
+      doLogout()
+    }
+  }, [user, loading, role, doLogout])
+
+  useEffect(() => {
+    const updateActivity = () => { lastActivityRef.current = Date.now() }
+    const handleMove = () => {
+      if (!tickingRef.current) {
+        requestAnimationFrame(() => { updateActivity(); tickingRef.current = false })
+        tickingRef.current = true
+      }
+    }
+    const handleCheck = () => {
+      if (Date.now() - lastActivityRef.current >= INACTIVITY_MS) doLogout()
+    }
+
+    window.addEventListener('mousedown', updateActivity)
+    window.addEventListener('keydown', updateActivity)
+    window.addEventListener('touchstart', updateActivity)
+    window.addEventListener('scroll', updateActivity)
+    window.addEventListener('mousemove', handleMove)
+    const timer = setInterval(handleCheck, CHECK_INTERVAL_MS)
+
+    return () => {
+      window.removeEventListener('mousedown', updateActivity)
+      window.removeEventListener('keydown', updateActivity)
+      window.removeEventListener('touchstart', updateActivity)
+      window.removeEventListener('scroll', updateActivity)
+      window.removeEventListener('mousemove', handleMove)
+      clearInterval(timer)
+    }
+  }, [doLogout])
 
   const availableRoles = useMemo(() => {
     if (!user?.roles) return [role]
@@ -184,6 +234,8 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) => ({ ...prev, [label]: !prev[label] }))
   }
+
+  if (!user && !loading) return null
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -225,9 +277,9 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
             if (item.children) {
               const isOpen = expandedMenus[item.label]
               const anyChildActive = item.label === 'Pages'
-                ? pathname.startsWith('/admin/pages')
+                ? pathname.startsWith('/p_Xk7mN/pages')
                 : item.label === 'Users'
-                  ? pathname.startsWith('/admin/users') || pathname.startsWith('/admin/students')
+                  ? pathname.startsWith('/p_Xk7mN/users') || pathname.startsWith('/p_Xk7mN/students')
                   : false
               return (
                 <div key={item.label}>
@@ -301,7 +353,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
           </Link>
           <button
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-            onClick={() => { localStorage.removeItem('token'); window.location.href = '/' }}
+            onClick={doLogout}
           >
             <LogOut className="h-4 w-4" />
             Logout

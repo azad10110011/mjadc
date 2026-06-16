@@ -1,4 +1,5 @@
 export { Header } from './Header'
+export { TopNav } from './TopNav'
 export { Footer } from './Footer'
 export { PanelLayout } from './PanelLayout'
 export type { PanelRole } from './PanelLayout'

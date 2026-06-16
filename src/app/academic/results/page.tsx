@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Search } from 'lucide-react'
+import { ArrowLeft, Search, CheckCircle2, XCircle } from 'lucide-react'
 import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { EXAM_NAMES, type StudentClass } from '@/types'
 import { api } from '@/lib/api'
@@ -13,18 +13,19 @@ interface SubjectResult {
   mcq: number
   cq: number
   practical: number
-  parts_data: Record<string, number> | null
   total: number
   grade: string
   gpa: number
-  absent_in: string[]
+  absent_in?: string
 }
 
 interface ResultData {
   student_id: string
   name: string
+  status: string
+  fail_subjects: string[]
+  final_gpa: number
   subjects: SubjectResult[]
-  gpa: string
 }
 
 export default function ResultsPage() {
@@ -64,37 +65,15 @@ export default function ResultsPage() {
 
   const subjectCols = [
     { key: 'subject', label: 'Subject' },
-    { key: 'marks', label: 'Marks' },
-    { key: 'total', label: 'Total' },
     { key: 'grade', label: 'Grade' },
     { key: 'gpa', label: 'GPA' },
   ]
 
-  const subjectRows = (result?.subjects || []).map((s) => {
-    let marksStr = ''
-    if (s.parts_data) {
-      marksStr = Object.entries(s.parts_data)
-        .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
-        .join(', ')
-    } else {
-      const parts = []
-      if (s.mcq != null) parts.push(`MCQ: ${s.mcq}`)
-      if (s.cq != null) parts.push(`CQ: ${s.cq}`)
-      if (s.practical != null) parts.push(`Practical: ${s.practical}`)
-      marksStr = parts.join(', ')
-    }
-    return {
-      subject: s.subject,
-      marks: (
-        <span className={s.absent_in.length > 0 ? 'text-red-600' : ''}>
-          {s.absent_in.length > 0 ? `Absent in: ${s.absent_in.join(', ')}` : marksStr}
-        </span>
-      ),
-      total: s.total,
-      grade: <span className={`font-medium ${s.grade === 'F' || s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade}</span>,
-      gpa: s.grade === 'Absent' ? 'Absent' : s.gpa,
-    }
-  })
+  const subjectRows = (result?.subjects || []).map((s) => ({
+    subject: s.subject,
+    grade: <span className={`font-medium ${s.grade === 'F' || s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade}</span>,
+    gpa: <span className={`font-medium ${s.gpa === 0 ? 'text-red-600' : ''}`}>{s.gpa}</span>,
+  }))
 
   return (
     <PageContainer className="max-w-3xl">
@@ -127,8 +106,31 @@ export default function ResultsPage() {
             <div className="grid grid-cols-2 gap-4 text-sm mb-4">
               <div><span className="text-gray-500">Student ID:</span> <span className="font-medium text-gray-900">{result.student_id}</span></div>
               <div><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-900">{result.name}</span></div>
-              <div><span className="text-gray-500">GPA:</span> <span className="font-semibold text-blue-600">{result.gpa}</span></div>
             </div>
+            <div className="mb-4 flex items-center gap-4">
+              {result.status === 'Passed' ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span className="font-bold">PASSED</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-red-600">
+                  <XCircle className="h-5 w-5" />
+                  <span className="font-bold">FAILED</span>
+                </div>
+              )}
+              {result.status === 'Passed' && (
+                <span className="font-semibold text-gray-900">Final GPA: <span className="text-blue-600">{result.final_gpa}</span></span>
+              )}
+            </div>
+            {result.fail_subjects?.length > 0 && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                <p className="font-medium text-red-700 mb-1">Failed Subjects:</p>
+                <ul className="list-disc list-inside text-sm text-red-600">
+                  {result.fail_subjects.map((s: string) => <li key={s}>{s}</li>)}
+                </ul>
+              </div>
+            )}
             <DataTable columns={subjectCols} data={subjectRows} emptyMessage="No subject data" />
           </CardContent>
         </Card>

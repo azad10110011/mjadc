@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { ChevronDown, GripVertical } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -34,7 +34,17 @@ export function DataTable({
   emptyMessage = 'No data found',
   rowKey = 'id',
 }: DataTableProps) {
+  const colSig = useMemo(() => initialColumns.map(c => c.key + '\x00' + c.label).join('|'), [initialColumns])
   const [columns, setColumns] = useState(initialColumns)
+  const prevSig = useRef(colSig)
+
+  useEffect(() => {
+    if (colSig !== prevSig.current) {
+      prevSig.current = colSig
+      setColumns(initialColumns)
+    }
+  }, [colSig, initialColumns])
+
   const [dragColIndex, setDragColIndex] = useState<number | null>(null)
   const [dragRowIndex, setDragRowIndex] = useState<number | null>(null)
   const dragSourceIndex = useRef<number | null>(null)
