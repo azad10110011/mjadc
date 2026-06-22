@@ -72,7 +72,7 @@ export default function StudentResultsPage() {
               )}
               {result.status === 'Passed' && (
                 <div className="text-lg font-semibold text-gray-900">
-                  Final GPA: <span className="text-blue-600">{result.final_gpa}</span>
+                  Final GPA: <span className="text-blue-600">{Number(result.final_gpa).toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -89,7 +89,7 @@ export default function StudentResultsPage() {
             <DataTable columns={subjectColumns} data={(result.subjects || []).map((s: any) => ({
               subject: s.subject,
               grade: <span className={`font-medium ${s.grade === 'F' || s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade}</span>,
-              gpa: <span className={`font-medium ${s.gpa === 0 || s.gpa === '0.00' ? 'text-red-600' : ''}`}>{s.gpa}</span>,
+              gpa: <span className={`font-medium ${Number(s.gpa) === 0 ? 'text-red-600' : ''}`}>{Number(s.gpa).toFixed(2)}</span>,
             }))} emptyMessage="No subjects found" />
           </CardContent>
         </Card>

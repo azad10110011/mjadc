@@ -243,7 +243,7 @@ export default function TeacherUpdateResultPage() {
     })
     row.total = <span className={`text-sm font-medium ${s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.total}</span>
     row.grade = <span className={`text-sm font-medium ${s.grade === 'Absent' || s.grade === 'F' ? 'text-red-600' : ''}`}>{s.grade}</span>
-    row.gpa = <span className={`text-sm font-medium ${s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade === 'Absent' ? 'Absent' : s.gpa}</span>
+    row.gpa = <span className={`text-sm font-medium ${s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade === 'Absent' ? 'Absent' : Number(s.gpa).toFixed(2)}</span>
     row.status = noResult ? <Badge variant="default">Not saved</Badge> : <Badge variant={locked ? 'danger' : 'success'}>{s.status}</Badge>
     row.actions = noResult
       ? <span className="text-xs text-gray-400">Upload marks first</span>

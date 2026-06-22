@@ -57,8 +57,10 @@ export default function AdminSettingsPage() {
   const [collegePhotoWidth, setCollegePhotoWidth] = useState('')
   const [collegePhotoHeight, setCollegePhotoHeight] = useState('')
   const [noticeFontSize, setNoticeFontSize] = useState('')
+  const [noticeWidth, setNoticeWidth] = useState('100')
   const [navWidth, setNavWidth] = useState('100')
   const [navAlign, setNavAlign] = useState('right')
+  const [headerWidth, setHeaderWidth] = useState('100')
   const [hamburgerBg, setHamburgerBg] = useState('rgba(255,255,255,0.15)')
   const [hamburgerPos, setHamburgerPos] = useState('right')
   const [menuBg, setMenuBg] = useState('#1e3a5f')
@@ -109,6 +111,8 @@ export default function AdminSettingsPage() {
         if (hsw) setHeroSliderWidth(hsw.setting_value)
         const hsh = res.data.find((s) => s.setting_key === 'hero_slider_height')
         if (hsh) setHeroSliderHeight(hsh.setting_value)
+        const noticeW = res.data.find((s) => s.setting_key === 'notice_width')
+        if (noticeW) setNoticeWidth(noticeW.setting_value)
         const ms = res.data.find((s) => s.setting_key === 'homepage_menu_sections')
         if (ms) {
           try { const parsed = JSON.parse(ms.setting_value); if (Array.isArray(parsed) && parsed.length === 3) setMenuSections(parsed) }
@@ -128,6 +132,8 @@ export default function AdminSettingsPage() {
         if (lw?.setting_value) setLogoWidth(lw.setting_value)
         const lh = res.data.find((s) => s.setting_key === 'logo_height')
         if (lh?.setting_value) setLogoHeight(lh.setting_value)
+        const hw = res.data.find((s) => s.setting_key === 'header_width')
+        if (hw?.setting_value) setHeaderWidth(hw.setting_value)
         const nfs = res.data.find((s) => s.setting_key === 'nav_font_size')
         if (nfs?.setting_value) setNavFontSize(nfs.setting_value)
         const nbs = res.data.find((s) => s.setting_key === 'name_bn_size')
@@ -405,8 +411,8 @@ export default function AdminSettingsPage() {
               </div>
               <Input label="Additional Info (optional)" value={collegeInfo} onChange={(e) => setCollegeInfo(e.target.value)} placeholder="EIIN: 12345, Established: 1990" />
               <div className="grid gap-4 sm:grid-cols-2">
-                <Input label="Logo Width (leave empty for auto)" type="number" value={logoWidth} onChange={(e) => setLogoWidth(e.target.value)} placeholder="e.g. 80" />
-                <Input label="Logo Height (leave empty for auto)" type="number" value={logoHeight} onChange={(e) => setLogoHeight(e.target.value)} placeholder="e.g. 80" />
+                <Input label="Logo Width (% of screen)" type="number" value={logoWidth} onChange={(e) => setLogoWidth(e.target.value)} placeholder="e.g. 8" />
+                <Input label="Logo Height (% of screen)" type="number" value={logoHeight} onChange={(e) => setLogoHeight(e.target.value)} placeholder="e.g. 8" />
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Input label="Name (Bangla) Size" type="number" value={nameBnSize} onChange={(e) => setNameBnSize(e.target.value)} placeholder="e.g. 20" />
@@ -424,14 +430,22 @@ export default function AdminSettingsPage() {
                   <input type="color" value={headerTextColor} onChange={(e) => setHeaderTextColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border" />
                   <span className="text-xs text-gray-500">{headerTextColor}</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600 whitespace-nowrap">Header Width (%):</label>
+                  <input type="number" min={50} max={100} value={headerWidth} onChange={(e) => setHeaderWidth(e.target.value)}
+                    className="h-9 w-20 rounded border border-gray-300 px-2 text-sm text-gray-700" />
+                </div>
               </div>
               <Button onClick={async () => {
+                const hw = parseInt(headerWidth, 10)
+                if (hw < 50 || hw > 100) { alert('Header width must be 50-100'); return }
                 await Promise.all([
                   api.put('/admin/settings/college_name_bn', { setting_value: collegeNameBn }),
                   api.put('/admin/settings/college_name_en', { setting_value: collegeNameEn }),
                   api.put('/admin/settings/college_info', { setting_value: collegeInfo }),
                   api.put('/admin/settings/header_bg', { setting_value: headerBg }),
                   api.put('/admin/settings/header_text_color', { setting_value: headerTextColor }),
+                  api.put('/admin/settings/header_width', { setting_value: String(hw) }),
                   api.put('/admin/settings/logo_width', { setting_value: logoWidth }),
                   api.put('/admin/settings/logo_height', { setting_value: logoHeight }),
                   api.put('/admin/settings/name_bn_size', { setting_value: nameBnSize }),
@@ -850,6 +864,11 @@ export default function AdminSettingsPage() {
                 <input type="number" min={10} max={30} value={noticeFontSize} onChange={(e) => setNoticeFontSize(e.target.value)}
                   className="h-9 w-20 rounded border border-gray-300 px-2 text-sm text-gray-700" />
               </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 whitespace-nowrap">Notice Width (%):</label>
+                <input type="number" min={50} max={100} value={noticeWidth} onChange={(e) => setNoticeWidth(e.target.value)}
+                  className="h-9 w-20 rounded border border-gray-300 px-2 text-sm text-gray-700" />
+              </div>
             </div>
             <Button className="mt-4" onClick={async () => {
               await Promise.all([
@@ -857,6 +876,7 @@ export default function AdminSettingsPage() {
                 api.put('/admin/settings/notice_bg', { setting_value: noticeBg }),
                 api.put('/admin/settings/notice_text_color', { setting_value: noticeTextColor }),
                 api.put('/admin/settings/notice_font_size', { setting_value: noticeFontSize }),
+                api.put('/admin/settings/notice_width', { setting_value: noticeWidth }),
               ])
               alert('Slider & notice colors saved')
             }}>

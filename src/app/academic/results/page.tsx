@@ -72,7 +72,7 @@ export default function ResultsPage() {
   const subjectRows = (result?.subjects || []).map((s) => ({
     subject: s.subject,
     grade: <span className={`font-medium ${s.grade === 'F' || s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade}</span>,
-    gpa: <span className={`font-medium ${s.gpa === 0 ? 'text-red-600' : ''}`}>{s.gpa}</span>,
+    gpa: <span className={`font-medium ${Number(s.gpa) === 0 ? 'text-red-600' : ''}`}>{Number(s.gpa).toFixed(2)}</span>,
   }))
 
   return (
@@ -120,7 +120,7 @@ export default function ResultsPage() {
                 </div>
               )}
               {result.status === 'Passed' && (
-                <span className="font-semibold text-gray-900">Final GPA: <span className="text-blue-600">{result.final_gpa}</span></span>
+                <span className="font-semibold text-gray-900">Final GPA: <span className="text-blue-600">{Number(result.final_gpa).toFixed(2)}</span></span>
               )}
             </div>
             {result.fail_subjects?.length > 0 && (

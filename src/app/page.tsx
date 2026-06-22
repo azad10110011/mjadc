@@ -57,6 +57,7 @@ export default function HomePage() {
   const [noticeBg, setNoticeBg] = useState('#ffffff')
   const [noticeTextColor, setNoticeTextColor] = useState('#4b5563')
   const [noticeFontSize, setNoticeFontSize] = useState('')
+  const [noticeWidth, setNoticeWidth] = useState(100)
   const [sliderBg, setSliderBg] = useState('#1e3a5f')
   const [collegePhotoWidth, setCollegePhotoWidth] = useState('')
   const [collegePhotoHeight, setCollegePhotoHeight] = useState('')
@@ -107,7 +108,7 @@ export default function HomePage() {
       .then((res) => setHomeLinkUrl(res.data?.setting_value || ''))
       .catch(() => {})
 
-    const extraKeys = ['notice_bg', 'notice_text_color', 'notice_font_size', 'slider_bg', 'homepage_menu_sections', 'college_photo_width', 'college_photo_height']
+    const extraKeys = ['notice_bg', 'notice_text_color', 'notice_font_size', 'notice_width', 'slider_bg', 'homepage_menu_sections', 'college_photo_width', 'college_photo_height']
     Promise.all(extraKeys.map((k) =>
       api.get<{ data: { setting_value: string } }>(`/settings/${k}`).then((r) => ({ key: k, value: r.data?.setting_value })).catch(() => ({ key: k, value: null }))
     )).then((results) => {
@@ -117,6 +118,7 @@ export default function HomePage() {
         if (r.key === 'notice_text_color') setNoticeTextColor(r.value)
         if (r.key === 'slider_bg') setSliderBg(r.value)
         if (r.key === 'notice_font_size') setNoticeFontSize(r.value)
+        if (r.key === 'notice_width') setNoticeWidth(parseInt(r.value, 10) || 100)
         if (r.key === 'college_photo_width') setCollegePhotoWidth(r.value)
         if (r.key === 'college_photo_height') setCollegePhotoHeight(r.value)
         if (r.key === 'homepage_menu_sections') {
@@ -235,7 +237,7 @@ export default function HomePage() {
 
       {/* Scrolling Notice */}
       <section className="border-b border-gray-200 overflow-hidden" style={{ backgroundColor: noticeBg, borderColor: noticeTextColor, minWidth: '100vw' }}>
-        <div className="mx-auto max-w-7xl px-4 flex items-center gap-2 py-2" style={{ color: noticeTextColor, fontSize: resp(noticeFontSize) }}>
+        <div className="mx-auto px-4 flex items-center gap-2 py-2" style={{ color: noticeTextColor, fontSize: resp(noticeFontSize), maxWidth: noticeWidth ? `${noticeWidth}vw` : '80rem' }}>
           <FileText className="h-4 w-4 shrink-0" />
           <span className="shrink-0 font-semibold whitespace-nowrap">Notice:</span>
           <div className="overflow-hidden flex-1">

@@ -72,7 +72,7 @@ export default function AdminResultsPage() {
                       </div>
                     )}
                     {result.status === 'Passed' && (
-                      <span className="font-semibold">Final GPA: <span className="text-blue-600">{result.final_gpa}</span></span>
+                      <span className="font-semibold">Final GPA: <span className="text-blue-600">{Number(result.final_gpa).toFixed(2)}</span></span>
                     )}
                   </div>
                   {result.fail_subjects?.length > 0 && (
@@ -86,7 +86,7 @@ export default function AdminResultsPage() {
                   <DataTable columns={columns} data={(result.subjects || []).map((s: any) => ({
                     subject: s.subject,
                     grade: <span className={`font-medium ${s.grade === 'F' || s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade}</span>,
-                    gpa: <span className={`font-medium ${s.gpa === 0 ? 'text-red-600' : ''}`}>{s.gpa}</span>,
+                    gpa: <span className={`font-medium ${Number(s.gpa) === 0 ? 'text-red-600' : ''}`}>{Number(s.gpa).toFixed(2)}</span>,
                   }))} emptyMessage="No subject data" />
                 </div>
               ) : (

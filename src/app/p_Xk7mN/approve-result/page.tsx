@@ -50,7 +50,7 @@ export default function AdminApproveResultPage() {
     try {
       const r: any = await api.get(`/exam-controller/results/detail?exam_name=${encodeURIComponent(exam_name)}&subject=${encodeURIComponent(subject)}&class=${encodeURIComponent(cls)}`)
       setDetailData((r.data || []).map((s: any, i: number) => ({
-        ...s, sl: i + 1, mcq: s.mcq ?? 0, cq: s.cq ?? 0, practical: s.practical ?? 0, total: s.total ?? 0, gpa: s.gpa ?? 0,
+        ...s, sl: i + 1, mcq: s.mcq ?? 0, cq: s.cq ?? 0, practical: s.practical ?? 0, total: s.total ?? 0, gpa: Number(s.gpa ?? 0).toFixed(2),
       })))
     } catch { setDetailData([]) }
     finally { setDetailLoading(false) }

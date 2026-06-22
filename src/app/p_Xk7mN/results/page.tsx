@@ -235,7 +235,7 @@ export default function AdminResultsPage() {
     })
     row.total = s.total
     row.grade = <span className={`text-sm font-medium ${s.grade === 'Absent' || s.grade === 'F' ? 'text-red-600' : ''}`}>{s.grade}</span>
-    row.gpa = s.grade === 'Absent' ? 'Absent' : s.gpa
+    row.gpa = s.grade === 'Absent' ? 'Absent' : Number(s.gpa).toFixed(2)
     return row
   })
 

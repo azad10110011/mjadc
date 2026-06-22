@@ -38,7 +38,7 @@ export default function StudentDashboardPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Last Exam GPA</p>
-              <p className="text-2xl font-bold text-gray-900">{data?.last_result?.gpa || '--'}</p>
+              <p className="text-2xl font-bold text-gray-900">{data?.last_result ? Number(data.last_result.gpa).toFixed(2) : '--'}</p>
               {data?.last_result && <p className="text-xs text-gray-400">{data.last_result.exam_name}</p>}
             </div>
           </CardContent>

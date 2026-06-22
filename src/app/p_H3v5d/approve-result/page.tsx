@@ -56,7 +56,7 @@ export default function ExamControllerApproveResultPage() {
         cq: s.cq ?? 0,
         practical: s.practical ?? 0,
         total: s.total ?? 0,
-        gpa: s.gpa ?? 0,
+        gpa: Number(s.gpa ?? 0).toFixed(2),
       })))
     } catch {
       setDetailData([])

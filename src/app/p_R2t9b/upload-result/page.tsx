@@ -230,7 +230,7 @@ export default function TeacherUploadResultPage() {
     })
     row.total = <span className={`text-sm font-medium ${s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.total}</span>
     row.grade = <span className={`text-sm font-medium ${s.grade === 'Absent' || s.grade === 'F' ? 'text-red-600' : ''}`}>{s.grade}</span>
-    row.gpa = <span className={`text-sm font-medium ${s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade === 'Absent' ? 'Absent' : s.gpa}</span>
+    row.gpa = <span className={`text-sm font-medium ${s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade === 'Absent' ? 'Absent' : Number(s.gpa).toFixed(2)}</span>
     row.status = s.status ? <Badge variant={s.status === 'submitted' ? 'info' : s.status === 'approved' ? 'success' : 'default'}>{s.status}</Badge> : <span className="text-xs text-gray-400">unsaved</span>
     return row
   })
