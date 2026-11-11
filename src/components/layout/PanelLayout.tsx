@@ -85,13 +85,14 @@ const panelNav: Record<PanelRole, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/p_Xk7mN', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Notices', href: '/p_Xk7mN/notices', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Results', icon: <GraduationCap className="h-4 w-4" />, children: [
+    { label: 'Exam Management', icon: <GraduationCap className="h-4 w-4" />, children: [
       { label: 'All Results', href: '/p_Xk7mN/results' },
       { label: 'Transcript', href: '/p_Xk7mN/transcript' },
       { label: 'Exam Routine', href: '/p_Xk7mN/exam-routine' },
       { label: 'Exam Paper Selection', href: '/p_Xk7mN/exam-paper-selection' },
       { label: 'Admit Card', href: '/p_Xk7mN/admit-card' },
       { label: 'Mark Entry Form', href: '/p_Xk7mN/mark-entry-form' },
+      { label: 'Exam Fee Collection', href: '/p_Xk7mN/exam-fee-collection' },
     ] },
     { label: 'Custom Entry Fields', href: '/p_Xk7mN/custom-fields', icon: <ListPlus className="h-4 w-4" /> },
     { label: 'Subjects', href: '/p_Xk7mN/subjects', icon: <BookOpen className="h-4 w-4" /> },
@@ -100,6 +101,13 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Syllabus', href: '/p_Xk7mN/syllabus', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'Teachers', href: '/p_Xk7mN/teachers', icon: <GraduationCap className="h-4 w-4" /> },
     { label: 'Staff', href: '/p_Xk7mN/staff', icon: <Users className="h-4 w-4" /> },
+    { label: 'Student Management', icon: <Users className="h-4 w-4" />, children: [
+      { label: 'All Students', href: '/p_Xk7mN/students' },
+      { label: 'Add Student', href: '/p_Xk7mN/students/add' },
+      { label: 'Class Change', href: '/p_Xk7mN/class-change' },
+      { label: 'Student Info', href: '/p_Xk7mN/student-info' },
+      { label: 'Old Students', href: '/p_Xk7mN/students?class=Old' },
+    ] },
     { label: 'Governing Body', href: '/p_Xk7mN/governing-body', icon: <UserCheck className="h-4 w-4" /> },
     { label: 'Principal & Vice-Principal', href: '/p_Xk7mN/principals', icon: <UserCheck className="h-4 w-4" /> },
     { label: "Teachers Council", href: '/p_Xk7mN/teachers-council', icon: <GraduationCap className="h-4 w-4" /> },
@@ -116,13 +124,6 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Users', icon: <UserCog className="h-4 w-4" />, children: [
       { label: 'All Users', href: '/p_Xk7mN/users' },
       { label: 'Teacher/Staff', href: '/p_Xk7mN/users/teacher-staff' },
-    ] },
-    { label: 'Student Management', icon: <Users className="h-4 w-4" />, children: [
-      { label: 'All Students', href: '/p_Xk7mN/students' },
-      { label: 'Add Student', href: '/p_Xk7mN/students/add' },
-      { label: 'Class Change', href: '/p_Xk7mN/class-change' },
-      { label: 'Student Info', href: '/p_Xk7mN/student-info' },
-      { label: 'Old Students', href: '/p_Xk7mN/students?class=Old' },
     ] },
     { label: 'Tuition Fees', href: '/p_Xk7mN/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },
     { label: 'Transactions', href: '/p_Xk7mN/transactions', icon: <Receipt className="h-4 w-4" /> },
@@ -155,6 +156,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'Approve Result', href: '/p_H3v5d/approve-result' },
       { label: 'Transcript', href: '/p_H3v5d/transcript' },
     ] },
+    { label: 'Exam Fee Collection', href: '/p_Xk7mN/exam-fee-collection', icon: <CreditCard className="h-4 w-4" /> },
   ],
   principal: [
     { label: 'Dashboard', href: '/p_W4q6z', icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -171,6 +173,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Syllabus', href: '/p_F7c2j/syllabus', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'Routine', href: '/p_F7c2j/routine', icon: <Calendar className="h-4 w-4" /> },
     { label: 'Fee Collection', href: '/p_F7c2j/fee-collection', icon: <DollarSign className="h-4 w-4" /> },
+    { label: 'Exam Fee Collection', href: '/p_Xk7mN/exam-fee-collection', icon: <CreditCard className="h-4 w-4" /> },
     { label: 'Collected Summary', href: '/p_F7c2j/collected-summary', icon: <Receipt className="h-4 w-4" /> },
     { label: 'Student Management', icon: <Users className="h-4 w-4" />, children: [
       { label: 'All Students', href: '/p_F7c2j/students' },
@@ -190,6 +193,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     const expanded: Record<string, boolean> = {}
     if (pathname.startsWith('/p_Xk7mN/pages')) expanded['Pages'] = true
     if (pathname.startsWith('/p_Xk7mN/users')) expanded['Users'] = true
+    if (pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-')) expanded['Exam Management'] = true
     if (pathname.startsWith('/p_Xk7mN/students')) expanded['Student Management'] = true
     if (pathname.startsWith('/p_F7c2j/students')) expanded['Student Management'] = true
     return expanded
@@ -206,6 +210,12 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   useEffect(() => {
     if (loading) return
     if (!user || !user.roles.includes(role as unknown as UserRole)) {
+      // Shared pages (e.g. /p_Xk7mN/exam-fee-collection, /collected-summary) declare a
+      // hardcoded role but are reachable from several panels. If the declared role
+      // doesn't fit, keep the session if the user has ANY authorized panel role and
+      // derive the effective role from their highest-priority role instead of logging out.
+      const effective = ROLE_PRIORITY.find((r) => user?.roles.includes(r as UserRole))
+      if (effective && user) return
       doLogout()
     }
   }, [user, loading, role, doLogout])
@@ -246,7 +256,32 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   }, [user, role])
 
   const showRoleSwitcher = availableRoles.length > 1
-  const navItems = panelNav[role]
+  // Shared pages declare a hardcoded role (e.g. 'admin') but are reachable from other
+  // panels. Resolve the effective panel as:
+  //   1. the panel matching the URL prefix the user navigated from (/p_F7c2j -> administration)
+  //   2. the user's previously active panel (stored on switch)
+  //   3. the declared role if the user actually has it
+  //   4. the user's highest-priority authorized role
+  const PATH_ROLE: Record<string, PanelRole> = {
+    '/p_Xk7mN': 'admin',
+    '/p_G9n4s': 'student',
+    '/p_R2t9b': 'teacher',
+    '/p_L8p1x': 'staff',
+    '/p_H3v5d': 'exam_controller',
+    '/p_W4q6z': 'principal',
+    '/p_F7c2j': 'administration',
+  }
+  const urlPrefix = '/' + (pathname.split('/')[1] || '')
+  const urlRole = PATH_ROLE[urlPrefix]
+  const lastRole = (typeof window !== 'undefined' ? localStorage.getItem('active_panel_role') : null) as PanelRole | null
+  const userHas = (r: PanelRole) => !!user?.roles?.includes(r as unknown as UserRole)
+  let effectiveRole: PanelRole
+  if (urlRole && userHas(urlRole)) effectiveRole = urlRole
+  else if (lastRole && userHas(lastRole)) effectiveRole = lastRole
+  else if (userHas(role)) effectiveRole = role
+  else effectiveRole = (availableRoles[0] || role) as PanelRole
+  useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('active_panel_role', effectiveRole) }, [effectiveRole])
+  const navItems = panelNav[effectiveRole] || panelNav[role]
 
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) => ({ ...prev, [label]: !prev[label] }))
@@ -270,7 +305,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
               <label className="text-xs font-medium text-gray-500">Active Role</label>
               <div className="relative mt-1">
                 <select
-                  value={role}
+                  value={effectiveRole}
                   onChange={(e) => {
                     const newRole = e.target.value as PanelRole
                     router.push(ROLE_HOME[newRole])
