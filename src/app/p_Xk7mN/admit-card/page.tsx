@@ -38,6 +38,7 @@ interface AdmitStudent {
 interface RoutineEntry {
   id: number;
   exam_date: string;
+  exam_time?: string | null;
   subjects: string[];
 }
 
@@ -74,7 +75,7 @@ const FIELD_OPTIONS: {
   },
   { value: "class", label: "Class", key: "class" },
   { value: "section", label: "Section", key: "section" },
-  { value: "student_group", label: "Group/Department", key: "student_group" },
+  { value: "student_group", label: "Group", key: "student_group" },
   { value: "student_type", label: "Student Type", key: "student_type" },
   {
     value: "academic_session",
@@ -138,6 +139,7 @@ export default function AdminAdmitCardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [routine, setRoutine] = useState<RoutineEntry[]>([]);
+  const [logoSrc, setLogoSrc] = useState<string>("");
 
   const [config, setConfig] = useState<AdmitConfig>(DEFAULT_CONFIG);
   const [configLoading, setConfigLoading] = useState(true);
@@ -170,6 +172,25 @@ export default function AdminAdmitCardPage() {
       })
       .catch(() => {})
       .finally(() => setConfigLoading(false));
+  }, []);
+
+  useEffect(() => {
+    // prefer admin-uploaded logo from settings, fall back to /logo.png
+    // /admin/settings returns the full settings list — the same source the
+    // ID Cards page uses for college_logo (key + stored path).
+    api
+      .get<{ status: number; data: { setting_key: string; setting_value?: string }[] }>(
+        "/admin/settings",
+      )
+      .then((res) => {
+        const logo = (res.data || []).find(
+          (s) => s.setting_key === "college_logo" && s.setting_value,
+        );
+        if (logo?.setting_value)
+          setLogoSrc(`${UPLOAD_BASE}/${logo.setting_value.replace(/^\/+/, "")}`);
+        else setLogoSrc("/logo.png");
+      })
+      .catch(() => setLogoSrc("/logo.png"));
   }, []);
 
   const handleSaveConfig = async () => {
@@ -293,13 +314,34 @@ export default function AdminAdmitCardPage() {
     return isNaN(dt.getTime()) ? "" : dt.toLocaleDateString("en-GB", { weekday: "long" });
   };
 
-  const studentFields = (s: AdmitStudent): [string, string][] =>
-    FIELD_OPTIONS.filter((f) => config.fields.includes(f.value)).map((f) => [
-      f.label.replace(" (Student ID)", "").replace(" (Bangla)", ""),
-      String(s[f.key] ?? "") || "N/A",
-    ]);
+  /** Title Case: "SHATHI KHATUN" -> "Shathi Khatun" (shortens long caps names). */
+  const titleCase = (v: string): string =>
+    v
+      .toLowerCase()
+      .replace(/(^|[\s.'-])([\p{L}])/gu, (_m, p, c) => p + c.toUpperCase());
 
-  const handleDownload = () => {
+  const studentFields = (s: AdmitStudent): [string, string][] =>
+    FIELD_OPTIONS.filter((f) => config.fields.includes(f.value)).map((f) => {
+      const label = f.label
+        .replace(" (Student ID)", "")
+        .replace(" (Bangla)", "");
+      let value = String(s[f.key] ?? "") || "N/A";
+      // Names stored in ALL CAPS waste width and force ugly wraps on the card
+      // — display them in Title Case so they fit on one line.
+      if (["Student Name", "Father's Name", "Mother's Name"].includes(label)) {
+        value = titleCase(value);
+      }
+      if (
+        ["Student Name", "Father's Name", "Mother's Name", "Group", "Student Type"].includes(
+          label,
+        )
+      ) {
+        value = "\u00A0 " + value; // one space after colon
+      }
+      return [label, value] as [string, string];
+    });
+
+  const handleDownload = async () => {
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -314,10 +356,65 @@ export default function AdminAdmitCardPage() {
     const cardH =
       perPage === 2 ? (pageH - margin * 2 - gap) / 2 : pageH - margin * 2;
 
-    students.forEach((s, i) => {
+    // Logo → data URL + HTMLImageElement so the PDF embeds it (jsPDF addImage
+    // needs a data URL; the element gives natural dimensions for aspect ratio)
+    let logoDataUrl: string | null = null;
+    let logoImg: HTMLImageElement | null = null;
+    // Per-student photo cache (same pipeline as the logo)
+    const photoCache = new Map<string, { url: string | null; img: HTMLImageElement | null }>();
+    const loadPhoto = async (s: AdmitStudent) => {
+      if (!s.photo_path) return { url: null, img: null };
+      if (photoCache.has(s.photo_path)) return photoCache.get(s.photo_path)!;
+      const url = `${UPLOAD_BASE}/uploads/${s.photo_path}`;
+      const entry = await new Promise<{ url: string | null; img: HTMLImageElement | null }>(
+        (resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve({ url, img });
+          img.onerror = () => resolve({ url: null, img: null });
+          img.src = url;
+        },
+      );
+      if (entry.img) {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = entry.img.naturalWidth;
+          canvas.height = entry.img.naturalHeight;
+          canvas.getContext("2d")!.drawImage(entry.img, 0, 0);
+          photoCache.set(s.photo_path, { url: canvas.toDataURL("image/png"), img: entry.img });
+        } catch {
+          photoCache.set(s.photo_path, { url: null, img: null });
+        }
+      } else {
+        photoCache.set(s.photo_path, { url: null, img: null });
+      }
+      return photoCache.get(s.photo_path)!;
+    };
+    if (logoSrc) {
+      try {
+        logoImg = await new Promise<HTMLImageElement>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null as unknown as HTMLImageElement);
+          img.src = logoSrc;
+        });
+        if (logoImg) {
+          const canvas = document.createElement("canvas");
+          canvas.width = logoImg.naturalWidth;
+          canvas.height = logoImg.naturalHeight;
+          canvas.getContext("2d")!.drawImage(logoImg, 0, 0);
+          logoDataUrl = canvas.toDataURL("image/png");
+        }
+      } catch {}
+    }
+
+    for (let i = 0; i < students.length; i++) {
+      const s = students[i];
       if (i > 0 && i % perPage === 0) doc.addPage();
       const idxOnPage = i % perPage;
       const y = margin + idxOnPage * (cardH + gap);
+      const ph = await loadPhoto(s);
       drawCardPdf(
         doc,
         margin,
@@ -329,8 +426,12 @@ export default function AdminAdmitCardPage() {
         studentFields(s),
         qrCodes[s.student_id] || null,
         routineFor(s, routine),
+        logoDataUrl,
+        logoImg,
+        ph.url,
+        ph.img,
       );
-    });
+    }
 
     doc.save(`admit-cards-${cls}-${year}.pdf`);
   };
@@ -531,7 +632,7 @@ export default function AdminAdmitCardPage() {
             </Button>
             {students.length > 0 && (
               <>
-                <Button variant="secondary" onClick={handleDownload}>
+                <Button variant="secondary" onClick={() => handleDownload()}>
                   <Download className="mr-1 h-4 w-4" /> Download PDF
                 </Button>
                 <Button variant="secondary" onClick={handlePrint}>
@@ -554,7 +655,13 @@ export default function AdminAdmitCardPage() {
               {pageStudents.map((s) => (
                 <div key={s.student_id} className="admit-card">
                   <div className="header-area">
-                    <h2 className="college-name">{config.college_name}</h2>
+                    <div className="header-logo-row">
+                      {logoSrc && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={logoSrc} alt="Logo" className="college-logo" />
+                      )}
+                      <h2 className="college-name">{config.college_name}</h2>
+                    </div>
                     <p className="college-address">{config.college_address}</p>
                     <p className="admit-title">Admit Card</p>
                     <p className="exam-label">{examLabel}</p>
@@ -602,6 +709,7 @@ export default function AdminAdmitCardPage() {
                           <tr>
                             <th>Date</th>
                             <th>Day</th>
+                            <th>Time</th>
                             <th>Subject</th>
                           </tr>
                         </thead>
@@ -610,12 +718,13 @@ export default function AdminAdmitCardPage() {
                             <tr key={r.id}>
                               <td>{fmtDate(r.exam_date)}</td>
                               <td>{dayName(r.exam_date)}</td>
+                              <td>{r.exam_time || "-"}</td>
                               <td>{r.subjects.map((sb) => routineLabel.current[sb] || sb).join(", ")}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                      <p className="routine-note">Exam Routine (own subjects only)</p>
+                      <p className="routine-note" style={{ textAlign: "center", fontSize: 12 }}>Exam Routine (own subjects only)</p>
                     </div>
                   )}
 
@@ -655,32 +764,61 @@ export default function AdminAdmitCardPage() {
           background: white;
         }
         .admit-card {
-          border: 2px solid black;
-          padding: 14px 18px;
+          border: 2px solid #1e3a8a;
+          border-radius: 10px;
+          overflow: hidden;
+          padding: 0 18px 14px;
           flex: 1;
+          background: #ffffff;
         }
         .header-area {
           text-align: center;
-          margin-bottom: 10px;
+          margin: 0 -18px 10px;
+          padding: 10px 12px 8px;
+          background: linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%);
+          border-bottom: 2px solid #1e3a8a;
+        }
+        .header-logo-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+        .college-logo {
+          height: 52px;
+          width: 52px;
+          object-fit: contain;
         }
         .college-name {
           font-size: 18px;
           font-weight: bold;
           margin: 0;
+          color: #1e3a8a;
+          letter-spacing: 0.4px;
         }
         .college-address {
           font-size: 12px;
           margin: 2px 0;
         }
         .admit-title {
-          font-size: 14px;
-          font-weight: 600;
+          display: inline-block;
+          font-size: 13px;
+          font-weight: 700;
           margin-top: 6px;
           margin-bottom: 0;
+          background: #1e3a8a;
+          color: #ffffff;
+          padding: 2px 18px;
+          border-radius: 999px;
+          letter-spacing: 2px;
         }
         .exam-label {
-          font-size: 12px;
-          margin-top: 2px;
+          font-size: 12.5px;
+          font-weight: 600;
+          margin-top: 5px;
+          color: #b91c1c;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
         }
         .card-body {
           display: flex;
@@ -691,10 +829,12 @@ export default function AdminAdmitCardPage() {
           flex-shrink: 0;
         }
         .student-photo {
-          width: 90px;
-          height: 115px;
+          width: 70px;
+          height: 90px;
           object-fit: cover;
-          border: 1px solid black;
+          border: 2px solid #1e3a8a;
+          border-radius: 6px;
+          background: #fff;
         }
         .photo-placeholder {
           display: flex;
@@ -708,27 +848,29 @@ export default function AdminAdmitCardPage() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1px 18px;
-          font-size: 12px;
+          font-size: 12.5px;
           flex: 1;
         }
         .info-grid.full-width {
           grid-template-columns: 1fr 1fr;
         }
         .info-label {
-          font-weight: 600;
+          font-weight: 700;
+          color: #1e3a8a;
         }
         .qr-area {
           flex-shrink: 0;
           text-align: center;
         }
         .qr-img {
-          width: 60px;
-          height: 60px;
+          width: 45px;
+          height: 45px;
         }
         .qr-caption {
           display: block;
-          font-size: 8px;
-          color: #444;
+          font-size: 9px;
+          color: #1e3a8a;
+          font-weight: 600;
           margin-top: 2px;
         }
         .footer-area {
@@ -743,22 +885,28 @@ export default function AdminAdmitCardPage() {
         .routine-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 10.5px;
+          font-size: 11.5px;
         }
         .routine-table th,
         .routine-table td {
-          border: 1px solid #333;
+          border: 1px solid #94a3b8;
           padding: 3px 6px;
           text-align: left;
         }
         .routine-table th {
-          background: #eee;
+          background: #1e3a8a;
+          color: #fff;
           font-weight: bold;
         }
+        .routine-table tbody tr:nth-child(even) {
+          background: #eff6ff;
+        }
         .routine-note {
-          font-size: 9px;
+          font-size: 12px;
           margin: 3px 0 0;
-          color: #333;
+          color: #1e3a8a;
+          font-weight: 600;
+          text-align: center;
         }
         .footer-left,
         .footer-right {
@@ -832,99 +980,209 @@ function drawCardPdf(
   examLabel: string,
   fields: [string, string][],
   qrDataUrl: string | null,
-  routine: { id: number; exam_date: string; subjects: string[] }[] = [],
+  routine: { id: number; exam_date: string; exam_time?: string | null; subjects: string[] }[] = [],
+  logoDataUrl?: string | null,
+  logoImg?: HTMLImageElement | null,
+  photoDataUrl?: string | null,
+  photoImg?: HTMLImageElement | null,
 ) {
-  doc.setLineWidth(0.6);
-  doc.rect(margin, y, cardW, cardH);
+  const NAVY = [30, 58, 138] as const;
 
+  // Card frame (navy, rounded) + header banner — mirrors .admit-card/.header-area
+  doc.setLineWidth(0.6);
+  doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]);
+  doc.roundedRect(margin, y, cardW, cardH, 2, 2);
+  const headerH = 30;
+  doc.setFillColor(219, 234, 254); // #dbeafe
+  doc.rect(margin + 0.3, y + 0.3, cardW - 0.6, headerH, "F");
+  doc.line(margin, y + headerH, margin + cardW, y + headerH);
+
+  // College logo (left of college name), same as screen header-logo-row.
+  // IMPORTANT: set the name's font BEFORE measuring — getTextWidth uses the
+  // current font state, which is stale from the previous card otherwise
+  // (that's why only the 1st card's logo sat correctly).
+  const nameX = margin + cardW / 2;
   doc.setFont("times", "bold");
   doc.setFontSize(15);
-  doc.text(config.college_name, margin + cardW / 2, y + 10, {
+  if (logoImg && logoDataUrl) {
+    const logoH = 14;
+    const ratio = logoImg.width && logoImg.height ? logoImg.width / logoImg.height : 1;
+    const logoW = Math.min(logoH * ratio, 18);
+    const nameW2 = doc.getTextWidth(config.college_name) / 2 + 2; // half name width + gap
+    const lx = Math.max(margin + 4, nameX - nameW2 - logoW - 2); // never past card edge
+    try {
+      doc.addImage(logoDataUrl, "PNG", lx, y + 4, logoW, logoH);
+    } catch {}
+  }
+  doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+  doc.text(config.college_name, nameX, y + 10, {
     align: "center",
   });
+  doc.setTextColor(0, 0, 0);
   doc.setFont("times", "normal");
   doc.setFontSize(9);
   doc.text(config.college_address, margin + cardW / 2, y + 15.5, {
     align: "center",
   });
+  // ADMIT CARD navy chip, same as .admit-title pill
   doc.setFont("times", "bold");
-  doc.setFontSize(11);
-  doc.text("ADMIT CARD", margin + cardW / 2, y + 22, { align: "center" });
-  doc.setFont("times", "normal");
+  doc.setFontSize(10.5);
+  const chipW = 46;
+  doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
+  doc.roundedRect(margin + cardW / 2 - chipW / 2, y + 18, chipW, 6.5, 3, 3, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.text("ADMIT CARD", margin + cardW / 2, y + 22.6, { align: "center" });
+  doc.setTextColor(185, 28, 28); // #b91c1c exam label
   doc.setFontSize(9);
-  doc.text(examLabel, margin + cardW / 2, y + 27.5, { align: "center" });
+  doc.text(examLabel.toUpperCase(), margin + cardW / 2, y + 27.5, {
+    align: "center",
+  });
+  doc.setTextColor(0, 0, 0);
 
   const contentY = y + 33;
   let infoX = margin + 6;
-  const photoW = 24;
-  const photoH = 30;
+  const photoW = 20;
+  const photoH = 25;
   if (config.photo) {
     doc.setLineWidth(0.3);
-    doc.rect(margin + 6, contentY, photoW, photoH);
-    doc.setFontSize(6.5);
-    doc.text("Photo", margin + 6 + photoW / 2, contentY + photoH / 2 + 1, {
-      align: "center",
-    });
+    doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.roundedRect(margin + 6, contentY, photoW, photoH, 1, 1);
+    if (photoDataUrl && photoImg) {
+      try {
+        doc.addImage(photoDataUrl, "PNG", margin + 6.15, contentY + 0.15, photoW - 0.3, photoH - 0.3);
+      } catch {
+        doc.setFontSize(6.5);
+        doc.text("Photo", margin + 6 + photoW / 2, contentY + photoH / 2 + 1, {
+          align: "center",
+        });
+      }
+    } else {
+      doc.setFontSize(6.5);
+      doc.text("Photo", margin + 6 + photoW / 2, contentY + photoH / 2 + 1, {
+        align: "center",
+      });
+    }
+    doc.setDrawColor(0, 0, 0);
     infoX = margin + 6 + photoW + 5;
   }
 
   // QR code (fee verification) on the right edge
   let qrX = margin + cardW - 6;
   if (qrDataUrl) {
-    const qrSize = 20;
+    const qrSize = 15;
     qrX = margin + cardW - 6 - qrSize;
     doc.addImage(qrDataUrl, "PNG", qrX, contentY, qrSize, qrSize);
-    doc.setFontSize(5.5);
-    doc.text("Fee Verify", qrX + qrSize / 2, contentY + qrSize + 3, {
+    doc.setFontSize(6.5);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text("Fee Verify QR", qrX + qrSize / 2, contentY + qrSize + 3, {
       align: "center",
     });
+    doc.setTextColor(0, 0, 0);
   }
 
-  const colW = (cardW - (infoX - margin) - 6 - (qrDataUrl ? 24 : 0)) / 2;
-  doc.setFontSize(8.5);
+  const colW = (cardW - (infoX - margin) - 8 - (qrDataUrl ? 26 : 0)) / 2;
+  doc.setFontSize(9.5);
   fields.forEach(([label, value], fi) => {
     const col = fi % 2;
     const row = Math.floor(fi / 2);
     const fx = infoX + col * colW;
     const fy = contentY + 4 + row * 5.5;
     doc.setFont("times", "bold");
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
     doc.text(`${label}:`, fx, fy);
+    doc.setTextColor(0, 0, 0);
     doc.setFont("times", "normal");
-    doc.text(value, fx + doc.getTextWidth(`${label}: `) + 1, fy);
+    // Long names (esp. Bangla) would run into the neighbouring column or the
+    // QR — clamp the value width and splitLines() wraps it onto extra lines
+    const vx = fx + doc.getTextWidth(`${label}: `) + 1;
+    const maxW = colW - doc.getTextWidth(`${label}: `) - 4;
+    let lines: string[] = doc.splitTextToSize(value, Math.max(maxW, 12));
+    if (lines.length > 1) {
+      // A 2nd line looks bad — shrink the font (9.5 → 6.5pt) until it fits ONE
+      // line instead of wrapping.
+      for (let fs2 = 9; fs2 >= 6.5; fs2 -= 0.5) {
+        doc.setFontSize(fs2);
+        lines = doc.splitTextToSize(value, Math.max(maxW, 12));
+        if (lines.length <= 1) break;
+      }
+    }
+    lines.forEach((ln: string, li: number) => {
+      doc.text(ln, vx, fy + li * 4.4);
+    });
+    doc.setFontSize(9.5);
   });
 
   if (routine.length > 0) {
-    const rh = Math.min(routine.length * 5 + 9, cardH / 3);
-    const ry = y + cardH - rh - (config.signatures ? 18 : 8);
+    // row height grows with font size; heading sits above the table
+    const rowH = 5.4;
+    // signature block needs ~22mm (line + caption + breathing room) —
+    // previously 18mm squeezed the signature area; also honor signature_space
+    const sigReserve = config.signatures ? 22 + (config.signature_space || 0) / 2 : 8;
+    const rh = Math.min(routine.length * rowH + 11, cardH / 3);
+    const ry = y + cardH - rh - sigReserve;
     doc.setLineWidth(0.2);
-    doc.setFontSize(7.5);
+    doc.setFontSize(10);
     doc.setFont("times", "bold");
-    doc.text("EXAM ROUTINE", margin + 6, ry + 3);
-    const cols = [margin + 6, margin + 42, margin + 78];
-    const colW = [36, 36, cardW - 78];
-    const headY = ry + 7;
-    doc.rect(cols[0], headY - 3.4, colW[0] + colW[1] + colW[2], 4.6);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text("EXAM ROUTINE (own subjects only)", margin + cardW / 2, ry + 3, {
+      align: "center",
+    });
+    doc.setTextColor(0, 0, 0);
+    // Narrow Date/Day/Time; Subject takes exactly the remainder so the table
+    // right edge sits 6mm INSIDE the card border (right: margin+cardW-6).
+    doc.setFontSize(9); // header + row cell font
+    const cols = [margin + 6, margin + 36, margin + 66, margin + 90];
+    const tableRight = margin + cardW - 6;
+    const colW = [30, 30, 24, tableRight - (margin + 90)];
+    const headY = ry + 9;
+    doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.rect(cols[0], headY - 4, tableRight - cols[0], 5, "F");
+    doc.setTextColor(255, 255, 255);
     doc.text("Date", cols[0] + 1, headY);
     doc.text("Day", cols[1] + 1, headY);
-    doc.text("Subject", cols[2] + 1, headY);
+    doc.text("Time", cols[2] + 1, headY);
+    doc.text("Subject", cols[3] + 1, headY);
+    doc.setTextColor(0, 0, 0);
     doc.setFont("times", "normal");
-    let rowY = headY + 4.6;
+    let rowY = headY + 5;
+    const rowsDrawn = Math.min(routine.length, 8);
+    const tableBottom = headY + 5 + rowsDrawn * rowH;
+    // zebra fills FIRST — grid lines are drawn after, so the fills can never
+    // paint over them (that was the broken-line bug)
+    routine.slice(0, 8).forEach((_, ri) => {
+      if (ri % 2 === 1) {
+        doc.setFillColor(239, 246, 255); // #eff6ff
+        doc.rect(cols[0], headY + 1 + ri * rowH, tableRight - cols[0], rowH, "F");
+      }
+    });
     routine.slice(0, 8).forEach((r) => {
       const dt = new Date(r.exam_date + "T00:00:00");
       const dateStr = isNaN(dt.getTime())
         ? r.exam_date
         : dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
       const dayStr = isNaN(dt.getTime()) ? "" : dt.toLocaleDateString("en-GB", { weekday: "long" });
-      doc.rect(cols[0], rowY - 3.4, colW[0] + colW[1] + colW[2], 4.6);
       doc.text(dateStr, cols[0] + 1, rowY);
       doc.text(dayStr, cols[1] + 1, rowY);
-      doc.text(r.subjects.map((sb) => routineLabel.current[sb] || sb).join(", "), cols[2] + 1, rowY, { maxWidth: colW[2] - 2 });
-      rowY += 4.6;
+      doc.text(r.exam_time || "-", cols[2] + 1, rowY);
+      doc.text(r.subjects.map((sb) => routineLabel.current[sb] || sb).join(", "), cols[3] + 1, rowY, { maxWidth: colW[3] - 2 });
+      rowY += rowH;
     });
+    // continuous full grid: outer frame + every column separator, one stroke
+    const colXs = [cols[0], cols[1], cols[2], cols[3], tableRight];
+    doc.setDrawColor(148, 163, 184); // #94a3b8 like the preview borders
+    colXs.forEach((cx) => doc.line(cx, headY - 4, cx, tableBottom - 4));
+    doc.line(cols[0], headY - 4, tableRight, headY - 4);
+    doc.line(cols[0], tableBottom - 4, tableRight, tableBottom - 4);
+    for (let ri = 1; ri < rowsDrawn; ri++) {
+      const ly = headY + 1 + ri * rowH;
+      doc.line(cols[0], ly, tableRight, ly);
+    }
+    doc.setDrawColor(0, 0, 0);
   }
 
   if (config.signatures) {
-    const sigY = y + cardH - 10 - (config.signature_space || 0) / 2;
+    // keep the signature line clear of the routine table bottom
+    const sigY = y + cardH - 12 - (config.signature_space || 0) / 2;
     doc.line(margin + 10, sigY, margin + 60, sigY);
     doc.setFontSize(8.5);
     doc.text("Controller of Examinations", margin + 35, sigY + 4.5, {

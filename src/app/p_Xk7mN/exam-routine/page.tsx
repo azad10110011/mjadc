@@ -14,6 +14,7 @@ interface RoutineEntry {
   class: string;
   exam_name: string;
   exam_date: string;
+  exam_time?: string | null;
   subjects: string[];
 }
 
@@ -39,12 +40,14 @@ export default function AdminExamRoutinePage() {
 
   // add form
   const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
   const [newSubjects, setNewSubjects] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
 
   // edit state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
   const [editSubjects, setEditSubjects] = useState<string[]>([]);
 
   const years = Array.from({ length: 25 }, (_, i) => ({
@@ -219,9 +222,11 @@ export default function AdminExamRoutinePage() {
         class: cls,
         exam_name: examName,
         exam_date: newDate,
+        ...(newTime && { exam_time: newTime }),
         subjects: newSubjects,
       });
       setNewDate("");
+      setNewTime("");
       setNewSubjects([]);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -236,6 +241,7 @@ export default function AdminExamRoutinePage() {
   const startEdit = (e: RoutineEntry) => {
     setEditingId(e.id);
     setEditDate(e.exam_date);
+    setEditTime(e.exam_time || "");
     setEditSubjects(e.subjects);
   };
 
@@ -249,6 +255,7 @@ export default function AdminExamRoutinePage() {
     try {
       await api.put(`/admin/exam-routines/${editingId}`, {
         exam_date: editDate,
+        exam_time: editTime || null,
         subjects: editSubjects,
       });
       setEditingId(null);
@@ -324,7 +331,8 @@ export default function AdminExamRoutinePage() {
     doc.setFont("times", "bold");
     doc.text("Date", margin + 3, y);
     doc.text("Day", margin + 55, y);
-    doc.text("Subjects", margin + 85, y);
+    doc.text("Time", margin + 95, y);
+    doc.text("Subjects", margin + 120, y);
     y += 8;
     doc.setFont("times", "normal");
     entries.forEach((e) => {
@@ -338,8 +346,9 @@ export default function AdminExamRoutinePage() {
       }
       doc.text(fmtDate(e.exam_date), margin + 3, y);
       doc.text(day, margin + 55, y);
-      doc.text(showList(e.subjects), margin + 85, y, {
-        maxWidth: pageW - margin - 88,
+      doc.text(e.exam_time || "-", margin + 95, y);
+      doc.text(showList(e.subjects), margin + 120, y, {
+        maxWidth: pageW - margin - 123,
       });
       y += 7;
       doc.setDrawColor(200);
@@ -390,12 +399,18 @@ export default function AdminExamRoutinePage() {
                 <h4 className="mb-3 text-sm font-semibold text-gray-800">
                   <Plus className="mr-1 inline h-4 w-4" /> Add Date Entry
                 </h4>
-                <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+                <div className="grid gap-4 sm:grid-cols-[200px_160px_1fr]">
                   <Input
                     label="Exam Date"
                     type="date"
                     value={newDate}
                     onChange={(e) => setNewDate(e.target.value)}
+                  />
+                  <Input
+                    label="Exam Time"
+                    type="time"
+                    value={newTime}
+                    onChange={(e) => setNewTime(e.target.value)}
                   />
                   <div>
                     <p className="mb-2 text-sm font-medium text-gray-700">
@@ -468,6 +483,7 @@ export default function AdminExamRoutinePage() {
                       <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
                         <tr>
                           <th className="px-3 py-2">Date</th>
+                          <th className="px-3 py-2">Time</th>
                           <th className="px-3 py-2">Subjects</th>
                           <th className="px-3 py-2 no-print">Actions</th>
                         </tr>
@@ -481,6 +497,14 @@ export default function AdminExamRoutinePage() {
                                   type="date"
                                   value={editDate}
                                   onChange={(ev) => setEditDate(ev.target.value)}
+                                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="time"
+                                  value={editTime}
+                                  onChange={(ev) => setEditTime(ev.target.value)}
                                   className="rounded border border-gray-300 px-2 py-1 text-sm"
                                 />
                               </td>
@@ -509,6 +533,7 @@ export default function AdminExamRoutinePage() {
                             <td className="px-3 py-2 font-medium">
                               {fmtDate(e.exam_date)}
                             </td>
+                            <td className="px-3 py-2">{e.exam_time || "-"}</td>
                             <td className="px-3 py-2">
                               {showList(e.subjects)}
                             </td>
@@ -557,6 +582,7 @@ export default function AdminExamRoutinePage() {
               <tr>
                 <th>Date</th>
                 <th>Day</th>
+                <th>Time</th>
                 <th>Subjects</th>
               </tr>
             </thead>
@@ -570,6 +596,7 @@ export default function AdminExamRoutinePage() {
                       { weekday: "long" },
                     )}
                   </td>
+                  <td>{e.exam_time || "-"}</td>
                   <td>{showList(e.subjects)}</td>
                 </tr>
               ))}

@@ -114,7 +114,7 @@ function AddStudentForm() {
   const loadStudent = useCallback(async () => {
     if (!editId) return
     try {
-      const res = await api.get<{ status: number; data: Record<string, unknown> }>(`/p_Xk7mN/students/${editId}`)
+      const res = await api.get<{ status: number; data: Record<string, unknown> }>(`/admin/students/${editId}`)
       // Backend returns {status, data: student}; older shape nested data.data
       const s = (res.data && (res.data as { data?: Record<string, unknown> }).data) || res.data || (res as unknown as Record<string, unknown>)
       setStudentId(String(s.student_id ?? ''))
@@ -203,10 +203,10 @@ function AddStudentForm() {
       if (existingPhotoPath) formData.append('photo_path', existingPhotoPath)
 
       if (editId) {
-        await api.upload(`/p_Xk7mN/students/${editId}`, formData)
+        await api.upload(`/admin/students/${editId}`, formData)
         alert('Student updated')
       } else {
-        await api.upload('/p_Xk7mN/students', formData)
+        await api.upload('/admin/students', formData)
         alert('Student created. Login ID: ' + autoStudentId + ', Password: ' + mobile)
       }
       router.push('/p_Xk7mN/students')

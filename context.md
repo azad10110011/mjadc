@@ -5,6 +5,73 @@
 ## 2026-11-11 (Tue)
 
 ### Done
+**Session 57 — Fix "Route not found" on Edit Student**
+- Clicking Edit → Add/Edit page loaded but showed "Route not found": `p_Xk7mN/students/add/page.tsx` was calling WRONG API endpoints — `/p_Xk7mN/students/{id}` (the frontend panel URL prefix) instead of the backend `/admin/students/{id}` in all 3 places (GET single, PUT update, POST create)
+- Root cause: the add page was originally a copy of the admin route and someone search-replaced the page path into the API paths; the GET single `/admin/students/{id}` endpoint exists (Session 31 verified live)
+- Fixed all three to `/admin/students/...`; the administration panel list page also now navigates to the shared admin add page
+- Verify: tsc 0, eslint 0 (both files)
+
+**Session 56 — All Students: inline Add form removed, Edit → dedicated page, Class/Group filters**
+- **Inline Create/Edit Student form removed from All Students** (`p_Xk7mN/students/page.tsx`, admin + administration panels share the page) per user request — the page is now a pure list (search + filters + exports + actions + reorder)
+- Edit button now routes to the dedicated Add/Edit Student page: `/p_Xk7mN/students/add?id={id}` (that page supports `?id=` prefill from Session 23)
+- Removed with the form: ~30 form state vars, handleSubmit create-branch, auto student-ID generation effect, subject picker section (create happens only on the dedicated page now)
+- **Class + Group filters added** to the list toolbar (All Classes / All Groups defaults, alongside the existing search box); exports + table rows respect the filters
+- Also removed Bulk Class Change card from this page (class moves belong to the Class Change page)
+- Verify: tsc 0 errors, eslint 0 errors on file (pre-existing `any` warnings only)
+
+**Session 55 — Names on one line (Title Case) + smaller photo/QR**
+- Name fields (Student/Father's/Mother) now render in Title Case ("SHATHI KHATUN" → "Shathi Khatun") — `titleCase()` helper applied in `studentFields`, shared by screen + PDF; shorter text usually fits one line naturally
+- **PDF guarantee of single line:** if a value still splits, the font shrinks stepwise 9.5 → 6.5pt until `splitTextToSize` yields one line — no more ugly 2nd lines
+- **Photo + QR reduced** (screen: photo 90×115 → 70×90px, QR 60 → 45px; PDF: photo 24×30 → 20×25mm, QR 20 → 15mm) — frees more horizontal room for the name columns too
+- Verify: tsc 0, eslint 0, build clean (0 localhost refs), zip rebuilt 4.9MB
+
+**Session 54 — PDF name overflow wrapping + signature space**
+- Spacing after Student Name / Father's Name / Mother's Name / Group / Student Type reduced two NBSP spaces → one (shared by screen + PDF via studentFields)
+- **Name overflow fixed in PDF:** long names (esp. Bangla) ran over the neighbouring column / QR code. Values now rendered via `splitTextToSize` with max width = column minus label width; long names wrap onto the next line (4.4mm line pitch) instead of colliding. Info column gap widened slightly (6→8mm, QR reserve 24→26mm)
+- **Signature space:** routine table reserve above the signature block increased 18→22mm + half of signature_space (was ignoring the setting on the top side); signature line itself lowered 10→12mm from card bottom so the caption fits
+- Verify: tsc 0, eslint 0, build clean (0 localhost refs), zip rebuilt 4.9MB
+
+**Session 53 — USER CONFIRMED FIXED (Sessions 49–52 admit-card work)**
+- User: "all are fixed" — admit card color theme, logo left of name (screen + PDF), PDF/preview parity, exam-time input/column, routine heading position, table columns inside border, continuous grid lines, enlarged fonts, logo-overlap on cards 2+
+- Ready to deploy: frontend zip `mjadc-frontend-deploy.zip` (4.9MB, rebuilt) + 1 backend file `backend/routes/admin/exam-routines.php` (exam_time support, XAMPP already synced). No SQL.
+
+**Session 52 — PDF: logo overlap on cards 2+ + routine table columns**
+- **Logo overlapping the college name on every card except the first:** `drawCardPdf` measured the college name with `doc.getTextWidth()` for logo placement, but the jsPDF font state is carried over from the PREVIOUS card's last draw (e.g. 6.5pt QR caption) — card 1 had fresh defaults so it measured right, all later cards measured at the stale tiny font → name width under-measured → logo drawn on top of the name. Fix: `setFont("times","bold") + setFontSize(15)` moved BEFORE the `getTextWidth` measurement, plus `Math.max(margin+4, …)` clamp so the logo can never be pushed past the card edge
+- **Routine table columns narrowed** (user: Date/Day/Time too wide → right-side overflow): cols now `margin+6/+36/+66/+90` (Date 30mm, Day 30mm, Time 24mm), `tableRight = margin+cardW-6` fixed, Subject col = exact remainder → right edge is mathematically inside the border (previous sum exceeded cardW by 2mm)
+- **Continuous grid lines:** zebra-row fills were painted AFTER the grid lines (painting over them → alternating rows lost their separators). Now fills drawn first, then the whole grid: 5 vertical separators + header/bottom lines + per-row horizontal lines, all in #94a3b8 like the preview
+- Verify: tsc 0, eslint 0, build clean (0 localhost refs), zip rebuilt 4.9MB
+
+**Session 51 — PDF admit-card routine table layout fixes (user feedback round 2)**
+- Heading "EXAM ROUTINE (own subjects only)" raised further above the table (heading baseline ry+3, table header now starts ry+9 — clear gap instead of cramped spacing)
+- **Table overflow fixed:** Subject column width was `cardW - 98` which put the table's right edge past the card border; now right edge is fixed 6mm inside (colW subject = cardW - 98 - 6, computed tableRight used for all fills/lines)
+- **Middle column lines breaking fixed:** vertical separators previously spanned only headY-3.4 to tableBottom-3.4 with per-row rects drawn OVER them; now full-height separators drawn once (headY-4 → tableBottom-4) + closing bottom line; zebra fills use tableRight not sum-of-colW; per-row rects removed
+- **Fonts enlarged (PDF):** routine heading 9.5→10, routine cells 7.5→9, info fields 8.5→9.5, QR caption 5.5→6.5. **Screen:** routine table 10.5→11.5px, info grid 12→12.5px, QR caption 8→9px. Row height 4.6→5.4mm to fit the bigger font
+- Verify: tsc 0, eslint 0, build clean (0 localhost refs), zip rebuilt 4.9MB
+
+**Session 50 — Admit card logo fix, exam time everywhere, PDF routine polish**
+- **Logo not showing — root cause:** admit-card fetched `GET /settings/college_logo` (route doesn't exist) AND prefixed with `/uploads/` when settings already store a path relative to the API root. Fixed to fetch the full settings list `GET /admin/settings` and find `setting_key === 'college_logo'` (identical pattern to the working ID Cards page), path = `UPLOAD_BASE/<setting_value>`; fallback `/logo.png`
+- **Exam Time input added** to Exam Routine page (`p_Xk7mN/exam-routine`): `type=time` field in Add-Date form + editable in inline Edit row; Time column added to admin table, printable sheet, and the routine Download PDF. Backend `routes/admin/exam-routines.php`: `routineNormalize` now returns `exam_time`, POST persists it (PUT already supported). Column `exam_routines.exam_time` already exists in local DB — **no migration needed**; sync to live = upload the one PHP file
+- **PDF admit card routine heading** "EXAM ROUTINE (own subjects only)" now centered + font 9.5 (screen caption also centered, 12px)
+- **PDF routine table column lines fixed**: vertical separators drawn at all 5 column boundaries (Date/Day/Time/Subject) spanning header + rows — preview table borders now match the PDF
+- Verify: tsc 0; eslint 0 (both files); vitest 19/19; fresh build with .env.local aside → 0 localhost refs; new mjadc-frontend-deploy.zip 4.9MB
+
+### Deployment (pending, when user approves)
+- Backend: `backend/routes/admin/exam-routines.php` (exam_time — 1 file; XAMPP copy synced already)
+- Frontend: full rebuild → zip (done: mjadc-frontend-deploy.zip at repo root)
+- SQL: none (exam_time column exists)
+
+**Session 49 — Admit Card redesign (colored theme + logo) & PDF/preview parity**
+- Screen card (`p_Xk7mN/admit-card/page.tsx`) restyled: navy (#1e3a8a) rounded border, light-blue gradient header banner, navy college name, "ADMIT CARD" navy pill, red uppercase exam label, navy-framed photo, navy info labels, navy routine header row + zebra rows, navy QR caption
+- **College logo left of college name** on the card header: fetched from settings `college_logo` (falls back to `/logo.png`) — same source as ID Cards
+- **PDF now matches the preview** (was plain black-and-white): navy rounded frame, header banner fill + divider, logo embedded via canvas→dataURL (aspect ratio preserved), navy ADMIT CARD chip, red uppercase exam label, navy photo/info labels, navy routine header row with white text, zebra alternate rows, "Time" column added to PDF routine (Date/Day/Time/Subject) matching the screen table, QR caption "Fee Verify QR"
+- **Real student photo now embedded in the PDF** (previously an empty box) — same UPLOAD_BASE path as screen; canvas dataURL conversion with per-run photo cache; falls back to "Photo" placeholder on load/CORS failure
+- Patch scripts `.tmp/patch-admit2.cjs`/`.tmp/patch-admit3.cjs` from a prior crashed session partially applied (duplicate logoSrc line, logo/effect/header/Time edits were NOT applied by the crash); fixed + completed manually in-file
+- Verify: tsc 0 errors; eslint 0 errors on file; vitest 19/19 (note: `npm run test` script doesn't exist — use `npx vitest run`)
+
+### Deployment (pending, when user approves)
+- Frontend only: full rebuild + zip (remember .env.local rename rule; API URL must be www.mjadc.ac.bd)
+- No backend/SQL changes
+
 **Session 48 — Lost-work recovery + exam-fee suite completed end-to-end on live**
 - After the p_ path restructure, several exam pages existed only under legacy `src/app/admin/` and were lost in a stash mishap; recovered from stash untracked tree (`stash@{0}^3`) into `p_Xk7mN/` paths: exam-routine, exam-paper-selection, admit-card, mark-entry-form, custom-fields, class-change, students/add
 - Legacy duplicate `src/app/admin/` + `src/app/administration-panel/` folders deleted (no nav targets referenced them)
