@@ -6,9 +6,11 @@
 
 ### Done
 **Session 58 — Pushed Sessions 49–57 to GitHub (user: "all is ok")**
-- Frontend `mjadc.git` branch `mjadcmaka` commit `be2489c`: admit-card color/logo/PDF-parity (49–55), exam-routine Time input (50), All Students list-only + Class/Group filters + Edit→dedicated page (56), Add/Edit API-path fix (57), context.md, vitest.config.mts
-- Backend `mjadc-backend.git` branch `main` commit `390c33f`: routes/admin/exam-routines.php exam_time support
+- Frontend push: branch `mjadcmaka` → commits `be2489c` + `86abc79` (context.md log): admit-card color/logo/PDF-parity (49–55), exam-routine Time input (50), All Students list-only + Class/Group filters + Edit→dedicated page (56), Add/Edit API-path fix (57), vitest.config.mts
+- Backend push: branch `main` commit `390c33f`: `routes/admin/exam-routines.php` exam_time support
+- Repos: frontend https://github.com/azad10110011/mjadc.git · backend mjadc-backend.git
 - Left uncommitted intentionally (temp/QA): .tmp/, .vscode/, qa-*.mjs, dev-server.log
+- User then said "update context.md" — this entry; git state clean apart from temp files
 
 **Session 57 — Fix "Route not found" on Edit Student**
 - Clicking Edit → Add/Edit page loaded but showed "Route not found": `p_Xk7mN/students/add/page.tsx` was calling WRONG API endpoints — `/p_Xk7mN/students/{id}` (the frontend panel URL prefix) instead of the backend `/admin/students/{id}` in all 3 places (GET single, PUT update, POST create)
@@ -60,9 +62,9 @@
 - **PDF routine table column lines fixed**: vertical separators drawn at all 5 column boundaries (Date/Day/Time/Subject) spanning header + rows — preview table borders now match the PDF
 - Verify: tsc 0; eslint 0 (both files); vitest 19/19; fresh build with .env.local aside → 0 localhost refs; new mjadc-frontend-deploy.zip 4.9MB
 
-### Deployment (pending, when user approves)
+### Deployment (READY — awaiting user upload to Namecheap)
 - Backend: `backend/routes/admin/exam-routines.php` (exam_time — 1 file; XAMPP copy synced already)
-- Frontend: full rebuild → zip (done: mjadc-frontend-deploy.zip at repo root)
+- Frontend: `mjadc-frontend-deploy.zip` (4.9MB, freshly built with .env.local aside, 0 localhost refs) at `d:\opencode 09062026\`
 - SQL: none (exam_time column exists)
 
 **Session 49 — Admit Card redesign (colored theme + logo) & PDF/preview parity**
