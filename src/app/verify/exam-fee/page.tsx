@@ -8,14 +8,16 @@ import { CheckCircle2, XCircle } from "lucide-react";
 interface FeeVerify {
   student_id: string;
   name: string;
+  father_name: string | null;
+  mother_name: string | null;
   class: string;
   group: string | null;
   photo_path: string | null;
   exam_name: string;
   year: string;
   fee_paid: boolean;
-  amount: number | null;
-  payment_method: string | null;
+  due: number | null;
+  will_pay_within: string | null;
   collected_at: string | null;
 }
 
@@ -84,15 +86,25 @@ function VerifyContent() {
             </div>
           </div>
 
-          <p className="mb-4 text-sm text-gray-600">
-            {data.exam_name} Examination {data.year}
-          </p>
+          <div className="mb-4 space-y-1 text-sm text-gray-600">
+            <p>
+              <span className="font-medium text-gray-700">Father's Name:</span>{" "}
+              {data.father_name || "-"}
+            </p>
+            <p>
+              <span className="font-medium text-gray-700">Mother's Name:</span>{" "}
+              {data.mother_name || "-"}
+            </p>
+            <p>
+              <span className="font-medium text-gray-700">Exam:</span> {data.exam_name} {data.year}
+            </p>
+          </div>
 
           <div
             className={`flex items-center gap-3 rounded-lg p-4 ${
               data.fee_paid
                 ? "border border-green-200 bg-green-50"
-                : "border border-red-200 bg-red-50"
+                : "border border-red-300 bg-red-50"
             }`}
           >
             {data.fee_paid ? (
@@ -100,24 +112,28 @@ function VerifyContent() {
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
                 <div>
                   <p className="font-semibold text-green-700">Exam Fee Paid</p>
-                  {data.amount !== null && (
-                    <p className="text-sm text-green-600">
-                      Amount: ৳{data.amount}
-                      {data.payment_method ? ` · ${data.payment_method}` : ""}
-                    </p>
-                  )}
+                  <p className="text-sm text-green-600">No dues remaining.</p>
                 </div>
               </>
             ) : (
               <>
                 <XCircle className="h-8 w-8 text-red-600" />
                 <div>
-                  <p className="font-semibold text-red-700">
-                    Exam Fee Not Paid
+                  <p className="font-semibold text-red-800">
+                    {data.due !== null && data.due > 0
+                      ? `Exam Fee Not Fully Paid — Due: ৳${data.due}`
+                      : "Exam Fee Not Paid"}
                   </p>
-                  <p className="text-sm text-red-500">
-                    Please contact the college office.
-                  </p>
+                  {data.will_pay_within && (
+                    <p className="text-sm font-semibold text-red-700">
+                      Will pay within: {data.will_pay_within}
+                    </p>
+                  )}
+                  {!data.will_pay_within && (
+                    <p className="text-sm text-red-500">
+                      Please contact the college office.
+                    </p>
+                  )}
                 </div>
               </>
             )}
