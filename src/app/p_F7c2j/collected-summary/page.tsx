@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { api } from '@/lib/api'
@@ -15,8 +15,9 @@ const FEE_TYPES = [
 ]
 
 export default function CollectedSummaryPage() {
-  const today = new Date().toISOString().slice(0, 10)
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const now = new Date()
+  const [today, setToday] = useState(() => now.toISOString().slice(0, 10))
+  const [thirtyDaysAgo, setThirtyDaysAgo] = useState(() => new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10))
 
   const [from, setFrom] = useState(thirtyDaysAgo)
   const [to, setTo] = useState(today)

@@ -15,8 +15,9 @@ const FEE_TYPES = [
 ]
 
 export default function AdminCollectedSummaryPage() {
-  const today = new Date().toISOString().slice(0, 10)
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const now = new Date()
+  const [today, setToday] = useState(() => now.toISOString().slice(0, 10))
+  const [thirtyDaysAgo, setThirtyDaysAgo] = useState(() => new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10))
 
   const [from, setFrom] = useState(thirtyDaysAgo)
   const [to, setTo] = useState(today)

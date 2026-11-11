@@ -66,8 +66,9 @@ export default function PrincipalTuitionFeePage() {
   }
 
   useEffect(() => {
-    if (tab === 'summary') fetchSummary()
-    else if (tab === 'report') fetchReport()
+    if (tab !== 'summary' && tab !== 'report') return
+    const t = setTimeout(tab === 'summary' ? fetchSummary : fetchReport, 0)
+    return () => clearTimeout(t)
   }, [tab])
 
   const handleApplyWaiver = async () => {

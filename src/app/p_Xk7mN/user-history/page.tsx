@@ -42,7 +42,10 @@ export default function AdminUserHistoryPage() {
     }
   }
 
-  useEffect(() => { fetchLogs() }, [])
+  useEffect(() => {
+    const t = setTimeout(fetchLogs, 0)
+    return () => clearTimeout(t)
+  }, [])
 
   const actionColors: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
     created: 'success',

@@ -98,7 +98,10 @@ export default function AdminTransactionsPage() {
       .finally(() => setLoading(false))
   }, [page, filterStudentId, filterFeeType, filterPaymentMethod, filterFrom, filterTo])
 
-  useEffect(() => { fetchPayments() }, [fetchPayments])
+  useEffect(() => {
+    const t = setTimeout(fetchPayments, 0)
+    return () => clearTimeout(t)
+  }, [fetchPayments])
 
   const openAdd = () => {
     setEditingId(null)

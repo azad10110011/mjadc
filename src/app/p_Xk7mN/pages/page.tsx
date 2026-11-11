@@ -18,10 +18,6 @@ export default function AdminPagesPage() {
   const [pages, setPages] = useState<PageItem[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadPages()
-  }, [])
-
   const loadPages = async () => {
     try {
       const res = await api.get<{ status: number; data: PageItem[] }>('/admin/pages')
@@ -29,6 +25,11 @@ export default function AdminPagesPage() {
     } catch { /* ignore */ }
     setLoading(false)
   }
+
+  useEffect(() => {
+    const t = setTimeout(loadPages, 0)
+    return () => clearTimeout(t)
+  }, [])
 
   return (
     <PanelLayout role="admin" title="All Pages">

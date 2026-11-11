@@ -46,7 +46,10 @@ export default function AdminCoCurricularPage() {
     api.get(`/admin/co-curricular/${selectedClub}`).then((r: any) => setMembers(r.data || [])).catch(() => {}).finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetchMembers() }, [selectedClub])
+  useEffect(() => {
+    const t = setTimeout(fetchMembers, 0)
+    return () => clearTimeout(t)
+  }, [selectedClub])
 
   const uploadPhoto = async (): Promise<string> => {
     const formData = new FormData()

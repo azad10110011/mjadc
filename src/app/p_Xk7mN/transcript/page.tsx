@@ -71,7 +71,7 @@ export default function AdminTranscriptPage() {
     setLoading(true)
     setError('')
     try {
-      const res: any = await api.post('/admin/transcript', {
+      const res: { status: number; data: Transcript[] } = await api.post('/admin/transcript', {
         class: cls, exam_name: examName, year,
         ...(studentId && { student_id: studentId }),
         ...(group && { group }),
@@ -120,8 +120,8 @@ export default function AdminTranscriptPage() {
         <div ref={printRef} className="transcript-print-container">
           {transcripts.map((t, idx) => {
             const mainSubjects = t.subjects.filter((s) => !s.is_optional)
-            const hasOptional = t.subjects.some((s) => s.is_optional)
-            const optionalSubjectData = hasOptional ? t.subjects.find((s) => s.is_optional) : null
+            const optionalSubjects = t.subjects.filter((s) => s.is_optional)
+            const hasOptional = optionalSubjects.length > 0
 
             return (
               <div key={t.student_id} className={`transcript-page${idx < transcripts.length - 1 ? ' break-after' : ''}`}>
@@ -173,30 +173,34 @@ export default function AdminTranscriptPage() {
                           </td>
                         )}
                         {i === 0 && (
-                          <td className="text-center fw-bold" rowSpan={mainSubjects.length + (hasOptional ? 2 : 0)}>
+                          <td className="text-center fw-bold" rowSpan={mainSubjects.length + (hasOptional ? optionalSubjects.length + 1 : 0)}>
                             {t.overall_gpa.toFixed(2)}
                           </td>
                         )}
                       </tr>
                     ))}
-                    {hasOptional && optionalSubjectData && (
+                    {hasOptional && optionalSubjects.length > 0 && (
                       <>
                         <tr className="optional-label-row">
                           <td colSpan={6} className="optional-label">Optional Subject :</td>
                         </tr>
-                        <tr>
-                          <td className="text-center fw-semibold">{mainSubjects.length + 1}</td>
-                          <td className="fw-semibold">{optionalSubjectData.subject}</td>
-                          <td className="text-center">
-                            {optionalSubjectData.grade === 'Absent' ? 'A' : String(Math.round(optionalSubjectData.total)).padStart(3, '0')}
-                          </td>
-                          <td className="text-center">{optionalSubjectData.grade}</td>
-                          <td className="text-center">{optionalSubjectData.gpa.toFixed(2)}</td>
-                          <td className="text-center p-0">
-                            <div className="gp-above-2-label">GP Above 2</div>
-                            <div className="gp-above-2-value">{t.optional_gp_above_2.toFixed(2)}</div>
-                          </td>
-                        </tr>
+                        {optionalSubjects.map((subject, i) => (
+                          <tr key={`${subject.subject}-${i}`}>
+                            <td className="text-center fw-semibold">{mainSubjects.length + i + 1}</td>
+                            <td className="fw-semibold">{subject.subject}</td>
+                            <td className="text-center">
+                              {subject.grade === 'Absent' ? 'A' : String(Math.round(subject.total)).padStart(3, '0')}
+                            </td>
+                            <td className="text-center">{subject.grade}</td>
+                            <td className="text-center">{subject.gpa.toFixed(2)}</td>
+                            {i === 0 && (
+                              <td className="text-center p-0" rowSpan={optionalSubjects.length}>
+                                <div className="gp-above-2-label">GP Above 2</div>
+                                <div className="gp-above-2-value">{t.optional_gp_above_2.toFixed(2)}</div>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
                       </>
                     )}
                   </tbody>

@@ -38,9 +38,11 @@ export default function ChangePasswordPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const r = getRoleFromToken()
-    if (!r) { router.push('/') }
-    else { setRole(r) }
+    Promise.resolve().then(() => {
+      const r = getRoleFromToken()
+      if (!r) { router.push('/') }
+      else { setRole(r) }
+    })
   }, [router])
 
   if (!role) return null

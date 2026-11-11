@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
+/* eslint-disable react/no-unescaped-entities */
 import { Button, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { api } from '@/lib/api'
 
@@ -48,7 +49,10 @@ export default function AdminSubjectPartsPage() {
     }
   }
 
-  useEffect(() => { loadParts() }, [subject])
+  useEffect(() => {
+    const t = setTimeout(loadParts, 0)
+    return () => clearTimeout(t)
+  }, [subject])
 
   const handleAdd = async () => {
     const name = prompt('Enter part name (e.g., MCQ, CQ, Practical):')

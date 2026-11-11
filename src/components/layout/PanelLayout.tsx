@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, GraduationCap, Users, BookOpen,
-  Calendar, Image, Settings, LogOut, Menu, X, UserCheck,
+  Calendar, Image, Settings, LogOut, Menu, X, UserCheck, ListPlus,
   ClipboardList, Upload, Download, CheckSquare,
   UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign, CreditCard,
   ArrowLeftRight,
@@ -88,7 +88,12 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Results', icon: <GraduationCap className="h-4 w-4" />, children: [
       { label: 'All Results', href: '/p_Xk7mN/results' },
       { label: 'Transcript', href: '/p_Xk7mN/transcript' },
+      { label: 'Exam Routine', href: '/p_Xk7mN/exam-routine' },
+      { label: 'Exam Paper Selection', href: '/p_Xk7mN/exam-paper-selection' },
+      { label: 'Admit Card', href: '/p_Xk7mN/admit-card' },
+      { label: 'Mark Entry Form', href: '/p_Xk7mN/mark-entry-form' },
     ] },
+    { label: 'Custom Entry Fields', href: '/p_Xk7mN/custom-fields', icon: <ListPlus className="h-4 w-4" /> },
     { label: 'Subjects', href: '/p_Xk7mN/subjects', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'User History', href: '/p_Xk7mN/user-history', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Routines', href: '/p_Xk7mN/routines', icon: <Calendar className="h-4 w-4" /> },
@@ -111,7 +116,13 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Users', icon: <UserCog className="h-4 w-4" />, children: [
       { label: 'All Users', href: '/p_Xk7mN/users' },
       { label: 'Teacher/Staff', href: '/p_Xk7mN/users/teacher-staff' },
-      { label: 'Students', href: '/p_Xk7mN/students' },
+    ] },
+    { label: 'Student Management', icon: <Users className="h-4 w-4" />, children: [
+      { label: 'All Students', href: '/p_Xk7mN/students' },
+      { label: 'Add Student', href: '/p_Xk7mN/students/add' },
+      { label: 'Class Change', href: '/p_Xk7mN/class-change' },
+      { label: 'Student Info', href: '/p_Xk7mN/student-info' },
+      { label: 'Old Students', href: '/p_Xk7mN/students?class=Old' },
     ] },
     { label: 'Tuition Fees', href: '/p_Xk7mN/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },
     { label: 'Transactions', href: '/p_Xk7mN/transactions', icon: <Receipt className="h-4 w-4" /> },
@@ -161,7 +172,11 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Routine', href: '/p_F7c2j/routine', icon: <Calendar className="h-4 w-4" /> },
     { label: 'Fee Collection', href: '/p_F7c2j/fee-collection', icon: <DollarSign className="h-4 w-4" /> },
     { label: 'Collected Summary', href: '/p_F7c2j/collected-summary', icon: <Receipt className="h-4 w-4" /> },
-    { label: 'Students', href: '/p_F7c2j/students', icon: <Users className="h-4 w-4" /> },
+    { label: 'Student Management', icon: <Users className="h-4 w-4" />, children: [
+      { label: 'All Students', href: '/p_F7c2j/students' },
+      { label: 'Add Student', href: '/p_F7c2j/students/add' },
+      { label: 'Old Students', href: '/p_F7c2j/students?class=Old' },
+    ] },
     { label: 'Forms', href: '/p_F7c2j/forms', icon: <Download className="h-4 w-4" /> },
   ],
 }
@@ -174,7 +189,9 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(() => {
     const expanded: Record<string, boolean> = {}
     if (pathname.startsWith('/p_Xk7mN/pages')) expanded['Pages'] = true
-    if (pathname.startsWith('/p_Xk7mN/users') || pathname.startsWith('/p_Xk7mN/students')) expanded['Users'] = true
+    if (pathname.startsWith('/p_Xk7mN/users')) expanded['Users'] = true
+    if (pathname.startsWith('/p_Xk7mN/students')) expanded['Student Management'] = true
+    if (pathname.startsWith('/p_F7c2j/students')) expanded['Student Management'] = true
     return expanded
   })
 
@@ -279,8 +296,10 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
               const anyChildActive = item.label === 'Pages'
                 ? pathname.startsWith('/p_Xk7mN/pages')
                 : item.label === 'Users'
-                  ? pathname.startsWith('/p_Xk7mN/users') || pathname.startsWith('/p_Xk7mN/students')
-                  : false
+                  ? pathname.startsWith('/p_Xk7mN/users')
+                  : item.label === 'Student Management'
+                    ? pathname.startsWith('/p_Xk7mN/students') || pathname.startsWith('/p_F7c2j/students') || pathname.startsWith('/p_Xk7mN/class-change') || pathname.startsWith('/p_Xk7mN/student-info')
+                    : false
               return (
                 <div key={item.label}>
                   <button

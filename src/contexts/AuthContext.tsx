@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .catch(() => localStorage.removeItem('token'))
         .finally(() => setLoading(false))
     } else {
-      setLoading(false)
+      Promise.resolve().then(() => setLoading(false))
     }
   }, [])
 
@@ -48,7 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   const hasAnyRole = useCallback((roles: UserRole[]) => {
-    return roles.some((r) => user?.roles.includes(r)) ?? false
+    if (!user) return false
+    return roles.some((r) => user.roles.includes(r))
   }, [user])
 
   return (

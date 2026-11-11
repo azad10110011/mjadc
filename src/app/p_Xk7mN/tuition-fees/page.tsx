@@ -73,7 +73,11 @@ export default function AdminTuitionFeesPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { if (tab === 'summary') fetchFees() }, [tab])
+  useEffect(() => {
+    if (tab !== 'summary') return
+    const t = setTimeout(fetchFees, 0)
+    return () => clearTimeout(t)
+  }, [tab])
 
   const toggleMonth = (m: number) => {
     setSelectedMonths((prev) => prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m])

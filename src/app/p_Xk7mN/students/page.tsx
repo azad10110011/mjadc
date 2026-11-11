@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, PhotoWithPreview } from '@/components/ui'
 import { ArrowUp, ArrowDown, Copy } from 'lucide-react'
@@ -33,7 +34,9 @@ const BLOOD_GROUPS = [
 
 const COMPULSORY_SUBJECTS = ['Bangla', 'English', 'ICT']
 
-export default function AdminStudentsPage() {
+function StudentsPageInner() {
+  const searchParams = useSearchParams()
+  const urlClass = searchParams.get('class')
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -119,7 +122,10 @@ export default function AdminStudentsPage() {
 
   const fetchStudents = () => {
     api.get<any>('/admin/students')
-      .then((r) => setStudents(r.data || []))
+      .then((r) => {
+        const all = r.data || []
+        setStudents(urlClass ? all.filter((s: any) => s.class === urlClass) : all)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }
@@ -533,5 +539,11 @@ export default function AdminStudentsPage() {
         </CardContent>
       </Card>
     </PanelLayout>
+  )
+}
+
+export default function AdminStudentsPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh' }} />}><StudentsPageInner /></Suspense>
   )
 }

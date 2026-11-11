@@ -6,6 +6,7 @@ import { Button, Input, Select, Card, CardContent, DataTable, Badge, Modal } fro
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
 import { exportToExcel, exportToPDF, type ExportColumn } from '@/lib/export'
+import type { Column } from '@/components/ui/DataTable'
 import { UserPlus, ArrowUp, ArrowDown, Copy } from 'lucide-react'
 
 const calculateRetirement = (dob: string | null | undefined) => {
@@ -329,8 +330,8 @@ export default function AdminTeachersPage() {
     return saved ? JSON.parse(saved) : defaultColumns
   })
 
-  const handleColumnReorder = useCallback((next: typeof defaultColumns) => {
-    setColumns(next)
+  const handleColumnReorder = useCallback((next: Column[]) => {
+    setColumns(next as typeof defaultColumns)
     localStorage.setItem('admin_teachers_columns', JSON.stringify(next))
   }, [])
 
