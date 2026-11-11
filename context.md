@@ -5,6 +5,11 @@
 ## 2026-11-11 (Tue)
 
 ### Done
+**Session 58 — Pushed Sessions 49–57 to GitHub (user: "all is ok")**
+- Frontend `mjadc.git` branch `mjadcmaka` commit `be2489c`: admit-card color/logo/PDF-parity (49–55), exam-routine Time input (50), All Students list-only + Class/Group filters + Edit→dedicated page (56), Add/Edit API-path fix (57), context.md, vitest.config.mts
+- Backend `mjadc-backend.git` branch `main` commit `390c33f`: routes/admin/exam-routines.php exam_time support
+- Left uncommitted intentionally (temp/QA): .tmp/, .vscode/, qa-*.mjs, dev-server.log
+
 **Session 57 — Fix "Route not found" on Edit Student**
 - Clicking Edit → Add/Edit page loaded but showed "Route not found": `p_Xk7mN/students/add/page.tsx` was calling WRONG API endpoints — `/p_Xk7mN/students/{id}` (the frontend panel URL prefix) instead of the backend `/admin/students/{id}` in all 3 places (GET single, PUT update, POST create)
 - Root cause: the add page was originally a copy of the admin route and someone search-replaced the page path into the API paths; the GET single `/admin/students/{id}` endpoint exists (Session 31 verified live)
