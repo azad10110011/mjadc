@@ -2,6 +2,38 @@
 
 > **AI instruction:** always append a new session entry to this file after a successful code update — summary of files changed, migrations, verification, and deployment needs.
 
+## 2026-11-11 (Tue)
+
+### Done
+**Session 48 — Lost-work recovery + exam-fee suite completed end-to-end on live**
+- After the p_ path restructure, several exam pages existed only under legacy `src/app/admin/` and were lost in a stash mishap; recovered from stash untracked tree (`stash@{0}^3`) into `p_Xk7mN/` paths: exam-routine, exam-paper-selection, admit-card, mark-entry-form, custom-fields, class-change, students/add
+- Legacy duplicate `src/app/admin/` + `src/app/administration-panel/` folders deleted (no nav targets referenced them)
+- Student Management made an independent top-level menu: Admin (All Students, Add Student, Class Change, Student Info, Old Students `?class=Old`) after Teachers/Staff; Administration (All Students, Add Student, Old Students). Students pages honor `?class=Old`
+- PanelLayout: `Column` type exported from DataTable (ReactNode labels); panel resolution now URL-prefix based (PATH_ROLE map) + localStorage `active_panel_role` fallback — multi-role users no longer get flipped to admin panel when opening shared pages (e.g. Exam Fee Collection from Administration)
+- Header student-login link fixed to `/p_G9n4s/login`
+- Exam Fee Suite built & deployed:
+  - `exam-fee-collection/page.tsx` (all panels): Student ID → Find (name/father/due via lookup) → This Payment (blank=full) → conditional Will-pay-within (partial) → Save; bottom section = own today's collection with Class/Group filters + PDF/Print; Reports tab (admin/exam_controller see all + user-wise summary; administration auto-restricted to own via backend)
+  - `exam-fee-set/page.tsx` (admin only): per Year+Class+Exam fee amounts, keyed `"Exam (Class)"` (e.g. `Pre-Test (12th)`)
+  - `exam-fee-waiver/page.tsx` (admin + exam_controller): find student → show due → waiver amount (pre-filled) + reason → apply
+  - Menus under Exam Management (renamed from Results): All Results, Transcript, Exam Routine, Exam Paper Selection, Admit Card, Mark Entry Form, Exam Fee Set, Exam Fee Waiver, Exam Fee Collection; Exam Controller Results submenu includes Exam Fee Waiver
+- Backend `routes/admin/exam-fees.php` (major rewrite): collect (partial + will_pay_within), waiver (`exam_fee_waivers` table), status (paid/waived/due totals), report (administration self-restriction enforced server-side), amount get/set (admin-only), DELETE by-student/{uid}/{year}/{exam}; **`Database::getInstance()->lastInsertId()` fix** — static `Database::lastInsertId()` doesn't exist and caused 500 after first collect
+- Backend `routes/admin/students.php`: `GET /admin/students/lookup?id=` (name/father/class + class-based `default_exam`: 12th→Pre-Test, 11th→Half Yearly) **registered BEFORE `{id}` route** — wildcard collision previously swallowed it ("admin role required" error); GET list widened to admin+exam_controller+administration (read)
+- Backend `routes/admin/exams.php` (NEW): `GET /api/admin/exams?year=` for exam dropdowns
+- Public `routes/public/exam-fee-verify.php` + `/verify/exam-fee` frontend page (admit-card QR)
+
+### Deployment (2026-11-11, DONE on live)
+- SQL on live: `ALTER exam_fees ADD will_pay_within`, `CREATE exam_fee_waivers`, `exam_subject_config` + `exam_routines` full-refresh sync from local (72+10 rows; **generator bug fixed**: mysql --batch last column has trailing \r → keys like 'calculation_mode\r' → JS undefined written as literal 'undefined'; generator `gen-exam-sync-sql.cjs` strips \r)
+- Backend files uploaded: exam-fees.php (twice; OPcache served stale despite md5-verified upload), students.php, exams.php, index.php + **`exam-fees-v2.php` rename trick**
+- **OPcache lesson (critical):** host ignores file timestamps (validate_timestamps off) — replaced files keep serving OLD bytecode. Fixes: rename file + update require (worked), or cPanel PHP Options set `opcache.revalidate_freq=0`. Same for frontend `.env.local` rule.
+- Students + IDs: 166 11th migrated to `28xxx` (batch 2028, group codes 1/2/3, roll restart per group in insertion order); 200 12th imported to live via self-contained `import-12th-students-live.php` + valid JSON (earlier PowerShell ConvertTo-Json export was invalid — regenerated via node); verifier `verify-live-import.php` used then deleted
+- Both repos pushed: frontend `def2694` (mjadcmaka), backend `eeadc94` (main; rebase conflict resolved --theirs for bulk-change-class)
+- Temp files on live to delete: `check-examfees-deploy.php`, `exam-fees-old.php`, `exam-fees-v2.php` (once require reverted or left as-is)
+
+### Notes
+- Live users.email holds student IDs (e.g. 271009) — login works with new IDs
+- `exam_fee_waivers` + `will_pay_within` verified on live; collect flow verified: lookup → save → status shows paid/waived/due
+- Live probe scripts: `.tmp/probe2.cjs`, `.tmp/probe3.cjs` (login as rabbi@gmail.com / 12345678 test account, 5 roles)
+
 ## 2026-11-09 (Sun)
 
 ### Done
