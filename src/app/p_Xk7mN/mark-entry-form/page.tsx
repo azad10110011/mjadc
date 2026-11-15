@@ -581,7 +581,8 @@ export default function AdminMarkEntryFormPage() {
             print-color-adjust: exact;
           }
           .mark-entry-sheet {
-            padding: 20px 30px;
+            /* Roomier top/bottom margins (URL suppression stays, since @page margin: 0) */
+            padding: 55px 30px 55px 30px;
             page-break-inside: avoid;
           }
           /* margin: 0 removes the browser's own print header/footer (page URL etc.),
