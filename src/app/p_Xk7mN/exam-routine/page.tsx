@@ -424,9 +424,9 @@ export default function AdminExamRoutinePage() {
                       </p>
                     ) : (
                     <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
-                      {availableSubjects.map((s) => (
+                      {availableSubjects.map((s, index) => (
                         <label
-                          key={s.name}
+                          key={`${s.name}-${index}`}
                           className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100"
                         >
                           <input

@@ -42,17 +42,65 @@ export default function TeacherUploadResultPage() {
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
+  const [availableSubjects, setAvailableSubjects] = useState<{ key: string; label: string; subject_id: number; subject_name: string; paper_name: string | null }[]>([])
+  const [loadingSubjects, setLoadingSubjects] = useState(false)
+  const [subjectError, setSubjectError] = useState("")
   const [partConfigs, setPartConfigs] = useState<SubjectPart[]>([])
 
   useEffect(() => {
-    api.get<{ status: number; data: string[] }>('/teacher/subjects')
-      .then((res) => setAvailableSubjects(res.data || []))
-      .catch(() => {})
-  }, [])
+    let active = true
+    if (!year || !cls || !examName) {
+      return () => { active = false }
+    }
+
+    type ExamSubjectsResponse = {
+      status: number
+      data: {
+        subjects: Array<{
+          key: string
+          label: string
+          subject_id: number
+          subject_name: string
+          paper_name: string | null
+        }>
+      }
+    }
+    api.get<ExamSubjectsResponse>(
+      `/teacher/results/exam-subjects?year=${year}&class=${encodeURIComponent(cls)}&exam_name=${encodeURIComponent(examName)}`
+    ).then((res) => {
+      if (active) {
+        setAvailableSubjects(res.data?.subjects || [])
+        setSubject("")
+        setStudents([])
+        setShowGrid(false)
+        setSubjectError("")
+      }
+    }).catch((error: unknown) => {
+      if (active) {
+        setSubjectError(error instanceof Error ? error.message : "Failed to load configured exam subjects")
+        setAvailableSubjects([])
+        setSubject("")
+        setStudents([])
+        setShowGrid(false)
+      }
+    }).finally(() => {
+      if (active) setLoadingSubjects(false)
+    })
+
+    return () => { active = false }
+  }, [year, cls, examName])
 
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
   const examOptions = cls ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) : []
+  const subjectOptions = availableSubjects.map((s) => ({ value: s.key, label: s.label }))
+
+  const reloadExamSubjects = () => {
+    setExamName("")
+    setSubject("")
+    setAvailableSubjects([])
+    setStudents([])
+    setShowGrid(false)
+  }
 
   const getColumns = () => {
     const cols = [
@@ -75,8 +123,11 @@ export default function TeacherUploadResultPage() {
   const handleLoadStudents = async () => {
     if (!year || !cls || !examName || !subject) return
     setLoading(true)
+    setShowGrid(false)
     try {
-      const res: any = await api.get(`/teacher/results/load-students?year=${year}&class=${cls}&exam_name=${encodeURIComponent(examName)}&subject=${encodeURIComponent(subject)}`)
+      const selected = availableSubjects.find((item) => item.key === subject)
+      if (!selected) throw new Error("Choose a subject configured for this exam.")
+      const res: any = await api.get(`/teacher/results/load-students?year=${year}&class=${encodeURIComponent(cls)}&exam_name=${encodeURIComponent(examName)}&subject=${encodeURIComponent(selected.subject_name)}&subject_id=${selected.subject_id}&paper_name=${encodeURIComponent(selected.paper_name || "")}`)
       const configs: SubjectPart[] = res.data?.part_configs || []
       setPartConfigs(configs)
       const data = res.data?.students || []
@@ -113,8 +164,10 @@ export default function TeacherUploadResultPage() {
         parts_data: s.partsData || {},
         absent_in: s.absentIn || [],
       }))
+      const selected = availableSubjects.find((item) => item.key === subject)
+      if (!selected) throw new Error('Choose an exam-configured subject before saving.')
       await api.post('/teacher/results/upload', {
-        year, class: cls, exam_name: examName, subject, marks,
+        year, class: cls, exam_name: examName, subject: selected.subject_name, paper_name: selected.paper_name, subject_id: selected.subject_id, marks,
       })
       alert('Results saved successfully')
     } catch (e: any) {
@@ -239,18 +292,19 @@ export default function TeacherUploadResultPage() {
     <PanelLayout role="teacher" title="Upload Result">
       <Card className="mb-6">
         <CardContent className="space-y-4 pt-6">
-          {availableSubjects.length === 0 && (
-            <p className="text-xs text-amber-600">No subjects assigned. Contact admin to assign subjects.</p>
+          {examName && !loadingSubjects && availableSubjects.length === 0 && !subjectError && (
+            <p className="text-xs text-amber-600">No subjects are configured for this exam. Ask an admin to configure Exam Paper Selection.</p>
           )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Select label="Year" options={years} value={year} onChange={(e) => setYear(e.target.value)} />
+            <Select label="Year" options={years} value={year} onChange={(e) => { setYear(e.target.value); setSubject(""); setAvailableSubjects([]); setStudents([]); setShowGrid(false) }} />
             <Select label="Class" options={[{ value: '11th', label: '11th' }, { value: '12th', label: '12th' }]}
-              value={cls} onChange={(e) => { setCls(e.target.value); setExamName('') }} placeholder="Select Class" />
+              value={cls} onChange={(e) => { setCls(e.target.value); setExamName(''); setSubject(''); setStudents([]); setShowGrid(false) }} placeholder="Select Class" />
             <Select label="Exam Name" options={examOptions} value={examName}
-              onChange={(e) => setExamName(e.target.value)} placeholder={cls ? 'Select Exam' : 'Select class first'} disabled={!cls} />
-            <Select label="Subject" options={availableSubjects.map((s) => ({ value: s, label: s }))} value={subject}
-              onChange={(e) => setSubject(e.target.value)} placeholder={availableSubjects.length === 0 ? 'No subjects' : 'Select Subject'} disabled={availableSubjects.length === 0} />
+              onChange={(e) => { setExamName(e.target.value); setSubject(''); setStudents([]); setShowGrid(false) }} placeholder={cls ? 'Select Exam' : 'Select class first'} disabled={!cls} />
+            <Select label="Subject" options={subjectOptions} value={subject}
+              onChange={(e) => { setSubject(e.target.value); setStudents([]); setShowGrid(false) }} placeholder={loadingSubjects ? 'Loading configured subjects...' : subjectError ? 'Could not load subjects' : availableSubjects.length === 0 ? 'No subjects configured for this exam' : 'Select Subject'} disabled={loadingSubjects || availableSubjects.length === 0} />
           </div>
+          {subjectError && <p className="text-sm text-red-600">{subjectError}</p>}
           <Button onClick={handleLoadStudents} disabled={!year || !cls || !examName || !subject || loading}>
             {loading ? 'Loading...' : 'Load Students'}
           </Button>
@@ -260,7 +314,7 @@ export default function TeacherUploadResultPage() {
       {showGrid && (
         <Card>
           <CardContent className="pt-6">
-            <DataTable key={`grid-${subject}`} columns={getColumns()} data={tableData} emptyMessage="No students found for these filters" />
+            <DataTable key={`grid-${subject}`} columns={getColumns()} data={tableData} emptyMessage="No students enrolled in this subject" />
             <div className="mt-4 flex gap-2">
               <Button onClick={handleSave} disabled={saving || students.length === 0}>
                 {saving ? 'Saving...' : 'Save Results'}

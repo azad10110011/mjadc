@@ -196,13 +196,16 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     const expanded: Record<string, boolean> = {}
     if (pathname.startsWith('/p_Xk7mN/pages')) expanded['Pages'] = true
     if (pathname.startsWith('/p_Xk7mN/users')) expanded['Users'] = true
-    if (pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-')) expanded['Exam Management'] = true
+    if (pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form')) expanded['Exam Management'] = true
     if (pathname.startsWith('/p_Xk7mN/students')) expanded['Student Management'] = true
     if (pathname.startsWith('/p_F7c2j/students')) expanded['Student Management'] = true
     return expanded
   })
 
-  const lastActivityRef = useRef(Date.now())
+  const lastActivityRef = useRef(0)
+  useEffect(() => {
+    lastActivityRef.current = Date.now()
+  }, [])
   const tickingRef = useRef(false)
 
   const doLogout = useCallback(() => {
@@ -259,30 +262,18 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   }, [user, role])
 
   const showRoleSwitcher = availableRoles.length > 1
-  // Shared pages declare a hardcoded role (e.g. 'admin') but are reachable from other
-  // panels. Resolve the effective panel as:
-  //   1. the panel matching the URL prefix the user navigated from (/p_F7c2j -> administration)
-  //   2. the user's previously active panel (stored on switch)
-  //   3. the declared role if the user actually has it
-  //   4. the user's highest-priority authorized role
-  const PATH_ROLE: Record<string, PanelRole> = {
-    '/p_Xk7mN': 'admin',
-    '/p_G9n4s': 'student',
-    '/p_R2t9b': 'teacher',
-    '/p_L8p1x': 'staff',
-    '/p_H3v5d': 'exam_controller',
-    '/p_W4q6z': 'principal',
-    '/p_F7c2j': 'administration',
-  }
-  const urlPrefix = '/' + (pathname.split('/')[1] || '')
-  const urlRole = PATH_ROLE[urlPrefix]
+  // Keep the active panel independent of the current page URL. Some pages are
+  // shared across panels and use another panel's route prefix; navigating there
+  // must not silently switch the active panel.
   const lastRole = (typeof window !== 'undefined' ? localStorage.getItem('active_panel_role') : null) as PanelRole | null
   const userHas = (r: PanelRole) => !!user?.roles?.includes(r as unknown as UserRole)
-  let effectiveRole: PanelRole
-  if (urlRole && userHas(urlRole)) effectiveRole = urlRole
-  else if (lastRole && userHas(lastRole)) effectiveRole = lastRole
-  else if (userHas(role)) effectiveRole = role
-  else effectiveRole = (availableRoles[0] || role) as PanelRole
+  const defaultRole = user?.default_role as PanelRole | undefined
+  const fallbackRole = userHas(role) ? role : (availableRoles[0] || role) as PanelRole
+  const effectiveRole = lastRole && userHas(lastRole)
+    ? lastRole
+    : defaultRole && userHas(defaultRole)
+      ? defaultRole
+      : fallbackRole
   useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('active_panel_role', effectiveRole) }, [effectiveRole])
   const navItems = panelNav[effectiveRole] || panelNav[role]
 
@@ -311,6 +302,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
                   value={effectiveRole}
                   onChange={(e) => {
                     const newRole = e.target.value as PanelRole
+                    localStorage.setItem('active_panel_role', newRole)
                     router.push(ROLE_HOME[newRole])
                   }}
                   className="w-full appearance-none rounded-md border border-gray-300 bg-gray-50 px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -337,7 +329,9 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
                   ? pathname.startsWith('/p_Xk7mN/users')
                   : item.label === 'Student Management'
                     ? pathname.startsWith('/p_Xk7mN/students') || pathname.startsWith('/p_F7c2j/students') || pathname.startsWith('/p_Xk7mN/class-change') || pathname.startsWith('/p_Xk7mN/student-info')
-                    : false
+                    : item.label === 'Exam Management'
+                      ? pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form')
+                      : false
               return (
                 <div key={item.label}>
                   <button
