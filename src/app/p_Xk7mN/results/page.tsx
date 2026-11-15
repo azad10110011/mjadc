@@ -7,6 +7,15 @@ import { EXAM_NAMES, calculateGradeFromParts, type StudentClass, type SubjectPar
 import { api } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
 
+interface ExamSubjectItem {
+  key: string
+  label: string
+  subject_id: number
+  subject_name: string
+  paper_id: number | null
+  paper_name: string | null
+}
+
 export default function AdminResultsPage() {
   const [results, setResults] = useState<any[]>([])
   const [filterExamName, setFilterExamName] = useState('')
@@ -23,11 +32,17 @@ export default function AdminResultsPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [partConfigs, setPartConfigs] = useState<SubjectPart[]>([])
-  const [examSubjects, setExamSubjects] = useState<string[]>([])
+  // Upload section: only the papers/subjects admin configured for this exam (Exam Paper Selection)
+  const [examSubjects, setExamSubjects] = useState<ExamSubjectItem[]>([])
+  const [loadingSubjects, setLoadingSubjects] = useState(false)
+  const [subjectError, setSubjectError] = useState('')
+  // Existing Results filter
+  const [filterSubjects, setFilterSubjects] = useState<string[]>([])
 
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
   const examOptions = cls ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) : []
-  const subjectOptions = examSubjects.map((s) => ({ value: s, label: s }))
+  const subjectOptions = examSubjects.map((s) => ({ value: s.key, label: s.label }))
+  const filterSubjectOptions = filterSubjects.map((s) => ({ value: s, label: s }))
 
   const fetchResults = () => {
     const params = new URLSearchParams()
@@ -59,18 +74,54 @@ export default function AdminResultsPage() {
             list.push(group.name)
           }
         }
-        setExamSubjects(list)
+        setFilterSubjects(list)
       })
       .catch(() => {})
   }, [])
 
+  // Load only the exam-configured subjects whenever Year/Class/Exam changes
+  useEffect(() => {
+    if (!year || !cls || !examName) return
+
+    let active = true
+    // Deferred so the effect body never setStates synchronously (project lint rule)
+    const resetTimer = window.setTimeout(() => {
+      if (!active) return
+      setLoadingSubjects(true)
+      setSubjectError('')
+      setExamSubjects([])
+      setStudents([])
+      setSubject('')
+    }, 0)
+
+    api.get<{ status: number; data: { subjects: ExamSubjectItem[] } }>(
+      `/admin/results/exam-subjects?year=${year}&class=${encodeURIComponent(cls)}&exam_name=${encodeURIComponent(examName)}`
+    ).then((res) => {
+      if (active) setExamSubjects(res.data?.subjects || [])
+    }).catch((error: unknown) => {
+      if (active) setSubjectError(error instanceof Error ? error.message : 'Failed to load configured exam subjects')
+    }).finally(() => {
+      if (active) setLoadingSubjects(false)
+    })
+
+    return () => { active = false; window.clearTimeout(resetTimer) }
+  }, [year, cls, examName])
+
   const handleLoad = async () => {
     if (!year || !cls || !examName || !subject) return
+    const selected = examSubjects.find((item) => item.key === subject)
+    if (!selected) return
     setLoading(true)
     try {
-      const res: any = await api.get(
-        `/admin/results/upload-data?year=${year}&class=${cls}&exam_name=${encodeURIComponent(examName)}&subject=${encodeURIComponent(subject)}`
-      )
+      const params = new URLSearchParams({
+        year,
+        class: cls,
+        exam_name: examName,
+        subject: selected.subject_name,
+        subject_id: String(selected.subject_id),
+        paper_name: selected.paper_name || '',
+      })
+      const res: any = await api.get(`/admin/results/upload-data?${params}`)
       const configs: SubjectPart[] = res.data?.part_configs || []
       setPartConfigs(configs)
       const data = res.data?.students || []
@@ -156,8 +207,14 @@ export default function AdminResultsPage() {
           absent_in: s.absent_in || [],
         }))
       if (marks.length === 0) { alert('No marks to save'); return }
+      const selected = examSubjects.find((item) => item.key === subject)
+      if (!selected) { alert('Choose an exam-configured subject before saving.'); return }
       await api.post('/admin/results/upload', {
-        year, class: cls, exam_name: examName, subject, marks,
+        year, class: cls, exam_name: examName,
+        subject: selected.subject_name,
+        subject_id: selected.subject_id,
+        paper_name: selected.paper_name,
+        marks,
       })
       alert('Results saved successfully')
       handleLoad()
@@ -171,10 +228,12 @@ export default function AdminResultsPage() {
 
   const handleDeleteAll = async () => {
     if (!year || !cls || !examName || !subject) return
-    if (!confirm(`Delete ALL results for ${examName} ${cls} ${year} - ${subject}?`)) return
+    const selected = examSubjects.find((item) => item.key === subject)
+    const subjectValue = selected?.subject_name || subject
+    if (!confirm(`Delete ALL results for ${examName} ${cls} ${year} - ${selected?.label || subject}?`)) return
     try {
       await api.delete(
-        `/admin/results/bulk?exam_name=${encodeURIComponent(examName)}&class=${cls}&year=${year}&subject=${encodeURIComponent(subject)}`
+        `/admin/results/bulk?exam_name=${encodeURIComponent(examName)}&class=${cls}&year=${year}&subject=${encodeURIComponent(subjectValue)}`
       )
       alert('Results deleted')
       setStudents([])
@@ -196,6 +255,7 @@ export default function AdminResultsPage() {
       { key: 'sl', label: 'SL No' },
       { key: 'student_id', label: 'Roll' },
       { key: 'name', label: 'Name' },
+      { key: 'student_group', label: 'Group' },
     ]
     partConfigs.forEach((p) => {
       cols.push({ key: p.part_name, label: p.part_name.toUpperCase() })
@@ -209,7 +269,7 @@ export default function AdminResultsPage() {
   }
 
   const uploadRows = students.map((s, i) => {
-    const row: any = { sl: s.sl, student_id: s.student_id, name: s.name }
+    const row: any = { sl: s.sl, student_id: s.student_id, name: s.name, student_group: s.student_group || '-' }
     partConfigs.forEach((p) => {
       const config = p
       const val = s.partsData?.[p.part_name] ?? 0
@@ -294,15 +354,21 @@ export default function AdminResultsPage() {
       <Card className="mb-6">
         <CardContent className="space-y-4 pt-6">
           <h3 className="font-semibold text-gray-900">Upload / Update Results</h3>
+          {examName && !loadingSubjects && examSubjects.length === 0 && !subjectError && (
+            <p className="text-xs text-amber-600">No subjects are configured for this exam. Set them in Exam Paper Selection first.</p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Select label="Year" options={years} value={year} onChange={(e) => setYear(e.target.value)} />
+            <Select label="Year" options={years} value={year} onChange={(e) => { setYear(e.target.value); setSubject(''); setStudents([]) }} />
             <Select label="Class" options={[{ value: '11th', label: '11th' }, { value: '12th', label: '12th' }]}
-              value={cls} onChange={(e) => { setCls(e.target.value); setExamName('') }} placeholder="Select Class" />
+              value={cls} onChange={(e) => { setCls(e.target.value); setExamName(''); setSubject(''); setStudents([]) }} placeholder="Select Class" />
             <Select label="Exam Name" options={examOptions} value={examName}
-              onChange={(e) => setExamName(e.target.value)} placeholder={cls ? 'Select Exam' : 'Select class first'} disabled={!cls} />
+              onChange={(e) => { setExamName(e.target.value); setSubject(''); setStudents([]) }} placeholder={cls ? 'Select Exam' : 'Select class first'} disabled={!cls} />
             <Select label="Subject" options={subjectOptions} value={subject}
-              onChange={(e) => setSubject(e.target.value)} placeholder="Select Subject" />
+              onChange={(e) => { setSubject(e.target.value); setStudents([]) }}
+              placeholder={loadingSubjects ? 'Loading configured subjects...' : subjectError ? 'Could not load subjects' : examSubjects.length === 0 ? 'No subjects configured for this exam' : 'Select Subject'}
+              disabled={loadingSubjects || examSubjects.length === 0} />
           </div>
+          {subjectError && <p className="text-sm text-red-600">{subjectError}</p>}
           <div className="flex gap-2">
             <Button data-load-btn onClick={handleLoad} disabled={!year || !cls || !examName || !subject || loading}>
               {loading ? 'Loading...' : 'Load Students'}
@@ -360,7 +426,7 @@ export default function AdminResultsPage() {
             <Select label="Exam Name" options={[...new Set(Object.values(EXAM_NAMES).flat())].map((e) => ({ value: e, label: e }))} placeholder="All" value={filterExamName} onChange={(e) => setFilterExamName(e.target.value)} />
             <Select label="Class" options={[{ value: '11th', label: '11th' }, { value: '12th', label: '12th' }]} placeholder="All" value={filterClass} onChange={(e) => setFilterClass(e.target.value)} />
             <Select label="Year" options={years} placeholder="All" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} />
-            <Select label="Subject" options={subjectOptions} placeholder="All" value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} />
+            <Select label="Subject" options={filterSubjectOptions} placeholder="All" value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} />
           </div>
           <Button onClick={fetchResults}>Filter</Button>
           <DataTable columns={listColumns} data={listRows} emptyMessage="No results" />

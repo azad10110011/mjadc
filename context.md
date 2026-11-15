@@ -2,6 +2,185 @@
 
 > **AI instruction:** always append a new session entry to this file after a successful code update — summary of files changed, migrations, verification, and deployment needs.
 
+## 2026-11-15 (Sun)
+
+### Done
+**Session 66 — Mark Entry Form: Logo + Hide Web Address on Print (COMPLETED)**
+- **Requirement:** Admin → Mark Entry Form Download — attach the college logo left of the college name (same as Admit Card) and remove the web address from the bottom-left of the printed form.
+- **Frontend** `src/app/p_Xk7mN/mark-entry-form/page.tsx` (only file changed):
+  - Logo: added `logoSrc` state; fetches `GET /admin/settings` and finds `college_logo` (identical pattern to Admit Card / ID Cards), falls back to `/logo.png`; header now renders a `header-logo-row` (logo + college name) with the same `.header-logo-row`/`.college-logo` styles as Admit Card (52px, flex, centered, gap 10px).
+  - Web address: the page source has no web address — the URL the user saw (`localhost:3000/p_Xk7mN/mark-entry-form/`) is the **browser's own print header/footer**, drawn inside the `@page` margin box. Fixed by setting `@page { margin: 0 }` (with `size: A4`); the URL/footer lines vanish, and each sheet keeps its own 20px/30px padding. Note for the user: the browser's "Headers and footers" checkbox can also be turned off in the print dialog; `margin: 0` suppresses it automatically in Chrome/Edge.
+- **Verification:** `npx tsc --noEmit` 0 errors; `npx eslint` on the file 0 errors; dev server serves the page 200.
+- **Deployment (pending):** frontend rebuild only (`.env.local` renamed aside, 0 localhost refs). No backend, no SQL.
+
+---
+
+### Done
+**Session 65 — Login 401 for Reset Passwords: Frozen Accounts (ROOT-CAUSED + FIXED — user confirmed)**
+- **Reported:** most previously-working users can't log in; admin resets their password, user still gets `401 {"message":"Invalid email or password"}`.
+- **Diagnosis (verified, not guessed):** login code is healthy — reset→login round-trip passes on local DB, live `rabbi@gmail.com/12345678` login succeeds (probing live API from this machine works). The login query requires `users.status='active'` BEFORE the password check, and the live DB has **63 accounts with status='frozen'**. A frozen account fails login with the exact same 401 "Invalid email or password" — so password resets (which don't touch status) can never help those users.
+- **USER CONFIRMATION:** the user tested one account live — status was 'active', froze it, unfroze it (freeze→unfreeze flips status to 'active'), and login then succeeded. This confirms the frozen/active status gate is the root cause and that the freeze/unfreeze endpoints work on live.
+- **Remaining live data fix:** the other still-frozen accounts need `status` flipped back to active — either reset each password via the panel (now auto-reactivates after deploying the fix below) or run `UPDATE users SET status='active' WHERE status='frozen';` in live phpMyAdmin (fixes all 63 at once).
+- **Fixes (workspace + XAMPP synced, `php -l` clean on all 4 copies):**
+  - `routes/admin/users.php` reset-password: now fetches the target first, returns 404 if missing, and **reactivates a frozen account on password reset** (`status` → `active`) — resetting a password signals the admin wants the user able to log in.
+  - `routes/auth.php` login: frozen accounts now get their own message — **"Your account is frozen. Contact the administrator."** — instead of the misleading "Invalid email or password" (unknown-email and wrong-password still return the original 401 message).
+- **Verification:** scripted matrix on the real DB: frozen+correct-old-password → 401 frozen message; reset → status flips to active; login with new password → 200 with roles; test user cleaned up.
+- **Deployment (pending):** 2 backend files `routes/auth.php` + `routes/admin/users.php` (OPcache rename trick). No SQL required beyond the optional bulk `UPDATE` above, no frontend change.
+
+---
+
+### Done
+**Session 64 — Teacher Upload Result Restricted to Assigned Subjects (COMPLETED)**
+- **Requirement:** Teacher Panel → Upload Result must show only the subjects the admin assigned via "Assign Result Management Subjects (Exam Marks)" (`teacher_subjects.type='result'`). Multi-assignment → teacher can upload/update all assigned subjects; never an unassigned one.
+- **Backend** `routes/teacher/results.php` (workspace + XAMPP synced, `php -l` clean):
+  - New helper `teacherResultAssignedSubjects($user)`: reads the viewer's `teachers` row via `user_id` + `teacher_subjects WHERE type='result'`. Returns null (unrestricted) only for users WITHOUT the `teacher` role (pure exam_controller keeps seeing every configured subject — verified: still 24 subjects); any teacher, including multi-role teacher+exam_controller, is restricted to their assigned list.
+  - `exam-subjects` filters configured items to assigned subjects (matched against subject name OR paper name, same tolerant canonicalization); multi-subject teachers see each of their papers (verified: ICT+Finance+Logic → `275 ICT`, `122 Logic-2`, `293 Finance-2`; Biology+Finance → `179 Biology-2`, `293 Finance-2`; Psychology → `124 Psychology-2`).
+  - `load-students`: assignment filter applied before matching; an unmatched subject for a restricted teacher → **403 "This subject is not assigned to you for result management"** (verified: Psychology teacher asking Physics → 403, asking Psychology → loads 4 students).
+  - `upload`: same validation → 403 on save attempt for unassigned subject (verified for 2 teachers).
+- **No frontend change needed** — `p_R2t9b/upload-result` already renders whatever `exam-subjects` returns and fails closed on errors; the 403 message surfaces in the subject-error line.
+- **Admin side unchanged:** Users → Teacher/Staff "Assign Result Management Subjects" already persists `teacher_subjects.type='result'` rows (POST/PUT in `routes/admin/users.php`); nothing to add.
+- **Verification:** route-dispatch QA against real XAMPP backend + DB for 3 teachers with different assignments + 1 pure exam_controller; php -l clean on both copies; hashes prove workspace == XAMPP.
+- **Deployment (pending):** 1 backend file `routes/teacher/results.php` (plus Session 63's `routes/admin/results.php`); remember the OPcache rename trick on live. No SQL, no frontend rebuild beyond Session 63's.
+
+---
+
+## 2026-11-15 (Sun) — Session 63 log below
+
+### Done
+**Session 63 — Admin + Exam Controller Upload Result: Configured Subjects & Enrolled-Student Filtering (COMPLETED)**
+- **Requirement:** Exam Controller → Upload Result (`p_H3v5d/upload-result`) must find students (it found none before); Admin → All Results → Upload/Update Results (`p_Xk7mN/results`) must show only subjects the admin set in Exam Paper Selection (was showing every subject). Both pages: student list = only students who take the subject, ordered Science → Business Studies → Humanities → roll.
+- **Backend** `routes/admin/results.php` (workspace + XAMPP synced):
+  - New `GET /api/admin/results/exam-subjects?year=&class=&exam_name=` — returns only configured papers/subjects from `exam_subject_config` (single paper / all-papers / whole-subject modes), labels like "104 Physics-1".
+  - `upload-data` rewritten: validates the subject is configured, resolves paper + part configs, filters to enrolled students (compulsory = all; selective/optional = JSON match on paper or subject name; empty-record students only if a result already exists), orders Science → Business → Humanities → roll. Subject key saved as `"Subject - Paper"`.
+  - `upload` accepts `subject_id`/`paper_name`, validates against config, writes `parts_data`/`absent_in` JSON, and uses `Database::query()` — the old `Database::execute()` call does not exist and would fatal.
+- **Backend** `routes/teacher/results.php` (workspace + XAMPP synced):
+  - Rewrote `teacherResultGetConfiguredItems` — the old version queried non-existent columns `esc.year/class/exam_name`, `s.subject_name`, `p.paper_name` → SQL error → Exam Controller saw NO subjects (root cause of "do not find students"). Now joins `exams` on `esc.exam_id` and `subjects.name`/`subject_papers.name`.
+  - `load-students`: group ordering (Science → Business → Humanities → roll), paper-aware enrollment filter, absence derived from `absent_in` (the old code selected non-existent `is_absent` column → 500), deduped ICT part rows (both `ICT` and `Information and Communication Technology` exist in subject_parts → duplicate columns).
+  - `upload`: same `Database::execute` fix; saves under `"Subject - Paper"` key; optional `status: 'draft'`.
+- **Frontend** `p_H3v5d/upload-result/page.tsx`: mirrors the teacher page — configured-subject dropdown via `/teacher/results/exam-subjects`, sends `subject_id`+`paper_name` on load/save, Group column, empty message "No students enrolled in this subject".
+- **Frontend** `p_Xk7mN/results/page.tsx`: subject dropdown now exam-configured only (`/admin/results/exam-subjects`, deferred state resets for lint), Existing-Results filter keeps the full subject list, `subject_id`/`paper_name` on load/save/delete, Group column in the grid.
+- **Verification:** `php -l` clean on both files; `tsc --noEmit` 0 errors; `eslint` 0 errors on both pages. Live DB QA via a route-dispatch harness against the real Router/Database (XAMPP): exam-subjects returned exactly the 24 configured papers; Physics-2/Chemistry-2 → Science only (10 students); Accounting-2 → Business only (20); Higher Math-2 → Science (10); Home Science-2 → Business (20); Bangla-2 → all 200 in Science(1–10)→Business(11–30)→Humanities(31–200) order; ICT → all with single part set; unconfigured exam → 0 subjects/0 students. Save round-trip verified with cleanup (correct key, parts JSON, grade). Browser UI QA could not complete — the QA Chromium blocks the page's own localhost XHR (`ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`); API + rendering verified by other means.
+- **Deployment (pending):** 2 backend files (`routes/admin/results.php`, `routes/teacher/results.php` — remember the OPcache rename trick) + frontend rebuild with `.env.local` renamed aside. No SQL.
+
+---
+
+**Session 62 — Upload Result: Exam-Configured Subjects & Subject-Enrolled Student Filtering (COMPLETED)**
+- **Requirement:**
+  - In Teacher Panel -> Upload Result (`src/app/p_R2t9b/upload-result/page.tsx`), the **Subject** dropdown must only show subjects/subject papers that Admin configured in Exam Paper Selection for the chosen exam (`exam_subject_config`).
+  - Clicking **Load Students** must only load students who actually took that subject (matching the enrollment logic in the Mark Entry Form), rather than loading every student in the class.
+- **Backend Updates:**
+  - `backend/routes/teacher/results.php` (synced at `d:/opencode 09062026/backend/routes/teacher/results.php`):
+    - Added normalization helpers `teacherResultNormSubject`, `teacherResultCanonicalize`, `teacherResultSameSubject`, and `teacherResultGetConfiguredItems`.
+    - Added `GET /api/teacher/results/exam-subjects`: returns configured subjects and papers (`key`, `label`, `subject_id`, `paper_id`, `subject_name`, `paper_name`, `subject_type`, `parts_target`) from `exam_subject_config` joined with `subjects` and `subject_papers` for the given `year`, `class`, and `exam_name`.
+    - Preserved `GET /api/teacher/results/subjects` for backward compatibility.
+    - Updated `GET /api/teacher/results/load-students`: accepts `year`, `class`, `exam_name`, `subject`, `subject_id`, and `paper_name`. Resolves the configured item, loads `subject_parts`, loads active students in the class, and filters to students who take the subject (checking `compulsory_subjects`, `selective_subjects`, and `optional_subject` via normalized subject comparison, with a fallback for unconfigured student records).
+    - Updated `POST /api/teacher/results/upload`: accepts `subject_id` alongside `subject` and validates that the selected subject is configured for the exam before saving marks.
+- **Frontend Updates:**
+  - `src/app/p_R2t9b/upload-result/page.tsx`:
+    - Updated `availableSubjects` to store configured exam subject items (`{ key, label, subject_id, subject_name, paper_name }`).
+    - Added `useEffect` triggering on `selectedYear`, `selectedClass`, and `selectedExam` that queries `GET /teacher/results/exam-subjects` and resets the selected subject when exam inputs change.
+    - Updated `handleLoadStudents` to pass `subject_id` and `paper_name` to `/teacher/results/load-students`, populating part configurations and enrolled student rows.
+    - Updated `handleSave` to submit `subject_id` and `paper_name` to `/teacher/results/upload` and guard against saving without an exam-configured subject.
+    - Updated the empty state message to `"No students enrolled in this subject"`.
+- **Verification:**
+  - Backend PHP syntax: `php -l backend/routes/teacher/results.php` passed with syntax OK (exit code 0).
+  - TypeScript check: `npx tsc --noEmit` passed with 0 errors (exit code 0).
+  - ESLint check: `npx eslint src/app/p_R2t9b/upload-result/page.tsx` passed with 0 errors.
+
+---
+
+## 2026-11-14 (Sat)
+
+### Done
+**Session 61 — Mark Entry Form: Prevent Unconfigured Sheets After Generate (COMPLETED)**
+- **Reported issue:** The Select Subjects checkbox list was correct, but Generate could render additional subjects that were not listed or configured for the selected exam.
+- **Frontend fix:** `src/app/p_Xk7mN/mark-entry-form/page.tsx`
+  - Generated sheets now fail closed: a sheet must have a string key present in the current exam's configured checkbox list and in the current selection.
+  - Empty/old selections are cleared when Year/Class/Exam changes; stale requests cannot overwrite the current exam state.
+  - POST sends only keys still present in the current configured list.
+  - Empty-state and Print/PDF controls use the filtered sheet list.
+  - Admin-only guard remains on this page.
+- **Backend fix:** dedicated `backend/routes/admin/mark-entry-form.php` (synced to `C:\xampp\htdocs\mjadc-api\routes\admin\mark-entry-form.php`)
+  - Empty or invalid `selected_keys` returns no sheets instead of falling back to all configured subjects.
+  - Output is filtered strictly to configured selected keys.
+  - Selective/optional enrollment checks consider the configured paper name as well as the parent subject name.
+  - Existing group priority remains Science, Business Studies, Humanities, then roll/student ID.
+- **Verification:** `php -l` clean; `npx tsc --noEmit` clean; targeted ESLint clean; browser QA confirmed one selected configured paper renders one sheet, extra unconfigured/keyless response sheets are excluded, student order is Science -> Business Studies -> Humanities, with 0 console errors and 0 failed requests.
+- **Full `npm run lint`:** still fails on unrelated existing files and temporary `.tmp` scripts; no new error was reported for the Mark Entry Form page.
+
+---
+
+### Done
+**Session 60 — Mark Entry Form: Exam Paper Driven, Code Display & Group Priority Ordering (COMPLETED)**
+- **Requirement:**
+  - Mark Entry Form menu under Exam Management in Admin panel only.
+  - Class selection -> dynamic Exam dropdown -> Exam-configured subject checkboxes (showing paper code / subject code on left side, e.g. "102 Bangla-2", "275 Information and Communication Technology"). Only shows subjects/papers set by Admin in "Exam Paper Selection" for that exam.
+  - In the generated mark entry form, only list students who took that subject (Compulsory -> all; Selective -> enrolled; Optional -> enrolled).
+  - When a subject is taken by students of multiple groups (e.g. Bangla, English, ICT, Agriculture Studies, etc.), students are ordered: **Science group first, then Business Studies group, then Humanities group**, followed by class roll order.
+- **Backend Updates:**
+  - `backend/routes/admin/mark-entry-form.php` (synced to `C:\xampp\htdocs\mjadc-api\routes\admin\mark-entry-form.php`):
+    - `GET /api/admin/mark-entry-form/subjects`: returns only configured items with their stable keys (`paper-{id}` or `subject-{id}`), left-side paper/subject code, and display label.
+    - `POST /api/admin/mark-entry-form`: accepts `selected_keys` array, fetches students ordered by `CASE WHEN Science THEN 1 WHEN Business THEN 2 WHEN Humanities THEN 3 ELSE 4 END, CAST(class_roll AS UNSIGNED), class_roll, student_id`.
+    - Correctly handles subject parts lookup for papers (`Bangla-2`, `Physics-2`, etc.) and subjects (`ICT`), and filters students based on compulsory, selective, and optional choices with tolerant normalization.
+  - `backend/index.php`: ensures `mark-entry-form.php` route registration is synced.
+- **Frontend Updates:**
+  - `src/app/p_Xk7mN/mark-entry-form/page.tsx`:
+    - Checkboxes display left-side code and paper/subject label.
+    - Checkbox selection tied to unique item keys (`selectedKeys`), fixing the previous bug where only ICT rendered.
+    - Added notice if no exam papers configured for the selected exam.
+    - Implemented `sortStudents` ensuring Science students appear first, then Business Studies, then Humanities on every sheet, followed by roll.
+  - `src/components/layout/PanelLayout.tsx`:
+    - Updated active-state matching and auto-expansion for "Exam Management" to include `/p_Xk7mN/mark-entry-form` and `/p_Xk7mN/admit-card`.
+- **Verification:**
+  - TypeScript compiler (`tsc --noEmit`): 0 errors.
+  - ESLint (`npx eslint`): 0 errors on modified files.
+  - Backend PHP syntax: `php -l` clean.
+
+---
+
+## 2026-11-13 (Wed)
+
+### Done
+**Session 59 — Mark Entry Form: Show Only Exam-Configured Subjects with Filtered Students + Auto-Load (IN PROGRESS)**
+- **Problem:** Mark Entry Form showed ALL subjects (59) and ALL students in class, regardless of exam configuration or student subject enrollment
+- **Solution Part 1 (COMPLETED):** Created backend endpoint that:
+  - Fetches only subjects configured in `exam_subject_config` for the selected exam (year + class + exam_name)
+  - Filters students per subject based on enrollment:
+    - **Compulsory subjects** (Bangla, English, ICT) → All students in class/group
+    - **Selective subjects** → Only students with subject in `selective_subjects` JSON array
+    - **Optional subject** → Only students with subject as `optional_subject`
+  - Returns subject parts (MCQ, CQ, Practical, etc.) from `subject_parts` table
+  - Respects exam paper selection (single paper vs all papers)
+- **Solution Part 2 (COMPLETED):** Added GET endpoint + frontend useEffect:
+  - Subject checkboxes now appear **automatically** after selecting Year + Class + Exam Name (no Generate click needed)
+  - Shows only exam-configured subjects (e.g., 24 for Pre-Test 12th instead of all 59)
+  - All subjects pre-selected by default; user can deselect before generating
+  - Generate button loads students and creates printable forms
+- **Current Issue (UNRESOLVED):** Frontend only displays ICT subject in printable forms despite backend correctly returning 19 subjects with students
+  - Backend verified working: POST endpoint returns 19 exam papers (Biology-1, Biology-2, Chemistry-1, etc.) each with 10 students
+  - Frontend checkbox list loads correctly (24 configured subjects)
+  - Display filter issue: only ICT renders in printable section even when all checkboxes selected
+  - Suspect: frontend `shownSubjects` filter may be matching subject names incorrectly (checkbox subjects vs. API-returned exam paper names)
+  - User will continue debugging next session
+- Backend files:
+  - Created `C:\xampp\htdocs\mjadc-api\routes\admin\mark-entry-form.php` (NEW) — `POST /api/admin/mark-entry-form` (generate forms with students) + `GET /api/admin/mark-entry-form/subjects` (auto-load subject list)
+  - Updated `C:\xampp\htdocs\mjadc-api\index.php` — registered new route (GET before POST for correct routing)
+- Frontend: Updated `src/app/p_Xk7mN/mark-entry-form/page.tsx` — added useEffect auto-loader, availableSubjects state, loadingSubjects indicator; API calls send year/class/exam_name/group
+- Verify: tsc 0 errors, eslint 0 errors on modified file
+- Status: **LOCAL ONLY, PARTIALLY WORKING** — backend correct, frontend display filter needs fix; live server untouched
+
+### Deployment (pending user testing)
+- Backend: `routes/admin/mark-entry-form.php` (NEW), `index.php` (route registration line added)
+- Frontend: full rebuild + zip
+- SQL: none (uses existing `exam_subject_config`, `subjects`, `subject_parts`, `students` tables)
+- **IMPORTANT:** Before deploying, restore `.env.local` to live URL or rename aside before build (currently set to localhost for local testing)
+
+### Troubleshooting Notes
+- **Issue encountered:** "Route not found" error during testing - `.env.local` was pointing to live server (`https://www.mjadc.ac.bd`) instead of local XAMPP
+- **Solution:** Changed `.env.local` to `http://localhost/mjadc-api/api` for local development + restarted dev server
+- **Critical reminder:** `.env.local` MUST be renamed aside or updated before production builds to avoid localhost API calls in deployed build
+- **Route order matters:** GET `/subjects` endpoint must be registered BEFORE POST `/mark-entry-form` in PHP router (more specific paths first)
+
 ## 2026-11-11 (Tue)
 
 ### Done
@@ -723,3 +902,15 @@ Only prepare a deployment when the user explicitly requests it after approving t
 - FIX: .env and .env.production now both point to `https://www.mjadc.ac.bd/mjadc-api/api` + same for UPLOAD_BASE; clean rebuild (env renamed aside) verified: refs x7 www.mjadc.ac.bd, localhost refs 0; new zip 3.4MB
 - **NEW STANDING RULE: NEXT_PUBLIC_API_URL/NEXT_PUBLIC_UPLOAD_URL must always be https://www.mjadc.ac.bd/mjadc-api(/api) — same origin as the site. makafoodbd.com URL breaks browser CORS; localhost URL breaks all other devices. Verify with: Select-String 'https://[a-z.]+/mjadc-api' in out/_next chunks before zipping**
 - Remaining known issue: teacher photo_path rows storing absolute http://localhost/mjadc-api/uploads/... URLs in DB (mixed content) — needs SQL scrub on live
+
+
+## 2026-11-15 (Sun)
+
+### Done
+**Session 62 — Mark Entry Form: Configured Paper Keys Returned (COMPLETED)**
+- **Reported issue:** Frontend showed `No returned forms matched the selected exam papers. The Mark Entry Form API must return the configured paper keys.`
+- **Root cause:** `backend/routes/admin/admit-card.php` also registered `POST /api/admin/mark-entry-form` before the dedicated `backend/routes/admin/mark-entry-form.php` route. The legacy handler returned all subjects/papers without `key`, so the frontend's configured `paper-*` / `subject-*` key filter rejected every returned sheet.
+- **Fix:** Removed only the duplicate legacy Mark Entry Form handler from `backend/routes/admin/admit-card.php`; admit-card routes remain unchanged. The dedicated Mark Entry Form route now exclusively handles the endpoint and returns each result sheet with its configured `key`, `label`, and paper/subject data.
+- **Synced:** `backend/routes/admin/admit-card.php` and `backend/routes/admin/mark-entry-form.php` are synced to `C:\xampp\htdocs\mjadc-api` for local Apache testing.
+- **Verification:** PHP syntax clean for source and XAMPP copies; only the dedicated Mark Entry Form route remains registered. Targeted ESLint passes with 0 errors (2 existing PanelLayout image-alt warnings). Full `npm run lint` remains blocked by unrelated existing errors in `.tmp` scripts and other pages. `npx tsc --noEmit` is blocked by malformed generated `.next/dev/types` files, unrelated to this backend change.
+- **Deployment:** Backend files changed; upload `routes/admin/admit-card.php` and `routes/admin/mark-entry-form.php` together, plus the existing frontend build if the current frontend key filtering is not already deployed. No SQL migration needed.
