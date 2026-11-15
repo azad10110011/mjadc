@@ -581,8 +581,20 @@ export default function AdminMarkEntryFormPage() {
             print-color-adjust: exact;
           }
           .mark-entry-sheet {
-            /* Roomier top/bottom margins (URL suppression stays, since @page margin: 0) */
+            /* Roomier top/bottom margins (URL suppression stays, since @page margin: 0).
+               box-decoration-break: clone re-applies this padding on EVERY printed page
+               fragment - without it the browser slices the element at the paper edge and
+               page 2+ would start with the table border touching the top of the paper. */
             padding: 55px 30px 55px 30px;
+            -webkit-box-decoration-break: clone;
+            box-decoration-break: clone;
+            page-break-inside: auto;
+          }
+          .marks-table thead {
+            /* repeat the column header row on every printed page */
+            display: table-header-group;
+          }
+          .marks-table tr {
             page-break-inside: avoid;
           }
           /* margin: 0 removes the browser's own print header/footer (page URL etc.),
