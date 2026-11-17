@@ -5,6 +5,8 @@ import { Header, TopNav } from "@/components/layout"
 import { Footer } from "@/components/layout/Footer"
 import { Providers } from "@/components/layout/Providers"
 import { PublicFontMain } from "@/components/layout/PublicFontMain"
+import { PublicOnly } from "@/components/layout/PublicChrome"
+import { BackToTop } from "@/components/layout/BackToTop"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,10 +33,16 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col antialiased">
         <Providers>
-          <Header />
-          <TopNav />
+          {/* public banner, menu and footer are hidden on dashboard (panel) routes */}
+          <PublicOnly>
+            <Header />
+            <TopNav />
+          </PublicOnly>
           <PublicFontMain>{children}</PublicFontMain>
-          <Footer />
+          <PublicOnly>
+            <Footer />
+            <BackToTop />
+          </PublicOnly>
         </Providers>
       </body>
     </html>

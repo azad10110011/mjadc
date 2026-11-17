@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Search, CheckCircle2, XCircle } from 'lucide-react'
 import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
-import { EXAM_NAMES, type StudentClass } from '@/types'
+import { useExamNames } from '@/lib/catalog'
 import { api } from '@/lib/api'
 import { PageContainer } from '@/components/ui/PageContainer'
 
@@ -29,6 +29,7 @@ interface ResultData {
 }
 
 export default function ResultsPage() {
+  const EXAM_NAMES = useExamNames()
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const [cls, setCls] = useState('')
   const [examName, setExamName] = useState('')
@@ -38,7 +39,7 @@ export default function ResultsPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const examOptions = cls ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) : []
+  const examOptions = cls ? EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e })) : []
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
 
   async function handleSearch() {

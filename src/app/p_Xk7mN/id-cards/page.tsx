@@ -43,20 +43,16 @@ export default function IdCardsPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [generating, setGenerating] = useState(false)
   const [search, setSearch] = useState('')
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setSelected(new Set())
-    try {
-      const r: any = await api.get(`/admin/id-cards?type=${type}`)
-      setPeople(r.data || [])
-    } catch {
-      setPeople([])
-    } finally {
-      setLoading(false)
-    }
+  // Load people for the chosen card type. Loading/selection are reset where the type changes;
+  // a stale response (type switched mid-request) is ignored.
+  useEffect(() => {
+    let alive = true
+    api.get(`/admin/id-cards?type=${type}`)
+      .then((r: any) => { if (alive) setPeople(r.data || []) })
+      .catch(() => { if (alive) setPeople([]) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [type])
-
-  useEffect(() => { fetchData() }, [fetchData])
 
   const allSelected = people.length > 0 && selected.size === people.length
   const filtered = people.filter((p) =>
@@ -293,7 +289,7 @@ setTimeout(function() { if (!done) { done = true; doPrint(); } }, 8000);
                 <select
                   className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   value={type}
-                  onChange={(e) => setType(e.target.value as CardType)}
+                  onChange={(e) => { setType(e.target.value as CardType); setLoading(true); setSelected(new Set()) }}
                 >
                   <option value="students">Students</option>
                   <option value="teachers">Teachers</option>

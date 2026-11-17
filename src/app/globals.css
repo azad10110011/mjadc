@@ -21,10 +21,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
+  /* Session 77: safety net — a stray wide element must never make the whole site scroll sideways
+     on phones. `clip` (not `hidden`) keeps position: sticky working for the menu/panel header. */
+  overflow-x: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 @keyframes scroll {
@@ -59,3 +71,10 @@ img {
   max-width: 100%;
   height: auto;
 }
+
+/* Session 94: DataTable's fixed bottom scrollbar (wide tables) - always a real, grabbable bar */
+.fixed-hscroll { scrollbar-width: auto; scrollbar-color: #94a3b8 #f1f5f9; }
+.fixed-hscroll::-webkit-scrollbar { height: 14px; }
+.fixed-hscroll::-webkit-scrollbar-track { background: #f1f5f9; }
+.fixed-hscroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 7px; border: 3px solid #f1f5f9; }
+.fixed-hscroll::-webkit-scrollbar-thumb:hover { background: #64748b; }

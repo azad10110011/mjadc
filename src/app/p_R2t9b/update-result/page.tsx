@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Select, Card, CardContent, DataTable, Badge } from '@/components/ui'
-import { EXAM_NAMES, calculateGradeFromParts, type StudentClass, type SubjectPart } from '@/types'
+import { calculateGradeFromParts, type SubjectPart } from '@/types'
+import { useExamNames } from '@/lib/catalog'
 import { api } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
 import { Lock } from 'lucide-react'
@@ -37,6 +38,7 @@ function MarkCell({ value, absent, min, max, locked, onChange, onAbsentChange }:
 }
 
 export default function TeacherUpdateResultPage() {
+  const EXAM_NAMES = useExamNames()
   const [year, setYear] = useState(String(new Date().getFullYear()))
   const [cls, setCls] = useState('')
   const [examName, setExamName] = useState('')
@@ -55,7 +57,7 @@ export default function TeacherUpdateResultPage() {
   }, [])
 
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
-  const examOptions = cls ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) : []
+  const examOptions = cls ? EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e })) : []
 
   const getColumns = () => {
     const cols = [

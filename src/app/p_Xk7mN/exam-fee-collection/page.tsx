@@ -4,8 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import { PanelLayout } from "@/components/layout";
 import { Button, Input, Select, Card, CardContent } from "@/components/ui";
 import { api } from "@/lib/api";
+import { useGroupOptions } from "@/lib/catalog";
 import { useAuth } from "@/contexts/AuthContext";
 import { exportToPDF, type ExportColumn } from "@/lib/export";
+import { can } from "@/lib/permissions";
 import { Printer, FileDown } from "lucide-react";
 
 interface StudentStatus {
@@ -20,14 +22,24 @@ function fmt(n: number) {
   return `৳${n.toLocaleString("en-US")}`;
 }
 
+const ALL_GROUP_OPTION = [{ value: "all", label: "All Groups" }];
+
 function ExamFeeCollectionInner() {
+  const groupOptions = useGroupOptions(ALL_GROUP_OPTION);
   const { user } = useAuth();
-  const role = user?.default_role || "";
-  const canCollect = role === "admin" || role === "exam_controller";
+  // Session 80: decided from ALL roles + per-user permissions (was default_role only).
+  //  • collect: Admin, Exam Controller, or anyone granted "Exam Fee Collection"
+  //  • see every collector's report + user dropdown: Admin and Exam Controller only (backend enforces too)
+  const roles = (user?.roles || []) as string[];
+  const isAdmin = roles.includes("admin");
+  const canSeeAll = isAdmin || roles.includes("exam_controller");
+  const canCollect = canSeeAll || can(user, "/p_Xk7mN/exam-fee-collection");
   const [tab, setTab] = useState<"collect" | "report">("collect");
+  const activeTab = canCollect ? tab : "report";
+  const [collectors, setCollectors] = useState<{ id: number; name: string; collections: number; total: number }[]>([]);
+  const [repUser, setRepUser] = useState("");
 
   // admin CRUD for payment records (report tab)
-  const isAdmin = role === "admin";
   const [paymentCrudId, setPaymentCrudId] = useState<number | null>(null);
   const [crudAmount, setCrudAmount] = useState("");
 
@@ -83,6 +95,7 @@ function ExamFeeCollectionInner() {
     setRepLoading(true);
     try {
       const body: any = { year: new Date().getFullYear() };
+      if (canSeeAll && repUser) body.collected_by = Number(repUser);
       if (preset === "today") {
         body.date_from = new Date().toISOString().slice(0, 10);
         body.date_to = body.date_from;
@@ -121,7 +134,7 @@ function ExamFeeCollectionInner() {
         '<p><b>Total:</b> ' + fmt(repData.total) + ' &nbsp; <b>Payments:</b> ' + repData.count + '</p>' +
         '<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:12px">' +
         '<tr style="background:#eee"><th>Student ID</th><th>Name</th><th>Exam</th><th>Amount</th><th>Collected By</th><th>At</th></tr>' + rowsHtml + '</table>' +
-        (canCollect ? '<h4>User-wise Summary</h4><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:12px"><tr style="background:#eee"><th>Collector</th><th>Payments</th><th>Total</th></tr>' + usersHtml + '</table>' : "") +
+        (canSeeAll ? '<h4>User-wise Summary</h4><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:12px"><tr style="background:#eee"><th>Collector</th><th>Payments</th><th>Total</th></tr>' + usersHtml + '</table>' : "") +
         '</body></html>');
       w.document.close();
       w.print();
@@ -160,10 +173,19 @@ function ExamFeeCollectionInner() {
   };
 
   useEffect(() => {
-    const t = setTimeout(loadToday, 0);
+    if (!user) return;
+    // reports-only users land straight on their own report
+    const t = setTimeout(canCollect ? loadToday : () => runReport("today"), 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id, canCollect]);
+
+  useEffect(() => {
+    if (!canSeeAll) return;
+    api.get<{ data: any[] }>(`/admin/exam-fees/collectors?year=${currentYear}`)
+      .then((r) => setCollectors(r.data || []))
+      .catch(() => setCollectors([]));
+  }, [canSeeAll, currentYear]);
 
   const lookupStudentById = async () => {
     if (!lookupId.trim()) return;
@@ -271,11 +293,13 @@ function ExamFeeCollectionInner() {
     <PanelLayout role="admin" title="Exam Fee Collection">
       <div className="mx-auto max-w-6xl space-y-4">
         <div className="flex gap-2">
-          <Button variant={tab === "collect" ? "primary" : "outline"} onClick={() => setTab("collect")}>
-            Collect
-          </Button>
-          <Button variant={tab === "report" ? "primary" : "outline"} onClick={() => { setTab("report"); runReport("today"); }}>
-            Reports
+          {canCollect && (
+            <Button variant={activeTab === "collect" ? "primary" : "outline"} onClick={() => setTab("collect")}>
+              Collect
+            </Button>
+          )}
+          <Button variant={activeTab === "report" ? "primary" : "outline"} onClick={() => { setTab("report"); runReport("today"); }}>
+            {canSeeAll ? "Reports" : "My Reports"}
           </Button>
         </div>
         {message && (
@@ -284,6 +308,7 @@ function ExamFeeCollectionInner() {
           </div>
         )}
 
+        {activeTab === "collect" && canCollect && (<>
         {/* Student ID collection */}
         <Card>
           <CardContent className="space-y-3">
@@ -372,9 +397,6 @@ function ExamFeeCollectionInner() {
                 </div>
               </div>
             )}
-            {!canCollect && (
-              <p className="text-xs text-gray-400">View only — collection is done by Admin / Exam Controller.</p>
-            )}
           </CardContent>
         </Card>
 
@@ -402,12 +424,7 @@ function ExamFeeCollectionInner() {
                 <Select
                   value={listGroup}
                   onChange={(e) => setListGroup(e.target.value)}
-                  options={[
-                    { value: "all", label: "All Groups" },
-                    { value: "Science", label: "Science" },
-                    { value: "Business Studies", label: "Business Studies" },
-                    { value: "Humanities", label: "Humanities" },
-                  ]}
+                  options={groupOptions}
                 />
                 <Button variant="outline" onClick={() => loadToday()}>
                   Refresh
@@ -465,9 +482,21 @@ function ExamFeeCollectionInner() {
             )}
           </CardContent>
         </Card>
+        </>)}
 
-        {tab === "report" && (
+        {activeTab === "report" && (
           <>
+            {canSeeAll ? (
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="w-full sm:w-72">
+                  <Select label="Collected by" value={repUser} onChange={(e) => setRepUser(e.target.value)}
+                    options={[{ value: "", label: "All users" }, ...collectors.map((c) => ({ value: String(c.id), label: `${c.name} (${c.collections})` }))]} />
+                </div>
+                <p className="pb-2 text-xs text-gray-500">Choose a user, then Today / Total / a date range.</p>
+              </div>
+            ) : (
+              <p className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">You can see only the exam fees you collected.</p>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => runReport("today")}>Today</Button>
               <Button variant="outline" onClick={() => runReport("total")}>Total (This Year)</Button>
@@ -492,7 +521,7 @@ function ExamFeeCollectionInner() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Card>
                     <CardContent>
-                      <p className="text-sm text-gray-500">{canCollect ? 'Total Collection (all users)' : 'My Total Collection'}</p>
+                      <p className="text-sm text-gray-500">{!canSeeAll ? 'My Total Collection' : repUser ? `Total Collection — ${collectors.find((c) => String(c.id) === repUser)?.name || 'selected user'}` : 'Total Collection (all users)'}</p>
                       <p className="text-2xl font-bold">{fmt(repData.total)}</p>
                     </CardContent>
                   </Card>
@@ -504,7 +533,7 @@ function ExamFeeCollectionInner() {
                   </Card>
                 </div>
 
-                {canCollect && repData.by_user?.length > 0 && (
+                {canSeeAll && repData.by_user?.length > 0 && (
                   <Card>
                     <CardContent>
                       <h3 className="mb-3 font-semibold">User-wise Summary</h3>
@@ -532,7 +561,7 @@ function ExamFeeCollectionInner() {
 
                 <Card>
                   <CardContent>
-                    <h3 className="mb-3 font-semibold">{canCollect ? 'All Payments' : 'My Payments'}</h3>
+                    <h3 className="mb-3 font-semibold">{!canSeeAll ? 'My Payments' : repUser ? 'Payments by selected user' : 'All Payments'}</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>

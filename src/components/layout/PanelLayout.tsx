@@ -9,12 +9,13 @@ import {
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck, ListPlus,
   ClipboardList, Upload, Download, CheckSquare,
   UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign, CreditCard,
-  ArrowLeftRight,
+  ArrowLeftRight, ShieldOff, Star,
 } from 'lucide-react'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { UserRole } from '@/types'
+import { canOpenPage, isAdminUser, normPath, pageKeyFor } from '@/lib/permissions'
 
 const INACTIVITY_MS = 5 * 60 * 1000
 const CHECK_INTERVAL_MS = 30 * 1000
@@ -87,7 +88,10 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Notices', href: '/p_Xk7mN/notices', icon: <FileText className="h-4 w-4" /> },
     { label: 'Exam Management', icon: <GraduationCap className="h-4 w-4" />, children: [
       { label: 'All Results', href: '/p_Xk7mN/results' },
+      { label: 'Result Summary', href: '/p_Xk7mN/result-summary' },
       { label: 'Transcript', href: '/p_Xk7mN/transcript' },
+      { label: 'Transcript QR Verify', href: '/p_Xk7mN/transcript-verify' },
+      { label: 'Exams & Groups', href: '/p_Xk7mN/exams-groups' },
       { label: 'Exam Routine', href: '/p_Xk7mN/exam-routine' },
       { label: 'Exam Paper Selection', href: '/p_Xk7mN/exam-paper-selection' },
       { label: 'Admit Card', href: '/p_Xk7mN/admit-card' },
@@ -95,17 +99,28 @@ const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'Exam Fee Set', href: '/p_Xk7mN/exam-fee-set' },
       { label: 'Exam Fee Waiver', href: '/p_Xk7mN/exam-fee-waiver' },
       { label: 'Exam Fee Collection', href: '/p_Xk7mN/exam-fee-collection' },
+      { label: 'Exam Fee Paid List', href: '/p_Xk7mN/exam-fee-paid-list' },
+      { label: 'Exam Seat Plan', href: '/p_Xk7mN/seat-plan' },
+      { label: 'Hall Duty Allocation', href: '/p_Xk7mN/exam-duty' },
+      { label: 'Duty Appointment Letters', href: '/p_Xk7mN/duty-letters' },
     ] },
     { label: 'Custom Entry Fields', href: '/p_Xk7mN/custom-fields', icon: <ListPlus className="h-4 w-4" /> },
     { label: 'Subjects', href: '/p_Xk7mN/subjects', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'User History', href: '/p_Xk7mN/user-history', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Routines', href: '/p_Xk7mN/routines', icon: <Calendar className="h-4 w-4" /> },
     { label: 'Syllabus', href: '/p_Xk7mN/syllabus', icon: <BookOpen className="h-4 w-4" /> },
-    { label: 'Teachers', href: '/p_Xk7mN/teachers', icon: <GraduationCap className="h-4 w-4" /> },
-    { label: 'Staff', href: '/p_Xk7mN/staff', icon: <Users className="h-4 w-4" /> },
+    { label: 'Teachers', icon: <GraduationCap className="h-4 w-4" />, children: [
+      { label: 'All Teachers', href: '/p_Xk7mN/teachers' },
+      { label: 'Add Teacher', href: '/p_Xk7mN/teachers/add' },
+    ] },
+    { label: 'Staff', icon: <Users className="h-4 w-4" />, children: [
+      { label: 'All Staff', href: '/p_Xk7mN/staff' },
+      { label: 'Add Staff', href: '/p_Xk7mN/staff/add' },
+    ] },
     { label: 'Student Management', icon: <Users className="h-4 w-4" />, children: [
       { label: 'All Students', href: '/p_Xk7mN/students' },
       { label: 'Add Student', href: '/p_Xk7mN/students/add' },
+      { label: 'Bulk Photo Upload', href: '/p_Xk7mN/students/photos' },
       { label: 'Class Change', href: '/p_Xk7mN/class-change' },
       { label: 'Student Info', href: '/p_Xk7mN/student-info' },
       { label: 'Old Students', href: '/p_Xk7mN/students?class=Old' },
@@ -126,6 +141,9 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Users', icon: <UserCog className="h-4 w-4" />, children: [
       { label: 'All Users', href: '/p_Xk7mN/users' },
       { label: 'Teacher/Staff', href: '/p_Xk7mN/users/teacher-staff' },
+      { label: 'Add Teacher/Staff', href: '/p_Xk7mN/users/teacher-staff/add' },
+      { label: 'Students', href: '/p_Xk7mN/users/students' },
+      { label: 'User Permissions', href: '/p_Xk7mN/users/permissions' },
     ] },
     { label: 'Tuition Fees', href: '/p_Xk7mN/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },
     { label: 'Transactions', href: '/p_Xk7mN/transactions', icon: <Receipt className="h-4 w-4" /> },
@@ -138,6 +156,8 @@ const panelNav: Record<PanelRole, NavItem[]> = {
   ],
   student: [
     { label: 'Dashboard', href: '/p_G9n4s/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'My Results', href: '/p_G9n4s/results', icon: <GraduationCap className="h-4 w-4" /> },
+    { label: 'My Attendance', href: '/p_G9n4s/attendance', icon: <UserCheck className="h-4 w-4" /> },
     { label: 'Pay Fees', href: '/p_G9n4s/pay-fees', icon: <DollarSign className="h-4 w-4" /> },
   ],
   teacher: [
@@ -196,7 +216,9 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     const expanded: Record<string, boolean> = {}
     if (pathname.startsWith('/p_Xk7mN/pages')) expanded['Pages'] = true
     if (pathname.startsWith('/p_Xk7mN/users')) expanded['Users'] = true
-    if (pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form')) expanded['Exam Management'] = true
+    if (pathname.startsWith('/p_Xk7mN/teachers/') || pathname === '/p_Xk7mN/teachers') expanded['Teachers'] = true
+    if (pathname.startsWith('/p_Xk7mN/staff')) expanded['Staff'] = true
+    if (pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/result-summary') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form') || pathname.startsWith('/p_Xk7mN/seat-plan') || pathname.startsWith('/p_Xk7mN/duty-letters') || pathname.startsWith('/p_Xk7mN/exams-groups')) expanded['Exam Management'] = true
     if (pathname.startsWith('/p_Xk7mN/students')) expanded['Student Management'] = true
     if (pathname.startsWith('/p_F7c2j/students')) expanded['Student Management'] = true
     return expanded
@@ -275,7 +297,52 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
       ? defaultRole
       : fallbackRole
   useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('active_panel_role', effectiveRole) }, [effectiveRole])
-  const navItems = panelNav[effectiveRole] || panelNav[role]
+  const baseNav = panelNav[effectiveRole] || panelNav[role]
+
+  // ---- Session 80: dynamic menu from per-user permissions ----
+  // A page is shown if it is not permission-controlled (dashboards) or the user has its permission.
+  // When the backend sends no permission data (older API), everything behaves as before.
+  const permAware = !!user?.permission_keys
+  const visibleHref = useCallback((href: string) => {
+    if (!permAware || !user) return true
+    const key = pageKeyFor(href, user)
+    return key ? canOpenPage(user, key) : true
+  }, [permAware, user])
+  const navItems = useMemo(() => baseNav
+    .map((item) => item.children ? { ...item, children: item.children.filter((c) => visibleHref(c.href)) } : item)
+    .filter((item) => item.children ? item.children.length > 0 : visibleHref(item.href!)), [baseNav, visibleHref])
+
+  // Pages granted from OTHER panels (e.g. a teacher given "Exam Fee Collection") → "Assigned to me"
+  const assignedItems = useMemo(() => {
+    if (!permAware || !user || isAdminUser(user)) return [] as SubNavItem[]
+    const shown = new Set<string>()
+    for (const it of navItems) {
+      if (it.href) shown.add(normPath(it.href))
+      for (const c of it.children || []) shown.add(normPath(c.href))
+    }
+    const all: SubNavItem[] = []
+    for (const items of Object.values(panelNav)) for (const it of items) {
+      if (it.href) all.push({ label: it.label, href: it.href })
+      for (const c of it.children || []) all.push(c)
+    }
+    const out: SubNavItem[] = []
+    const seen = new Set<string>()
+    for (const k of user.permissions || []) {
+      const base = k.split('#')[0]
+      if (shown.has(base) || seen.has(base)) continue
+      const hit = all.find((x) => normPath(x.href) === base)
+      if (hit) { out.push(hit); seen.add(base) }
+    }
+    return out
+  }, [permAware, user, navItems])
+
+  // Direct-URL guard: permission-controlled pages need the permission; other panel pages need the role.
+  const pageAllowed = useMemo(() => {
+    if (!user || !permAware) return true
+    const key = pageKeyFor(pathname, user)
+    if (key) return canOpenPage(user, key)
+    return isAdminUser(user) || user.roles.includes(role as unknown as UserRole)
+  }, [user, permAware, pathname, role])
 
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) => ({ ...prev, [label]: !prev[label] }))
@@ -286,7 +353,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <aside className={cn(
-        'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform lg:relative lg:translate-x-0',
+        'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0', // sticky: sidebar stays visible on long pages
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="shrink-0 border-b border-gray-200 px-4 py-3">
@@ -330,8 +397,8 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
                   : item.label === 'Student Management'
                     ? pathname.startsWith('/p_Xk7mN/students') || pathname.startsWith('/p_F7c2j/students') || pathname.startsWith('/p_Xk7mN/class-change') || pathname.startsWith('/p_Xk7mN/student-info')
                     : item.label === 'Exam Management'
-                      ? pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form')
-                      : false
+                      ? pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/result-summary') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form') || pathname.startsWith('/p_Xk7mN/seat-plan') || pathname.startsWith('/p_Xk7mN/duty-letters') || pathname.startsWith('/p_Xk7mN/exams-groups')
+                      : item.children.some((c) => c.href && normPath(pathname) === normPath(c.href))
               return (
                 <div key={item.label}>
                   <button
@@ -356,7 +423,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
                           onClick={() => setSidebarOpen(false)}
                           className={cn(
                             'flex items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                            pathname === child.href
+                            normPath(pathname) === normPath(child.href)
                               ? 'bg-blue-50 text-blue-700'
                               : 'text-gray-600 hover:bg-gray-100'
                           )}
@@ -376,7 +443,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  pathname === item.href
+                  normPath(pathname) === normPath(item.href!)
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-100'
                 )}
@@ -386,6 +453,20 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
               </Link>
             )
           })}
+          {assignedItems.length > 0 && (
+            <div className="mt-4 border-t border-gray-200 pt-3">
+              <p className="mb-1 flex items-center gap-1.5 px-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                <Star className="h-3 w-3" /> Assigned to me
+              </p>
+              {assignedItems.map((it) => (
+                <Link key={it.href} href={it.href} onClick={() => setSidebarOpen(false)}
+                  className={cn('flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    normPath(pathname) === normPath(it.href) ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100')}>
+                  {it.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </nav>
         <div className="shrink-0 border-t border-gray-200 p-3">
           <Link
@@ -412,15 +493,16 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4">
-          <div className="flex items-center gap-3">
-            <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100 lg:hidden" onClick={() => setSidebarOpen(true)}>
+      {/* min-w-0: lets wide tables scroll inside their own box instead of widening the whole page (Session 77) */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 sm:px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100 lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-base font-semibold text-gray-900">{title}</h1>
+            <h1 className="truncate text-base font-semibold text-gray-900">{title}</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Link href="/">
               <Button variant="ghost" size="sm">
                 <ChevronLeft className="mr-1 h-4 w-4" />
@@ -429,8 +511,19 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
             </Link>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">
-          {children}
+        <main className="min-w-0 flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
+          {pageAllowed ? children : (
+            <div className="mx-auto mt-10 max-w-md rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+              <ShieldOff className="mx-auto h-10 w-10 text-red-500" />
+              <h2 className="mt-3 text-lg font-semibold text-gray-900">No access</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                You don&apos;t have permission for this page. Ask the administrator if you need it.
+              </p>
+              <Link href={ROLE_HOME[effectiveRole] || '/'} className="mt-4 inline-block text-sm font-medium text-blue-700 hover:underline">
+                Go to my dashboard
+              </Link>
+            </div>
+          )}
         </main>
       </div>
 

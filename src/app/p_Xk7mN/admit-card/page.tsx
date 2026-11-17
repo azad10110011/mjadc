@@ -11,10 +11,12 @@ import {
   Card,
   CardContent,
 } from "@/components/ui";
-import { EXAM_NAMES, type StudentClass } from "@/types";
+import { useExamNames, useGroupOptions } from "@/lib/catalog";
 import { api, UPLOAD_BASE } from "@/lib/api";
+import { photoUrl } from "@/lib/photo";
 import { Printer, Download, Save } from "lucide-react";
 
+const ALL_GROUPS = [{ value: "", label: "All Groups" }];
 interface AdmitStudent {
   student_id: string;
   name: string;
@@ -128,6 +130,7 @@ const routineFor = (s: AdmitStudent, routine: RoutineEntry[]): RoutineEntry[] =>
     .filter((r) => r.subjects.length > 0);
 
 export default function AdminAdmitCardPage() {
+  const EXAM_NAMES = useExamNames();
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [cls, setCls] = useState("");
   const [examName, setExamName] = useState("");
@@ -151,14 +154,9 @@ export default function AdminAdmitCardPage() {
     label: String(2026 + i),
   }));
   const examOptions = cls
-    ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e }))
+    ? EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e }))
     : [];
-  const groupOptions = [
-    { value: "", label: "All Groups" },
-    { value: "Science", label: "Science" },
-    { value: "Business Studies", label: "Business Studies" },
-    { value: "Humanities", label: "Humanities" },
-  ];
+  const groupOptions = useGroupOptions(ALL_GROUPS);
 
   useEffect(() => {
     api
@@ -365,7 +363,7 @@ export default function AdminAdmitCardPage() {
     const loadPhoto = async (s: AdmitStudent) => {
       if (!s.photo_path) return { url: null, img: null };
       if (photoCache.has(s.photo_path)) return photoCache.get(s.photo_path)!;
-      const url = `${UPLOAD_BASE}/uploads/${s.photo_path}`;
+      const url = photoUrl(s.photo_path);
       const entry = await new Promise<{ url: string | null; img: HTMLImageElement | null }>(
         (resolve) => {
           const img = new Image();
@@ -377,11 +375,16 @@ export default function AdminAdmitCardPage() {
       );
       if (entry.img) {
         try {
+          // shrink to ≤400 px JPEG — sharp at print size, keeps the PDF small (Session 87)
+          const k = Math.min(1, 400 / Math.max(entry.img.naturalWidth, entry.img.naturalHeight));
           const canvas = document.createElement("canvas");
-          canvas.width = entry.img.naturalWidth;
-          canvas.height = entry.img.naturalHeight;
-          canvas.getContext("2d")!.drawImage(entry.img, 0, 0);
-          photoCache.set(s.photo_path, { url: canvas.toDataURL("image/png"), img: entry.img });
+          canvas.width = Math.round(entry.img.naturalWidth * k);
+          canvas.height = Math.round(entry.img.naturalHeight * k);
+          const ctx = canvas.getContext("2d")!;
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(entry.img, 0, 0, canvas.width, canvas.height);
+          photoCache.set(s.photo_path, { url: canvas.toDataURL("image/jpeg", 0.88), img: entry.img });
         } catch {
           photoCache.set(s.photo_path, { url: null, img: null });
         }
@@ -392,18 +395,25 @@ export default function AdminAdmitCardPage() {
     };
     if (logoSrc) {
       try {
-        logoImg = await new Promise<HTMLImageElement>((resolve) => {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => resolve(img);
-          img.onerror = () => resolve(null as unknown as HTMLImageElement);
-          img.src = logoSrc;
-        });
+        const loadCors = (src: string) =>
+          new Promise<HTMLImageElement | null>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = src;
+          });
+        // The uploaded logo lives on the API host; when the panel is opened on another host
+        // (e.g. mjadc.ac.bd vs www.mjadc.ac.bd) and the uploads folder sends no CORS header,
+        // the browser refuses to hand it to the PDF. Fall back to the site's own logo (same origin).
+        logoImg = (await loadCors(logoSrc)) || (logoSrc !== "/college_logo.png" ? await loadCors("/college_logo.png") : null);
         if (logoImg) {
+          // the source logo is ~1 MB — shrink to ≤240 px (Session 87)
+          const k = Math.min(1, 240 / Math.max(logoImg.naturalWidth, logoImg.naturalHeight));
           const canvas = document.createElement("canvas");
-          canvas.width = logoImg.naturalWidth;
-          canvas.height = logoImg.naturalHeight;
-          canvas.getContext("2d")!.drawImage(logoImg, 0, 0);
+          canvas.width = Math.round(logoImg.naturalWidth * k);
+          canvas.height = Math.round(logoImg.naturalHeight * k);
+          canvas.getContext("2d")!.drawImage(logoImg, 0, 0, canvas.width, canvas.height);
           logoDataUrl = canvas.toDataURL("image/png");
         }
       } catch {}
@@ -673,7 +683,7 @@ export default function AdminAdmitCardPage() {
                         {s.photo_path ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={`${UPLOAD_BASE}/uploads/${s.photo_path}`}
+                            src={photoUrl(s.photo_path)}
                             alt={s.name}
                             className="student-photo"
                           />

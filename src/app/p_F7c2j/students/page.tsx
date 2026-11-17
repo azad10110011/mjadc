@@ -1,19 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, PhotoWithPreview } from '@/components/ui'
 import { ArrowUp, ArrowDown, Copy } from 'lucide-react'
 
 import { api, UPLOAD_BASE } from '@/lib/api'
+import { useGroupOptions } from '@/lib/catalog'
 import { exportToExcel, exportToPDF, type ExportColumn } from '@/lib/export'
 
-const GROUPS = [
-  { value: 'Science', label: 'Science' },
-  { value: 'Business Studies', label: 'Business Studies' },
-  { value: 'Humanities', label: 'Humanities' },
-]
 
 const CLASSES = [
   { value: '11th', label: '11th' },
@@ -35,13 +31,14 @@ const BLOOD_GROUPS = [
 const COMPULSORY_SUBJECTS = ['Bangla', 'English', 'ICT']
 
 function StudentsPageInner() {
+  const GROUPS = useGroupOptions()
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [viewingStudent, setViewingStudent] = useState<any | null>(null)
   const [publicSubjects, setPublicSubjects] = useState<string[]>([])
 
-  const [studentId, setStudentId] = useState('')
+  const [editStudentId, setEditStudentId] = useState('')
   const [name, setName] = useState('')
   const [fatherName, setFatherName] = useState('')
   const [motherName, setMotherName] = useState('')
@@ -111,7 +108,7 @@ function StudentsPageInner() {
 
   const resetForm = () => {
     setEditingId(null)
-    setStudentId(''); setName(''); setFatherName(''); setMotherName('')
+    setEditStudentId(''); setName(''); setFatherName(''); setMotherName('')
     setDateOfBirth(''); setMobile(''); setParentMobile(''); setWhatsapp('')
     setPresentAddress(''); setPermanentAddress('')
     setStudentClass('11th'); setSection(''); setGender('male')
@@ -139,18 +136,18 @@ function StudentsPageInner() {
 
   useEffect(() => { fetchStudents() }, [])
 
-  useEffect(() => {
-    if (!editingId) {
-      const year = new Date().getFullYear().toString().slice(-2)
-      const prefix = studentClass === '12th' ? '12' : '11'
-      const pattern = year + prefix
-      const matching = students
-        .filter((s) => s.student_id && s.student_id.startsWith(pattern))
-        .map((s) => parseInt(s.student_id.slice(-4), 10))
-      const maxSeq = matching.length > 0 ? Math.max(...matching) : 0
-      setStudentId(pattern + String(maxSeq + 1).padStart(4, '0'))
-    }
-  }, [studentClass, editingId, students])
+  // Next free student ID for the chosen class (read-only field), derived instead of set in an effect
+  const suggestedStudentId = useMemo(() => {
+    const year = new Date().getFullYear().toString().slice(-2)
+    const prefix = studentClass === '12th' ? '12' : '11'
+    const pattern = year + prefix
+    const matching = students
+      .filter((s) => s.student_id && s.student_id.startsWith(pattern))
+      .map((s) => parseInt(s.student_id.slice(-4), 10))
+    const maxSeq = matching.length > 0 ? Math.max(...matching) : 0
+    return pattern + String(maxSeq + 1).padStart(4, '0')
+  }, [studentClass, students])
+  const studentId = editingId ? editStudentId : suggestedStudentId
 
   const handleSubmit = async () => {
     setError('')
@@ -216,7 +213,7 @@ function StudentsPageInner() {
 
   const handleEdit = (s: any) => {
     setEditingId(s.id)
-    setStudentId(s.student_id)
+    setEditStudentId(s.student_id)
     setName(s.name)
     setFatherName(s.father_name || '')
     setMotherName(s.mother_name || '')
@@ -432,8 +429,8 @@ function StudentsPageInner() {
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
-              <div><span className="font-medium text-gray-700">Father's Name:</span> <span className="text-gray-600">{viewingStudent.father_name || '-'}</span></div>
-              <div><span className="font-medium text-gray-700">Mother's Name:</span> <span className="text-gray-600">{viewingStudent.mother_name || '-'}</span></div>
+              <div><span className="font-medium text-gray-700">Father&apos;s Name:</span> <span className="text-gray-600">{viewingStudent.father_name || '-'}</span></div>
+              <div><span className="font-medium text-gray-700">Mother&apos;s Name:</span> <span className="text-gray-600">{viewingStudent.mother_name || '-'}</span></div>
               <div><span className="font-medium text-gray-700">Date of Birth:</span> <span className="text-gray-600">{viewingStudent.date_of_birth ? viewingStudent.date_of_birth.slice(0, 10) : '-'}</span></div>
               <div><span className="font-medium text-gray-700">Class:</span> <span className="text-gray-600">{viewingStudent.class}</span></div>
               <div><span className="font-medium text-gray-700">Section:</span> <span className="text-gray-600">{viewingStudent.section || '-'}</span></div>
@@ -535,7 +532,7 @@ function StudentsPageInner() {
               }}>PDF</Button>
             </div>
           </div>
-          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No students" onRowReorder={handleReorder} />
+          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No students" onRowReorder={handleReorder} stickyScrollbar />
         </CardContent>
       </Card>
     </PanelLayout>

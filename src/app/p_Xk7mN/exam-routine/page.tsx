@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { PanelLayout } from "@/components/layout";
 import { Button, Card, CardContent, Input, Select } from "@/components/ui";
-import { EXAM_NAMES, type StudentClass } from "@/types";
+import { useExamNames } from "@/lib/catalog";
 import { api } from "@/lib/api";
 import { Pencil, Plus, Printer, Download, Trash2 } from "lucide-react";
 
@@ -30,6 +30,7 @@ interface SubjectOption {
 const codedLabelsCache: SubjectOption[] = [];
 
 export default function AdminExamRoutinePage() {
+  const EXAM_NAMES = useExamNames();
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [cls, setCls] = useState("");
   const [examName, setExamName] = useState("");
@@ -55,7 +56,7 @@ export default function AdminExamRoutinePage() {
     label: String(2026 + i),
   }));
   const examOptions = cls
-    ? (EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) ??
+    ? (EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e })) ??
       [])
     : [];
 

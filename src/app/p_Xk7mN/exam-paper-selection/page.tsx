@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Select, Card, CardContent } from '@/components/ui'
-import { EXAM_NAMES, type StudentClass } from '@/types'
+import { useExamNames } from '@/lib/catalog'
 import { api } from '@/lib/api'
 import { Save } from 'lucide-react'
 
@@ -25,6 +25,7 @@ const selectionKey = (subjectId: number, paperId: number | null) =>
   paperId === null ? `subject-${subjectId}` : `paper-${paperId}`
 
 export default function ExamPaperSelectionPage() {
+  const EXAM_NAMES = useExamNames()
   const [year, setYear] = useState(String(new Date().getFullYear()))
   const [cls, setCls] = useState('')
   const [examName, setExamName] = useState('')
@@ -40,7 +41,7 @@ export default function ExamPaperSelectionPage() {
   const [saveSuccess, setSaveSuccess] = useState('')
 
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
-  const examOptions = cls ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) : []
+  const examOptions = cls ? EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e })) : []
 
   useEffect(() => {
     api.get<{ status: number; data: SubjectGroup[] }>('/admin/subjects/tree')

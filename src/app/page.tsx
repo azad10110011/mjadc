@@ -137,10 +137,6 @@ export default function HomePage() {
     return () => clearInterval(timer)
   }, [heroSlides.length, heroInterval])
 
-  useEffect(() => {
-    setCurrentSlide(0)
-  }, [heroSlides])
-
   const goToSlide = (idx: number) => setCurrentSlide(idx)
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
@@ -169,13 +165,17 @@ export default function HomePage() {
     }
   }, [hpFontSize, hpFontWeight, hpUid])
 
-  const slide = heroSlides[currentSlide]
+  // keep the index valid if the slide list changes (replaces a reset-in-effect)
+  const slideIndex = heroSlides.length ? currentSlide % heroSlides.length : 0
+  const slide = heroSlides[slideIndex]
 
   return (
     <div>
       {/* Hero Slider */}
-      <section style={{ backgroundColor: sliderBg, position: 'relative', minWidth: '100vw' }}>
-        <div className="mx-auto relative" style={{ width: `${heroWidth}vw`, height: `${heroHeight}vh`, maxWidth: '100vw' }}>
+      {/* Session 77: % widths (100vw includes the scrollbar → sideways scroll). Height = the configured
+          vh on desktop, but never taller than a 16:9 frame on narrow screens (was ~500px on phones). */}
+      <section className="w-full" style={{ backgroundColor: sliderBg, position: 'relative' }}>
+        <div className="mx-auto relative" style={{ width: `${Math.min(100, Number(heroWidth) || 100)}%`, height: `min(${heroHeight}vh, max(56.25vw, 200px))` }}>
           <div className="absolute inset-0 overflow-hidden rounded-none">
             {heroSlides.length > 0 && slide ? (
               <div className="w-full h-full bg-no-repeat" style={{ backgroundImage: `url(${UPLOAD_BASE}/${slide.path})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(20px)', WebkitFilter: 'blur(20px)', transform: 'scale(1.1)' }} />
@@ -186,7 +186,7 @@ export default function HomePage() {
           {heroSlides.length > 0 && slide ? (
             <>
               <div className="absolute inset-0 bg-black/40" />
-              <div key={currentSlide} className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: `url(${UPLOAD_BASE}/${slide.path})`, backgroundSize: 'contain', backgroundPosition: 'center' }} />
+              <div key={slideIndex} className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: `url(${UPLOAD_BASE}/${slide.path})`, backgroundSize: 'contain', backgroundPosition: 'center' }} />
               <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-white z-10">
                 {slide.title && (
                   <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-center mb-3 drop-shadow-lg max-w-3xl">
@@ -216,10 +216,10 @@ export default function HomePage() {
         </div>
         {heroSlides.length > 1 && (
           <>
-            <button onClick={prevSlide} className="absolute z-20 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white hover:bg-black/50 transition-colors" style={{ left: '12px' }}>
+            <button onClick={prevSlide} aria-label="Previous slide" className="absolute z-20 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white hover:bg-black/50 transition-colors" style={{ left: '12px' }}>
               <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
             </button>
-            <button onClick={nextSlide} className="absolute z-20 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white hover:bg-black/50 transition-colors" style={{ right: '12px' }}>
+            <button onClick={nextSlide} aria-label="Next slide" className="absolute z-20 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white hover:bg-black/50 transition-colors" style={{ right: '12px' }}>
               <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
             </button>
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
@@ -227,7 +227,8 @@ export default function HomePage() {
                 <button
                   key={idx}
                   onClick={() => goToSlide(idx)}
-                  className={`h-2.5 rounded-full transition-all ${idx === currentSlide ? 'w-8 bg-white' : 'w-2.5 bg-white/50 hover:bg-white/80'}`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                  className={`h-2.5 rounded-full transition-all ${idx === slideIndex ? 'w-8 bg-white' : 'w-2.5 bg-white/50 hover:bg-white/80'}`}
                 />
               ))}
             </div>
@@ -236,8 +237,8 @@ export default function HomePage() {
       </section>
 
       {/* Scrolling Notice */}
-      <section className="border-b border-gray-200 overflow-hidden" style={{ backgroundColor: noticeBg, borderColor: noticeTextColor, minWidth: '100vw' }}>
-        <div className="mx-auto px-4 flex items-center gap-2 py-2" style={{ color: noticeTextColor, fontSize: resp(noticeFontSize), maxWidth: noticeWidth ? `${noticeWidth}vw` : '80rem' }}>
+      <section className="w-full border-b border-gray-200 overflow-hidden" style={{ backgroundColor: noticeBg, borderColor: noticeTextColor }}>
+        <div className="mx-auto px-4 flex items-center gap-2 py-2" style={{ color: noticeTextColor, fontSize: resp(noticeFontSize), maxWidth: noticeWidth ? `${Math.min(100, Number(noticeWidth) || 100)}%` : '80rem' }}>
           <FileText className="h-4 w-4 shrink-0" />
           <span className="shrink-0 font-semibold whitespace-nowrap">Notice:</span>
           <div className="overflow-hidden flex-1">

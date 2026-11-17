@@ -5,12 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, CustomFieldInput, DynamicFields, useCustomFields, type CustomFieldDef, type CustomFieldValues } from '@/components/ui'
 import { api } from '@/lib/api'
+import { useGroupCodes, useGroupOptions } from '@/lib/catalog'
 
-const GROUPS = [
-  { value: 'Science', label: 'Science' },
-  { value: 'Business Studies', label: 'Business Studies' },
-  { value: 'Humanities', label: 'Humanities' },
-]
 
 const CLASSES = [
   { value: '11th', label: '11th' },
@@ -40,20 +36,16 @@ const EXCLUDED_SELECTIVE_SUBJECTS = [
 const isExcludedSubject = (s: string) =>
   EXCLUDED_SELECTIVE_SUBJECTS.includes(s.toLowerCase())
 
-const GROUP_CODES: Record<string, string> = {
-  'Science': '1',
-  'Business Studies': '2',
-  'Humanities': '3',
-}
-
-const buildStudentId = (batch: string, group: string, roll: string): string => {
+const buildStudentId = (batch: string, group: string, roll: string, groupCodes: Record<string, string>): string => {
   const yy = batch ? batch.slice(-2) : ''
-  const gcode = GROUP_CODES[group] ?? ''
+  const gcode = groupCodes[group] ?? ''
   const r = roll ? String(parseInt(roll, 10) || 0).padStart(3, '0') : ''
   return yy && gcode && r ? yy + gcode + r : ''
 }
 
 function AddStudentForm() {
+  const GROUPS = useGroupOptions()
+  const groupCodes = useGroupCodes()
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get('id')
@@ -87,7 +79,7 @@ function AddStudentForm() {
   const [customValues, setCustomValues] = useState<CustomFieldValues>({})
   const customDefs = useCustomFields('student')
 
-  const autoStudentId = editId ? studentId : buildStudentId(hscBatch, studentGroup, classRoll)
+  const autoStudentId = editId ? studentId : buildStudentId(hscBatch, studentGroup, classRoll, groupCodes)
   const selectableSubjects = publicSubjects.filter(
     (s) => !COMPULSORY_SUBJECTS.includes(s) && !isExcludedSubject(s),
   )

@@ -4,11 +4,10 @@ import { useState, useEffect } from "react";
 import { PanelLayout } from "@/components/layout";
 import { Button, Select, Card, CardContent, DataTable } from "@/components/ui";
 import {
-  EXAM_NAMES,
   calculateGradeFromParts,
-  type StudentClass,
   type SubjectPart,
 } from "@/types";
+import { useExamNames } from "@/lib/catalog";
 import { api } from "@/lib/api";
 import { exportToExcel, exportToPDF } from "@/lib/export";
 
@@ -22,6 +21,7 @@ interface ExamSubjectItem {
 }
 
 export default function ExamControllerUploadResultPage() {
+  const EXAM_NAMES = useExamNames();
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [cls, setCls] = useState("");
   const [examName, setExamName] = useState("");
@@ -83,7 +83,7 @@ export default function ExamControllerUploadResultPage() {
     label: String(2026 + i),
   }));
   const examOptions = cls
-    ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e }))
+    ? EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e }))
     : [];
   const subjectOptions = availableSubjects.map((s) => ({
     value: s.key,

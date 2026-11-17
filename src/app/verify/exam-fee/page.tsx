@@ -2,7 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { api, UPLOAD_BASE } from "@/lib/api";
+import { api } from "@/lib/api";
+import { photoUrl } from "@/lib/photo";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 interface FeeVerify {
@@ -72,7 +73,7 @@ function VerifyContent() {
             {data.photo_path ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`${UPLOAD_BASE}/uploads/${data.photo_path}`}
+                src={photoUrl(data.photo_path)}
                 alt={data.name}
                 className="h-16 w-16 rounded-full object-cover"
               />
@@ -88,11 +89,11 @@ function VerifyContent() {
 
           <div className="mb-4 space-y-1 text-sm text-gray-600">
             <p>
-              <span className="font-medium text-gray-700">Father's Name:</span>{" "}
+              <span className="font-medium text-gray-700">Father&apos;s Name:</span>{" "}
               {data.father_name || "-"}
             </p>
             <p>
-              <span className="font-medium text-gray-700">Mother's Name:</span>{" "}
+              <span className="font-medium text-gray-700">Mother&apos;s Name:</span>{" "}
               {data.mother_name || "-"}
             </p>
             <p>

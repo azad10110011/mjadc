@@ -2,6 +2,577 @@
 
 > **AI instruction:** always append a new session entry to this file after a successful code update — summary of files changed, migrations, verification, and deployment needs.
 
+## 2026-11-17 (Tue)
+
+### Done
+**Session 98 — Exam Fee Paid List: Subjects Sorted by Subject Group (COMPLETED, local)**
+- **Backend** `routes/admin/exam-fees.php` (paid-by-subject): every subject now carries `subject_group`, taken from the `subjects` table.
+  - When a name has several groups, the best rank wins: General, then the catalog groups, then others (e.g. English is General, not BMT; History is Humanities, not BMT). Bangla/English/ICT are forced to General.
+  - Sort: General (Bangla, English, ICT first, then A–Z) → Science → Business Studies → Humanities (catalog order) → others; A–Z within each group.
+- **Frontend** `exam-fee-paid-list/page.tsx`:
+  - Group heading rows in the on-page subject table and in the Summary PDF ("General (Compulsory & common) Subjects", "Science Subjects", …). SL numbering is continuous.
+  - All Subjects PDF and Excel follow the same order.
+  - The Summary PDF was tightened (font 9, padding 1.25, smaller overview boxes) so it still fits one A4 page with the headings.
+- **Verified:**
+  - API order: General 5 (Bangla, English, ICT, Agriculture Studies, Home Science), Science 4, Business 3, Humanities 9.
+  - Page shows the headings; Summary PDF is 1 page (rendered and checked) with totals 4 / 5 / 111 / 120.
+  - 0 page errors; tsc and eslint clean.
+- **Deploy:** backend `routes/admin/exam-fees.php` (package copy updated) and the frontend zip (rebuilt).
+
+**Session 97 — Exam Fee Paid List: Subject-wise Summary PDF (COMPLETED, local, frontend only)**
+- `p_Xk7mN/exam-fee-paid-list/page.tsx`: new **Summary PDF** and **Print Summary** buttons. One A4 page contains:
+  - College header and logo, then the title plus "Subject-wise Summary · Class / Group" (and "Fully paid only" when that filter is on).
+  - Overview boxes: Total Candidates, one per group present, and Total Collected (Tk).
+  - Table: SL, Subject, Type (Compulsory / Selective / Optional, combined where mixed), one count column per group, and Total. Footer row: total candidates, each counted once.
+  - Signature lines (Prepared by / Controller of Examinations / Principal) and generated date with page x of y.
+  - It follows the page filters (year, class, exam, group, fully paid only).
+- **Verified:** Pre-Test 2026 12th gives a 1-page PDF (rendered and checked): Bangla/English/ICT 4 / 5 / 111 = 120, Sociology 97, Agriculture Studies 54 (5 + 49)…, footer 4 / 5 / 111 / 120. Overview: 120 candidates, 60,000 Tk. 0 page errors; tsc and eslint clean.
+- **Deploy:** frontend only. `deploy-2026-11-17/mjadc-frontend.zip` rebuilt.
+
+**Session 96 — Exam Fee Paid List (subject-wise download) + 120 Pre-Test Payments Imported (COMPLETED, local)**
+- **Data (local):** the user's 120 confirmed Pre-Test fee-paid candidate IDs, all 12th class (Science 4, Business Studies 5, Humanities 111), were inserted into `exam_fees` as year 2026, `exam_name 'Pre-Test'` (the format the Exam Fee Collection page records), 500 Tk (from Exam Fee Set), cash, collected_by = first admin. Total 60,000 Tk.
+  - SQL: `deploy-2026-11-17/pretest-2026-fee-paid-120.sql`, matched by Student ID with `INSERT IGNORE` (UNIQUE student/year/exam), so it is portable to live and re-runnable. A second run added 0 rows.
+- **NEW API** `POST /api/admin/exam-fees/paid-by-subject {year, exam_name, class?, group?}` in `routes/admin/exam-fees.php` (admin / exam_controller):
+  - Each paid student is listed under every subject they take: compulsory (ICT normalised to its full name), selective and optional, with the subject type marked.
+  - Rows include amount paid, waiver and status paid/partial (fee from `exam_fee_amount_<exam (class)>` or `<exam>`).
+  - Order: Bangla, English, ICT, then subjects A–Z; students by catalog group order, then roll, then ID.
+- **NEW page Exam Management › Exam Fee Paid List** (`/p_Xk7mN/exam-fee-paid-list`):
+  - Filters: Year, Class, Exam (catalog names) and Group.
+  - Summary chips: candidates, amount collected, subjects, partly paid (with an "Only fully paid" filter).
+  - Subject table with type badges and counts; click a subject to preview its list.
+  - Downloads: per-subject PDF/Excel, "All Subjects PDF" (one subject per section, header repeated on each page, page x of y), Print All, and Excel (an "All candidates" sheet plus one sheet per subject).
+  - Permission catalog entry `/p_Xk7mN/exam-fee-paid-list` (admin default, grantable). Menu item placed after Exam Fee Collection.
+- **Verified:**
+  - API: 120 students, 60,000 Tk, 21 subjects (Bangla/English/ICT 120 each, Sociology 97, Civics 109…).
+  - Browser: menu item active; the Exam dropdown shows the 12th exams; summary correct; Sociology preview has 97 rows.
+  - Downloads: All Subjects PDF 39 pages, Sociology PDF 3 pages (rendered and checked), Excel with 22 sheets.
+  - 0 page errors; tsc and eslint clean.
+- **Deploy:** backend `routes/admin/exam-fees.php` and `config/permissions.php` (both already in the package list; package copies updated); frontend zip rebuilt; optional SQL `pretest-2026-fee-paid-120.sql` (added to `DEPLOY-STEPS.txt`).
+
+**Session 95 — Student List: Fixed Bottom Scrollbar (COMPLETED, local, frontend only)**
+- `stickyScrollbar` (Session 94) is now enabled on the student lists: admin `p_Xk7mN/students/page.tsx` and administration `p_F7c2j/students/page.tsx`.
+- **Verified (366 students, table 1884 px wide):** on both pages the bar is at the window bottom (800/800), 16 px high, aligned with the table (0 px), and bar → table sync works (300). Hidden at the end of the list. 0 page errors; tsc and eslint clean.
+- **Deploy:** frontend only. `deploy-2026-11-17/mjadc-frontend.zip` has been rebuilt (0 localhost refs).
+
+**Session 94 — Teachers / Staff: Horizontal Scrollbar Fixed at the Screen Bottom (COMPLETED, local, frontend only)**
+- **Problem:** the Teachers and Staff tables are about 2,400–2,900 px wide. Their horizontal scrollbar was at the very end of the list, so you had to scroll down to the bottom to move sideways.
+- **`components/ui/DataTable.tsx`:** new opt-in prop `stickyScrollbar`.
+  - While the table is on screen and its own scrollbar is below the fold, a copy of the scrollbar is shown `position: fixed` at the bottom of the window. It matches the table's left and width and stays in sync both ways.
+  - When the table's real scrollbar is visible, the copy disappears.
+  - `position: sticky` was tried first, but it cannot work inside the panel's `<main class="overflow-auto">`, so the bar uses `fixed` plus scroll/resize/ResizeObserver tracking (scroll listened in the capture phase).
+  - Only enabled on Teachers (`TeachersAdmin.tsx`) and Staff (`StaffAdmin.tsx`); the other 51 DataTables are unchanged.
+- **`globals.css`:** `.fixed-hscroll` gives a 14 px grey, grabbable scrollbar.
+- **Verified in the browser:**
+  - Teachers mid-list: bar at the window bottom (800/800), aligned with the table (0 px offset). Bar → table and table → bar both sync (500, 120). Hidden at the end of the list.
+  - Staff and mobile: table end already visible, so the bar is correctly hidden.
+  - 0 page errors; tsc and eslint clean.
+- **Deploy:** frontend rebuild. `deploy-2026-11-17/mjadc-frontend.zip` has been rebuilt with it (0 localhost refs).
+
+**Session 93 — Transcript: Compulsory Subjects First (COMPLETED, local, backend only)**
+- `backend/routes/admin/transcript.php`: new `transcriptSubjectRank()` and `transcriptOrderSubjects()`, applied after all subject rows are built.
+  - Order: Bangla (name starts "Bangla"/"Bengali"/"বাংলা", or code 101/102) → English (name or 107/108) → ICT ("Information and Communication Technology"/"ICT", or 275) → other subjects in their previous order → the optional subject last.
+  - The sort is stable, so papers stay 1st → 2nd. It is order only, so GPA, grades and position are unchanged.
+  - Used by the admin and teacher transcript and by the public QR verify page (same builder).
+- **Verified:**
+  - 12th Pre-Test 271001: Bangla-2 | English-2 | ICT | Biology-2 | Chemistry-2 | Physics-2 | Higher Math-2 [opt], GPA unchanged at 4.83. Before, the order was alphabetical (Bangla, Biology, Chemistry, English, ICT…).
+  - The rule was also tested on Business and Humanities names ("Bangla 1st Paper" style too).
+- **Deploy:** `routes/admin/transcript.php`. It is already updated in `deploy-2026-11-17/mjadc-api/` (the file is in the Session 92 list). No SQL, no frontend change.
+
+**Session 92 — Live Deployment Package (Sessions 66–92) + Transcript QR Ready for Live (PREPARED, not yet uploaded)**
+- **Live state (logged-out probes):** live has Sessions 63–65 (mark-entry-form 401). Every Session 66+ route returns 404 (catalog, transcript-verify, permissions, seat-plan, exam-duty, student attendance, changelog, result-summary, student photo). The live uploads folder sends no CORS header (`uploads/.htaccess` missing).
+- **Package `d:\opencode 09062026\deploy-2026-11-17\`:**
+  - `mjadc-api/`: 27 files = the backend git working-tree changes plus `uploads/.htaccess`. All files are identical to the tested XAMPP copies and pass `php -l`. Every `index.php` require is covered (23 in the package, 72 already on live, plus `vendor/autoload.php` on the server).
+  - `live-sql-sessions-66-91.sql`: 10 `CREATE TABLE IF NOT EXISTS` statements taken from the local schema (user_permissions, transcript_verifications, app_secrets, exam_rooms, seat_plans, seat_assignments, duty_config, duty_teacher_global, duty_teacher_rules, exam_duties). Tested twice on a scratch DB; re-running is harmless.
+  - `mjadc-frontend.zip`: production build with `.env.local` set aside, 0 localhost refs, API `https://www.mjadc.ac.bd/mjadc-api`.
+  - `DEPLOY-STEPS.txt`: upload order and checks.
+- **Transcript QR for live:** `transcriptVerifyUrl()` now uses `NEXT_PUBLIC_SITE_URL` (added to `.env`, `.env.production` and `.env.example` as `https://www.mjadc.ac.bd`), falling back to the page origin locally. Printed QR codes no longer depend on the host the admin had open (localhost / non-www).
+  - Public verify was tested logged out at phone width: a valid link shows "Verified Transcript"; a tampered token, another student's token or an incomplete link shows "Invalid verification link"; verification off shows "Please contact Exam office…".
+  - Note: the HMAC secret (`app_secrets`) is created separately on live, so QR codes printed locally do not verify on live.
+
+**Session 91 — College Logo Missing in Admit Card PDF (FIXED, local, frontend only)**
+- **Live diagnosis:**
+  - `www.mjadc.ac.bd/mjadc-api/uploads/profiles/1794427216_college_logo.png` returns 200 with **no** `Access-Control-Allow-Origin`, so the Session 87 `uploads/.htaccess` is NOT on live (`uploads/x.php` gives 404, not 403).
+  - The API allows origin `https://mjadc.ac.bd`, so the panel is also used without www. That makes the image cross-origin; the browser refuses to give it to jsPDF and the logo is skipped. The on-screen card still shows it, because a plain `<img>` needs no CORS.
+- **Fix in `p_Xk7mN/admit-card/page.tsx`:** the PDF tries the uploaded logo first, then falls back to the site's own `/college_logo.png` (same origin, so it always works).
+- **Verified:** with the CORS header stripped by an intercept, the downloaded PDF still shows the logo (rendered and checked), plus the photo and QR. Typecheck and eslint clean.
+- **Deploy:**
+  - Frontend rebuild.
+  - **Still upload `mjadc-api/uploads/.htaccess` (Session 87).** Without it, student photos are also left out of the Admit Card PDF when the panel is opened on a different host than the API.
+
+**Session 90 — Exam-Mark Subjects on the Add / Edit Teacher Form (COMPLETED, local)**
+- **`teachers/TeachersAdmin.tsx`:**
+  - New block **"Assign Result Management Subjects (Exam Marks)"**, shown while the Teacher role is ticked. It uses the same subject/paper list as the Users form (`GET /admin/subjects/tree`), with a filter box, "Select shown", "Clear" and a selected count.
+  - Saved as `result_subjects` on both create and update. Editing loads the saved list.
+  - Missing required fields now show "Please fill in: …" instead of silently doing nothing.
+- **`backend/routes/admin/teachers-staff.php`:** new helper `teacherSyncResultSubjects()`. Teacher POST and PUT now replace the `teacher_subjects` rows with `type='result'` when `result_subjects` is sent. It is the same table used by Users › Edit and by the teacher Upload/Update Result pages.
+- **Verified in the browser:** created "QA Test Teacher" with Physics-1 and Physics-2. The DB had 2 `result` rows, and Edit showed both ticked. The test teacher was then deleted (teacher, subjects and user removed). Typecheck clean, eslint 0 errors.
+- **Deploy:** backend `routes/admin/teachers-staff.php` (OPcache rename trick) and a frontend rebuild.
+
+**Session 89 — Separate "Add" Pages for Teachers / Staff + Search (COMPLETED, local, frontend only)**
+- **Sidebar Teachers and Staff are now menus:**
+  - Teachers › All Teachers (`/p_Xk7mN/teachers`) and Add Teacher (`/p_Xk7mN/teachers/add`).
+  - Staff › All Staff (`/p_Xk7mN/staff`) and Add Staff (`/p_Xk7mN/staff/add`).
+  - The page code moved to `teachers/TeachersAdmin.tsx` and `staff/StaffAdmin.tsx` with a `mode` prop of `'list' | 'add'`.
+  - List pages have no add form. Edit opens the form at the top (title "Edit Teacher/Staff"). Add pages show only the form.
+  - The Staff submit button now says "Update Staff" when editing.
+- **Search on All Teachers and All Staff:** matches name (English and Bangla), designation, subject, group, mobile, WhatsApp, email, PDS ID and MPO index. The heading shows "x of y". Drag-reorder is off while searching. Excel and PDF export still export the full list.
+- **Users › Teacher/Staff:** the create form is removed; a note links to the new **Users › Add Teacher/Staff** (`/p_Xk7mN/users/teacher-staff/add`). `UserManager` has a new `mode` prop (`both | list | create`).
+- **PanelLayout:**
+  - Submenus open automatically for teachers and staff pages.
+  - A generic active-child rule highlights the parent menu.
+- **Permissions:** the existing page keys cover `/add` by prefix, so no backend change is needed.
+- **Verified in the browser:** menus, active items, list pages without an add button, edit still works, add pages without the list. Search: Teachers 52 → 2 ("physics"), Staff 15 → 1. Typecheck clean, eslint 0 errors, 0 page errors.
+- **Deploy:** frontend rebuild only.
+
+**Session 88 — Exam Fee Set Lists Every Exam + Admin Creates Exams & Groups (COMPLETED, local)**
+- **Cause:** an exam row was only created when results were uploaded, so Exam Fee Set showed only exams that already had results. Exam Paper Selection returned 404 for a new exam. Exam names and groups were hard-coded in about 30 files. The year list started at 2027, so the default year 2026 wasn't in it.
+- **NEW `backend/routes/admin/catalog.php`** (required in `index.php`):
+  - `GET /api/catalog` (public) returns `{exam_names:{11th,12th}, groups:[{name,code}]}`. These are stored in `site_settings` under `catalog_exam_names` and `catalog_groups`; defaults are the old lists.
+  - `PUT /api/admin/catalog/exam-names`: a name already used by an exam cannot be removed.
+  - `POST` / `DELETE /api/admin/catalog/groups`: the ID digit must be a unique single digit. Removing a group used by a student, subject or teacher is blocked. Adding the first new group widens `students.student_group` from ENUM to `VARCHAR(50)` automatically (no manual migration).
+- **`exams.php`:**
+  - `GET ?year=` also creates exams that so far have only a routine.
+  - NEW `POST /api/admin/exams {year,class,exam_name}` (also adds the name to the catalog).
+  - NEW `DELETE /api/admin/exams/{id}`: blocked if the exam has results, routine days or fee payments (fee name with or without " (class)").
+- **Exams created automatically:** `exam-routines.php` POST and `exam-papers.php` PUT now create the exam if it is missing (no more 404).
+- **`seat-plan.php`:** uses catalog groups and the catalog group order.
+- **`principal/results.php` rewritten:** the old query joined teachers on subject and was always empty.
+  - The publish list now has one card per catalog group (newest exam with approved results).
+  - Publish only affects that group, exam, class and year.
+  - Back to Exam Controller works by group, and is limited to one subject if one is typed.
+- **`config/permissions.php`:** new `/p_Xk7mN/exams-groups` (admin only, not grantable); Exam Fee Set now also allows `POST /api/admin/exams`.
+- **Frontend:**
+  - NEW `src/lib/catalog.ts`: a shared store with `useExamNames`, `useGroups`, `useGroupCodes`, `useGroupOptions`, `refreshCatalog` and `setCatalog`.
+  - NEW page **Exam Management › Exams & Groups**: exam-name chips per class; create and delete exams per year; groups with their ID digit.
+  - **Exam Fee Set:** lists every catalog exam per class plus the year's exams; inline Add Exam; "Not set" badge; years run from current−2 to current+10; one amounts request; fee name match ignores case.
+  - `EXAM_NAMES` replaced by `useExamNames()` in 15 files; group lists replaced by catalog options in about 14 files.
+  - Student ID group digit (both Add Student pages) now comes from the catalog.
+  - Seat plan and the `examPdf` room map give new groups a colour, and the map legend shows only the groups present.
+  - `lib/api.ts`: a 422 with `errors[]` now shows the reasons instead of "Validation failed".
+  - Principal Result Publish sends class and group with Back to Exam Controller.
+- **Not changed:**
+  - Attendance quick-entry letters stay s/b/(none). Students in a new group are entered by the last 4 digits of their ID.
+  - Website department lists (admission, syllabus, menus) are not student groups and are untouched.
+- **Verified:**
+  - API script: create, duplicate and invalid exam; routine and paper selection on a new exam; protected removals; group add and remove; principal publish list and back.
+  - Browser: added "Monthly Test" (11th), created "Class Test 2026 (12th)" and added group "Vocational (4)". All three appeared in Exam Fee Set, Exam Paper Selection and the Add Student group list, then were removed through the UI.
+  - Mobile: no overflow. 0 page errors. tsc clean; eslint 0 errors.
+  - Test data restored: catalog settings deleted, column back to ENUM, exam_results back to draft.
+- **Deploy:**
+  - Backend: NEW `routes/admin/catalog.php`, plus `index.php`, `config/permissions.php`, `routes/admin/{exams,exam-routines,exam-papers,seat-plan}.php` and `routes/principal/results.php` (OPcache rename trick).
+  - Frontend: rebuild.
+
+## 2026-11-16 (Mon)
+
+### Done
+**Session 87 — Photos Missing in Admit Card / Transcript PDFs (FIXED, local)**
+- **Admit Card "Download PDF" — cause:** jsPDF needs each image as a data URL, so the page loads the photo/logo with `crossOrigin="anonymous"` and draws it on a canvas. The uploads server sent NO `Access-Control-Allow-Origin`, so the browser refused (onerror → photo skipped, logo too). On-screen `<img>` needs no permission, which is why "Generate" showed the photo.
+- **Fix — NEW `backend/uploads/.htaccess`:**
+  - `Header set Access-Control-Allow-Origin "*"` for jpg/jpeg/png/gif/webp/svg (public images; read-only; needs mod_headers — enabled in XAMPP and standard on cPanel).
+  - Hardening: scripts (php / phtml / phar / cgi / pl / py / sh) in uploads → `Require all denied` (403).
+  - `backend/.gitignore`: `!/uploads/.htaccess` so the file is tracked.
+- **Transcript "Print / PDF":** the photo was missing because of the doubled `/uploads/uploads/` path, fixed in Session 86 (`photoUrl()`).
+- **Admit Card PDF size:** photos are embedded as ≤400 px JPEG (0.88) and the logo as ≤240 px PNG (both were full-size PNG). One card went from 4.9 MB to 0.37 MB with the same look.
+- **Verified:** `curl` shows `Access-Control-Allow-Origin: *` on an upload; `uploads/x.php` → 403. Admit Card PDF (271001) and Transcript print-to-PDF both contain the photo (rendered and checked). 0 console errors; tsc + eslint clean.
+- **Deploy:** upload `mjadc-api/uploads/.htaccess` to the live `uploads/` folder (it is not a code file — easy to miss); frontend rebuild.
+
+**Session 86 — Bulk Student Photo Upload + Fixed Student Photos Not Showing (COMPLETED, local)**
+- **NEW backend `routes/admin/student-photos.php`:** `POST /api/admin/students/{id}/photo` (multipart `photo`; admin / administration, or anyone granted All Students / Bulk Photo Upload).
+  - Replaces ONLY `photo_path`.
+  - The file must really be an image (getimagesize: JPG/PNG/GIF/WEBP), max 5 MB.
+  - Saved as `uploads/profiles/<time>_<studentID>_<rand>.<ext>`. Required in `index.php`.
+  - (The old student add/edit upload only checks the extension — left as is.)
+- **NEW page `p_Xk7mN/students/photos`** — Student Management → **Bulk Photo Upload**:
+  - Class + group; mapping "Number − offset = Class Roll" (offset auto-suggested = smallest file number − smallest roll, e.g. 191…200 → 190) or "File name = Student ID".
+  - Drag-drop / multi-select; match table (new photo, file, student, current photo, status; no-match / duplicate reasons); list of students still without a photo.
+  - Upload one by one with status; each image is resized in the browser to max 600×800 JPEG first.
+  - Permission catalog: `/p_Xk7mN/students/photos` "Bulk Photo Upload". Menu item added under Student Management (admin).
+- **Bug fixed — student photos never showed** on the Transcript, Transcript QR verify page, Admit Card (2 places) or Exam-fee QR verify page: they used `UPLOAD_BASE/uploads/${photo_path}`, but photo_path already starts with `uploads/` → `/uploads/uploads/…`.
+  - NEW `src/lib/photo.ts` `photoUrl()` handles both forms (+ absolute / data URLs); used in all 5 places.
+- **Verified (browser):** 12th Science (10 students, rolls 1–10); files 191, 192, 199, 250 → offset auto 190 → matched rolls 1, 2, 9; 250 flagged "no class roll 60"; 3 uploaded "Updated". The transcript for 271009 then showed the photo (`/uploads/profiles/…`, loaded). 0 console errors; tsc + eslint clean.
+  - Test photos were restored afterwards: 271001 → `…_191.jpg`, 271002 → `…_192.jpg`, 271009 → none. The 3 test image files remain in local `uploads/profiles` (harmless).
+  - Added a "Loading students…" state (it briefly showed 0 students / offset 0).
+- **Deploy:** backend `routes/admin/student-photos.php` (NEW), `index.php`, `config/permissions.php`; frontend rebuild.
+
+**Session 85 — Transcript Watermark Position by Mouse (COMPLETED, local)**
+- `transcriptConfig.ts`: `watermark.x` / `watermark.y` = logo centre in % of the transcript frame (default 50 / 55 ≈ the previous look; clamped 0–100; older saved configs get the defaults).
+- `TranscriptSheet`: the watermark uses `left: x%`, `top: y%`, `translate(-50%, -50%)` (plus opacity + size).
+- `TranscriptSettings.tsx`: the live preview has a drag layer (role="slider", aria value/text).
+  - Press anywhere to move the logo centre there, drag to fine-tune (pointer events, so mouse + touch); arrow keys nudge 1 %, Shift+arrow 5 %.
+  - A dashed ring + move handle shows the current position and size (frame measured with useLayoutEffect).
+  - "Position: …% across, …% down" readout + **Center** button.
+- **Verified (browser):** drag from 50/55 → 30/34 updates the preview live; keys → 31/39; save; reload; the generated transcript has the watermark at left 31 % / top 39 %. 0 console errors; tsc + eslint clean. The saved config was reset to the default position afterwards.
+- **Deploy:** frontend rebuild only.
+
+**Session 84 — Transcript: Admin-Chosen Information, Session from Custom Field, Plain Totals, Graphical Watermark Settings (COMPLETED, local)**
+- **Academic Session fix:** `students.academic_session` holds the HSC **batch year** (e.g. 2027), not the session. The session is the custom entry field **"Session"** (dropdown 2025-26 …, stored in `students.custom_fields` by label).
+  - Backend `routes/admin/transcript.php`: `academic_session` = custom "Session" / "Academic Session" (NEW helper `transcriptCustomValue`); NEW `hsc_batch` = the old column; NEW `custom` = all non-empty custom field values by label.
+  - `transcript-verify.php`: the public QR page strips `custom` (it may hold personal details).
+- **Total marks:** no leading zeros (`totalText()`: 72, not 072). This also applies to the QR verify page and student My Results.
+- **NEW `src/components/transcript/transcriptConfig.ts`:** site setting `transcript_config` (JSON) = `{ fields: [built-in keys | "custom:<label>"], show: {photo, qr, grading, summary, position}, watermark: {opacity 0–0.5, size 20–100 %} }`.
+  - Built-in fields: Student Name, Father's / Mother's Name, Roll Number, Class Roll, Registration No, Date of Birth, Class, Group, Academic Session, HSC Batch, Student Type.
+  - Plus every custom entry field (Name (Bangla), Father's / Mother's Name (Bangla), Session, any future one).
+  - `normalizeConfig` clamps values and merges over defaults (defaults = the previous look). `useTranscriptConfig()` reads it from the public `/settings/transcript_config`; it is saved with `PUT /admin/settings/transcript_config` (admin).
+- **`TranscriptSheet`** takes `config`: info rows in the chosen order; photo / QR / grading table / GPA row / position can be hidden; watermark opacity + width come from the config (inline style).
+- **NEW `src/components/transcript/TranscriptSettings.tsx`** (Admin transcript page only, collapsible, no-print):
+  - Ordered list of shown information (↑ ↓ ✕, "custom field" tag), "+ add" chips for every other field.
+  - Block checkboxes.
+  - Watermark **Brightness** and **Size** sliders with a logo brightness swatch.
+  - **Live A4 preview at 50 %** (the first generated transcript, or sample data) that updates instantly.
+  - Save / Undo changes / Reset to default. The Exam Controller's transcript uses the same settings (no panel there).
+- **Verified (browser):** removed Student Type, added Name (Bangla) + HSC Batch, moved, hid grading, brightness 30 % / size 80 % → saved → reload keeps everything → generated transcript (271001): rows in that order (Name (Bangla) = মোঃ নাহিদ হাসান, Academic Session N/A locally — no Session values in local data, HSC Batch 2027), no grading table, totals 80 / 94 / 85 / 45 / 95, watermark opacity 0.3 / width 80 %. The Exam Controller sees the same rows. 0 console errors; tsc + eslint clean.
+- **Afterwards:** `transcript_config` was reset to the defaults (previous look) so real transcripts are unchanged until the admin chooses.
+- **Deploy:** backend `routes/admin/transcript.php`, `routes/admin/transcript-verify.php`; frontend rebuild. Until an admin first saves settings, the page uses defaults (`/settings/transcript_config` 404 is handled).
+
+**Session 83 — Hall Duty: Own-Subject Rule Options, Disable Teacher (all exams), Priority List (COMPLETED, local)**
+- **Own-subject rule** — `duty_config.own_subject_rule` none | avoid | must (auto-ALTER; old `avoid_own_subject` migrated and still accepted from older clients):
+  - **avoid** = no duty on own subject's exam day (as before).
+  - **must** = teachers whose subject sits in a session are placed first in that session; any that couldn't be placed get a warning by name ("… has no duty on own subject's exam day").
+  - The UI is a select "Own subject's exam day": No rule / No duty on… / Must duty on….
+  - The letters page now sends `own_subject_rule` so saving letter details can't reset it.
+- **Disable teacher from exam duty (ALL exams)** — NEW table `duty_teacher_global` (teacher_id, disabled, priority) + `PUT /api/admin/exam-duty-settings/teachers/{tid}` `{disabled}`.
+  - Teacher-wise view: "Disabled (all exams)" next to "Excluded (this exam)".
+  - `off` = excluded OR disabled → no new duties; a warning appears if one is still on duty.
+- **Priority list for extra duties** — `PUT /api/admin/exam-duty-settings/priority` `{order:[teacher ids]}` (1 = first, validated; applies to all exams). New "Priority list" tab: add, ↑ / ↓, remove, Save; teacher rows show a "Priority N" badge.
+- **Generator rewritten for fairness + priority:**
+  - Targets: everyone = their minimum; extra duties still needed go down the priority list (up to each teacher's max), and the remainder is spread over the rest.
+  - Selection key: [must-rule teacher first, furthest behind a fair pace (target × session k / N − duties), below minimum, priority rank, stable spread].
+  - Pacing was needed because a teacher can take only one duty per session. With "minimum first", extras piled up in the last sessions and priority teachers got fewer than intended (tested: #2 got only 1–2). With pacing, #1 and #2 both reached max 3 with no rule, and every teacher got their minimum.
+- **Tests:**
+  - API: disable → 0 duties; bad priority id 422; avoid → 0 / 44 own-subject duties; must → 38–39 / 44 with warnings for the rest; none → priority 3/3.
+  - Browser: 3 rule options; "must" persists after reload; disable toggles both ways; priority add / move up / save / reload keeps order; regenerate; 390 px OK; 0 console errors; tsc + eslint clean.
+  - Sample restored: avoid, min 1 / max 3, priority cleared, no disabled teachers, 60/60 finalized.
+- **Deploy:** backend `routes/admin/exam-duty.php`, `config/permissions.php`; frontend rebuild.
+
+**Session 82 — Seat Cards Show Door Position + Mini Room Map (COMPLETED, local)**
+- `src/lib/examPdf.ts`:
+  - NEW `doorText()` (readable door position).
+  - NEW `doorRect()` (shared door placement; the door-front sheet map uses it too).
+  - NEW `drawMiniRoom()`: tiny room map with FRONT, every column's benches, this student's bench pink + seat red, and the door in orange.
+- `seatCardsPdf` card layout: room · seat and column/bench/position on the left; big ID, name, class/group/roll; orange "Door: Left wall, near back" line; mini map on the right with a "Your seat / Door" legend; footer note.
+- Verified on the regenerated PDF (15 pages, 150 cards): Room 101 cards show the door front-right and Room 102 cards left-near-back, with each student's own seat highlighted. 0 console errors, tsc + eslint clean.
+- Deploy: frontend rebuild only.
+
+**Session 81 — Seat Plan: Different Benches per Column + Door Position + Graphical Room Layout (COMPLETED, local)**
+- **Benches per column:** a room is now a list of columns, each with its own bench count (e.g. 10, 9, 10).
+  - Backend `routes/admin/seat-plan.php`: new `exam_rooms.column_benches` (JSON), auto-ALTERed on existing tables. `columns_count` = number of columns; `benches_per_column` is kept as the largest column for older readers. Old rooms without the column are read as "same count everywhere".
+  - Validation: 1–30 columns, 1–60 benches each, errors per column. It still accepts the old columns_count + benches_per_column payload.
+  - Output adds `column_benches` and `total_benches`; capacity = Σbenches × seats per bench. The generator walks each column's own bench count.
+- **Door position:** new `exam_rooms.door_position` (auto-ALTER, default `front-right`). There are 12 spots: front/back walls left·center·right, left/right walls front·middle·back; front = board side.
+- **NEW `src/components/seatplan/RoomLayout.tsx`:** graphical room — board at the front, columns with their real benches and seat dots, door on its wall.
+  - Editable mode: click any dashed wall spot to move the door.
+  - Small mode for room cards; `children` mode frames the real seat map.
+- **Seat Plan page:**
+  - Form: "Number of columns" + one input per column + "Same for all → Apply", live capacity "(8 + 7 + 8 + 7) benches × 3 = 90", live clickable layout preview.
+  - Cards: per-column benches text, mini layout, door text.
+  - Plan view: each room's student map is framed in the room layout (front + door).
+- **Door-front PDF (`doorListPdf` in `src/lib/examPdf.ts`):**
+  - Page 1 per room: header, ID ranges and a full-width GRAPHICAL SHORT SEAT PLAN (`drawRoomMap`): room outline, FRONT/BOARD band, orange DOOR on its wall, every column with its own benches and the student ID in each seat (colour = group), plus a legend and "find your ID" note. Benches grow to fill the page (max 15 mm) so IDs print large.
+  - The sorted two-column seat list moved to the following page(s) ("Room 102 — Seat List").
+- **Tests:**
+  - API: existing rooms upgraded (101 → [4,4,4], 102 → [8,8,8,8]). Saving [8,7,8,7] → 30 benches, capacity 90. Bad values rejected per column. Regenerate used exactly 8/7/8/7 benches. The sample duty schedule was regenerated and re-finalized.
+  - Browser: form shows 8/7/8/7; 5 columns copies the last count; same-for-all works; 11 door spots + the door; clicking "Left wall, near back" + Save shows on the card; plan map framed; door PDF 6 pages (map + list per room) rendered and checked; 390 px no sideways scroll; 0 console errors; tsc + eslint clean.
+- **Deploy:** backend `routes/admin/seat-plan.php` (columns auto-added); frontend rebuild.
+
+**Session 80 — User Permissions + Exam Fee Report Access + Seat Plan + Hall Duty + Duty Letters (COMPLETED, local)**
+
+**1. Per-user permission system** (backend-enforced, no code changes needed to grant/revoke)
+- **Model:** effective = role-default permissions + per-user GRANTS − per-user REVOKES. Admin always has everything and is never restricted.
+- **NEW `backend/config/permissions.php`** — the catalog, one entry per panel menu page:
+  - `key` = page path, `group`, `roles` (defaults = existing behaviour), `apis` = exact `"METHOD /api/path"` patterns (a path matches itself and below), `grantable`.
+  - Exam Fee Collection lists only collect/report/status/lookup; payment PUT/DELETE stays admin-only.
+  - Not grantable: Users & Permissions, Seat Plan, Hall Duty, Duty Letters.
+  - Exam Fee Collection is split in two:
+    - `/p_Xk7mN/exam-fee-collection` (collect + own report; default exam_controller)
+    - `…#report` (reports only; default administration — keeps Administration's old "view own report, no collecting").
+- **NEW `backend/utils/Permissions.php`:** catalog, `user_permissions` table (auto-created; also `database/migration_026_user_permissions.sql`; FK CASCADE on user delete), `effective()`, `allows()`.
+- **`middleware/Auth.php`:** `requireRole` / `requireAnyRole` call `Permissions::allows()`:
+  - A user WITHOUT the role passes only if the request matches a permission they have.
+  - A user WITH the role is blocked if the URL belongs only to permissions revoked for them; URLs shared with another still-allowed feature (e.g. /teacher/subjects) stay open.
+  - Admin behaviour is unchanged.
+- **`routes/auth.php`:** login + /auth/me return `permissions` (effective keys) and `permission_keys` (all controlled pages).
+- **NEW `routes/admin/permissions.php`:** GET catalog, GET/PUT `/api/admin/permissions/user/{id}` (`{overrides:{key:'grant'|'revoke'|'default'}}`). It validates unknown keys, admin-only grants, and admin targets; no-op overrides are not stored.
+- **Frontend:**
+  - NEW `src/lib/permissions.ts`; `types` User gets `permissions` / `permission_keys`.
+  - `PanelLayout.tsx`:
+    - Sidebar items are filtered by permission; parents with no visible children are dropped.
+    - NEW "Assigned to me" section for pages granted from other panels.
+    - Direct-URL guard shows a "No access" card.
+    - Falls back to old behaviour if the API sends no permission data.
+    - Sidebar is sticky on desktop; menu highlight tolerates trailing slashes.
+  - NEW page `p_Xk7mN/users/permissions` (Users → User Permissions): user picker (students hidden by default), permissions grouped by panel with "From role / Extra granted / Removed / Admin only" states, filter, Reset to role defaults, Save N changes. `UserManager` rows get a "Permissions" button.
+- **Tests (API matrix, teacher user 34):**
+  - Before any grant: fee report 403.
+  - Grant fee collection → report 200; payment PUT/DELETE 403; waiver 403.
+  - Revoke teacher attendance → /teacher/attendance/* 403 while /teacher/subjects stays 200.
+  - Admin-only grants, unknown keys and admin targets are rejected (422). Reset → back to defaults.
+  - Browser: teacher sidebar loses Attendance and gains "Assigned to me → Exam Fee Collection"; revoked page and /p_Xk7mN/users show "No access".
+  - All test overrides deleted (0 rows).
+
+**2. Exam Fee Collection report access (1.3)**
+- **Backend `routes/admin/exam-fees.php` report:** `$canSeeAll` = has admin or exam_controller role; everyone else is FORCED to their own `collected_by`.
+  - Before, only the administration role was restricted, and an exam_controller+administration user with default panel administration was wrongly restricted.
+  - The response adds `can_see_all`.
+- **NEW `GET /api/admin/exam-fees/collectors?year`** (admin/EC only) for the dropdown.
+- **Page `p_Xk7mN/exam-fee-collection`:**
+  - Roles come from ALL roles + permissions (was default_role only).
+  - The Collect tab only shows for those who may collect; reports-only users land on "My Reports".
+  - Admin/EC get a "Collected by" dropdown (All users / one user); others see "You can see only the exam fees you collected" and no dropdown.
+
+**3. Exam Seat Plan (admin only)** — `routes/admin/seat-plan.php` NEW, page `p_Xk7mN/seat-plan` NEW
+- **Tables (auto-created):** `exam_rooms` (name UNIQUE, enabled, columns_count, benches_per_column, seats_per_bench, student_groups JSON, group_mode mixed|sequential, gender_mode mixed|male|female|separate, invigilators, teacher_gender any|male|female|mixed, notes, sort_order), `seat_plans`, `seat_assignments` (UNIQUE plan+student, UNIQUE plan+room+col+bench+pos → no duplicates, capacity can't be exceeded).
+- **Generator:** enabled rooms in order, column→bench→position, pulls eligible students (room groups + gender rule) from the remaining pool.
+  - Mixed: groups round-robin, avoiding the same group as the bench neighbour.
+  - Sequential: Sci → Bus → Hum, then class, then ID.
+  - Separate: each bench gets ONE gender.
+  - Unseated students are reported as warnings with IDs.
+  - **Bug found in testing:** `$poolSize` as an arrow fn captured a stale copy of `$pools` (all benches went to females); now by reference.
+- **Page:** Rooms tab (cards with capacity, enable/disable, edit form with live capacity, groups, arrangement, gender, invigilators, teacher gender, notes, order); Seat Plans tab (generate for year + classes + exam, list with warnings, regenerate/delete, colour-coded room seat maps).
+- **PDFs (NEW `src/lib/examPdf.ts`, jsPDF + autotable):**
+  - Seat cards: 10 per A4 (logo, exam, room + seat, column/bench/position, big ID, name, class/group/roll).
+  - Door lists: per room, big room name, ID range per class+group, sorted two-column list, explicit pagination (fixed a right-column-on-next-page bug).
+  - Download or print, all rooms or one room.
+  - Logo shrunk to 160 px and embedded once (PDFs went from 4.9 MB to ~0.3 MB).
+- **Tested** with 4 rooms (one disabled), 12th Pre-Test: 156/156 capacity seated, 0 duplicates, 0 mixed-gender benches in the "separate" room, the female-only room all female, 44 unseated reported.
+
+**4. Hall Duty Allocation (admin only)** — `routes/admin/exam-duty.php` NEW, page `p_Xk7mN/exam-duty` NEW
+- **Tables:** `duty_config` (per seat plan: min/max duties, avoid_own_subject, finalized, letter fields), `duty_teacher_rules` (excluded, per-teacher min/max), `exam_duties` (UNIQUE plan+date+time+teacher → no double booking; `fixed` = pre-assigned).
+- **Sessions:** from `exam_routines` (year + exam + plan classes). A room needs invigilators in a session if it seats a class sitting that session.
+- **Auto allocation:** keeps fixed duties. Each slot respects excluded teachers, one duty per session, max limit, the own-subject rule (teacher subject vs session subjects) and the room teacher-gender rule (mixed ensures at least one of each). Priority: below-minimum first, then fewest duties, then a stable spread.
+- **Validation warnings:** unfilled slots, gender, excluded, own subject, above max / below min.
+- **Finalize** locks generate/add/edit/remove; Re-open unlocks.
+- **Page:** settings, Generate/Regenerate, Finalize; stats; warnings; Date-wise (add teacher per room, pin/unpin fixed, remove, "add as pre-assigned"), Teacher-wise (counts, per-teacher min/max, exclude, duty list), Room-wise.
+- **Tested** (52 teachers, 10 sessions, 70 slots, min 1 / max 3): 70/70 filled, every eligible teacher 1–2 duties, excluded 0, own-subject 0, gender 0, fixed kept on regenerate, double booking rejected, edits blocked when finalized. Browser: remove → 69/70 + warning → regenerate → 70/70 → finalize.
+
+**5. Duty Appointment Letters (admin only)** — page `p_Xk7mN/duty-letters` NEW, `GET /api/admin/exam-duty/{plan}/letters` (finalized schedules only)
+- Letter details are saved in duty_config: memo no., issue date, signatory name/designation, report-before minutes, instructions.
+- **A4 letter:** border, logo + college letterhead, memo/date, title, To (name, designation, department), subject, body, duty table (date, day, time AM/PM, room, subjects), total duties, numbered instructions, official seal circle, signature block.
+- **Per teacher:** download or print. **Selected:** one combined PDF (1 page per teacher), print, or a ZIP of individual PDFs via `fflate` (already installed as a jsPDF dependency; now listed explicitly in package.json + lock root, 0.8.3, no new download).
+- **Tested:** single letter 52 KB, combined 51 pages, ZIP 51 valid entries.
+
+**Menus:** Exam Management gained Exam Seat Plan, Hall Duty Allocation and Duty Appointment Letters (admin); Users gained User Permissions.
+
+**Verified:** tsc 0 errors; eslint 0 errors project-wide (369 warnings); `next build` 145/145 pages, 0 localhost refs; every new page fits 390px (no sideways scroll); 0 console errors.
+
+**Local sample data left for review:** rooms Room 101–104 (104 disabled), seat plan #1 "Pre-Test 2026 (12th)" with a finalized duty schedule + letter details. Delete from the pages if not wanted.
+
+**Deploy:**
+- Backend NEW: `config/permissions.php`, `utils/Permissions.php`, `routes/admin/permissions.php`, `routes/admin/seat-plan.php`, `routes/admin/exam-duty.php`.
+- Backend changed: `middleware/Auth.php`, `routes/auth.php`, `routes/admin/exam-fees.php`, `index.php`.
+- ⚠ Upload `utils/Permissions.php` + `config/permissions.php` BEFORE/WITH `middleware/Auth.php` (Auth requires them on every request).
+- Tables auto-create (optional SQL: `migration_026_user_permissions.sql`).
+- Frontend: `out/` is a fresh live build.
+
+**Session 79 — Attendance: Any Date, Quick Entry, Student "My Attendance" Report (COMPLETED, local)**
+- **Student ID format** (used for quick entry): `<2-digit class/session prefix><group digit><3-digit serial>`; group digit 1 = Science, 2 = Business, 3 = Humanities (12th = 27…, 11th = 28…). Examples: 273005 = Humanities #5, 272007 = Business #7, 271003 = Science #3.
+- **NEW `src/lib/attendanceQuickEntry.ts`** `parseQuickEntry(text, students)`:
+  - Tokens are split by comma, space, `;` or newline. `5` → Humanities, `b7`/`B7` → Business, `s3`/`S3` → Science; ranges `s1-5`, `b2-b6`, `S1 - 3`; a 4+ digit token matches the end of a full ID.
+  - Matching is on the LAST 4 chars of the loaded class list, so the year/class prefix never has to be typed.
+  - Returns matched, notFound (e.g. "B1", or the missing serials of a range) and invalid (`x5`, `s1-b5`).
+  - Unit-tested via tsc → node against the real 12th list (18 cases, all correct).
+- **NEW shared `src/components/attendance/AttendanceManager.tsx`** (mode teacher | admin). `p_R2t9b/attendance` and `p_Xk7mN/attendance` are thin wrappers (the two old ~300-line copies were removed). It provides:
+  - Any date: date box + Prev day / Today / Next day + "Already taken" chips (click to reopen; shows present/total). A "Future date" badge appears for dates after today.
+  - Auto-reload when teacher/subject/class/date change. **Bug fixed:** before, changing the date after Load and pressing Save wrote the old day's marks onto the new date.
+  - Unsaved-changes confirm before switching date/subject/class/teacher.
+  - Quick Entry box with a Typed = Present / Absent switch (everyone else gets the opposite), a live "N matched" preview with names, and not-found / not-understood warnings.
+  - All Present / All Absent, a search box, a "saved before — editing" vs "not taken yet" label, a sticky Save bar on phones, an inline success/error message (no alert), and Stats.
+- **Backend `routes/teacher/attendance.php`:**
+  - Save validates a real `YYYY-MM-DD` date (any past/future date allowed).
+  - NEW `GET /api/teacher/attendance/dates?subject&class[&teacher_id]` (admin may pass teacher_id).
+- **NEW backend `routes/student/attendance.php`:** `GET /api/student/attendance?from&to&subject` → student, summary (total/present/absent/%), subjects (per subject + teacher names), records (day-by-day, newest first). Required in `index.php`.
+- **NEW page `p_G9n4s/attendance`** (Student → **My Attendance** menu item + dashboard quick link):
+  - Overall / Classes / Present / Absent tiles and a below-75% warning.
+  - Subject table with % bars, day-by-day list with Subject + Month filters, and Print (panel chrome hidden).
+- **Verified (browser, real local teacher user 34 = teacher 17, Psychology-2 12th, 4 students):**
+  - Loads "not taken yet" 4/0; quick "16, 84, b1" Absent → 2 matched + "Not in this list: B1" → 2/2; saved; Next day → fresh 4/0 "not taken yet"; chip 10/11/26 reopens 2/2 "saved before"; the unsaved guard dialog blocks leaving.
+  - Phone 390px: no sideways scroll. Student 273016 report: 1 class, 0%, Psychology-2 absent.
+  - 0 console errors; tsc + eslint 0 errors. Test rows deleted (teacher 17 had none before).
+- **Deploy:**
+  - Backend: `routes/teacher/attendance.php`, `routes/student/attendance.php` (NEW), `index.php`.
+  - Frontend: rebuild (the `out/` from Session 78 is now outdated).
+
+**Session 78 — Full Website Audit: Errors, Missing Features, Responsive/UX (COMPLETED, local)**
+- **Method:** crawled EVERY route (31 public + 53 admin + 20 exam controller/principal/administration + 6 teacher + 4 student) at 1366px and 390px. Each panel was crawled as its own role, using a locally signed JWT for one existing active user per role (no DB writes, no test accounts; token file deleted afterwards). The crawl checked console errors, failed requests, sideways overflow and blank pages. Then project-wide tsc + eslint and a production build.
+- **Final result:** public 30/31 clean (only /change-password → redirects home when logged out, by design); admin 53/53 (2 orphans replaced, see below); exam controller etc. 20/20; teacher 6/6; student 4/4. 0 sideways scroll at 390/768/1366. tsc 0 errors; eslint 0 errors (was 9; 397 warnings remain, mostly `any`). `next build`: 140/140 pages, 0 localhost refs. A first build attempt hit EBUSY on `out\co-curricular` (folder locked by Windows); the retry succeeded.
+- **Public site sideways scroll (every page, ~1000px on phones) — fixed:**
+  - `Header.tsx`: width is now a % (not `100vw`, which includes the scrollbar); logo capped 48–120px for any setting (local setting is 100 = 100vw); name text can wrap.
+  - `TopNav.tsx`: removed the hack that copied `document.scrollWidth` onto the `<nav>` every 200ms (it kept pages wide forever). The nav is now `sticky top-0` full-width; the phone bar has a proper height and a "☰ Menu" button with aria-label/expanded.
+  - `app/page.tsx`: hero height is `min(Xvh, max(56.25vw, 200px))` (was ~500px of mostly empty space on phones); `vw` widths → %; slider buttons have aria-labels.
+  - `globals.css`: `body { overflow-x: clip }` safety net (clip keeps sticky working), smooth scroll, reduced-motion support.
+- **Features broken on LIVE too (frontend called endpoints missing from this backend) — restored:**
+  - The June live snapshot at `d:\opencode 09062026\mjadc.ac.bd\mjadc-api` had some of them.
+  - `routes/student/results.php` NEW: `GET /api/student/results`. Student My Results was 404. It uses `transcriptBuild()`, so GPA, optional, absent and fail rules match the transcript. It is shown only when ALL of the student's rows for that exam are published; it includes position and parts.
+  - `routes/admin/id-cards.php` (from snapshot; fixed a named-vs-positional param bug).
+  - `routes/teacher/attendance.php` (from snapshot; plus `GET /api/teacher/subjects`). Fixed: the compulsory list said 'ICT', but the subject is "Information and Communication Technology", so an ICT teacher got 0 students. Helpers renamed and function_exists-guarded.
+  - `routes/admin/changelog.php` NEW: `GET /api/admin/changelog` (User History). The table is empty: nothing writes result_changelog any more.
+  - `routes/exam-controller/results.php`: NEW `POST .../back-to-teacher`, year-safe (newest exam with that name+class only; submitted/approved → draft).
+  - `index.php` requires the 4 new route files.
+- **NOT restored:** the snapshot's admin approve/publish/back-to-* endpoints. They filter by exam_name + class WITHOUT year, so they would change results of every past year.
+  - Their pages `p_Xk7mN/approve-result` + `publish-result` were not in any menu; they now show `components/results/MovedNotice.tsx` pointing to Exam Controller → Approve Result / Principal → Result Publish.
+- **Other fixes:**
+  - `PageContainer.tsx`: per-page Font Settings applied `font-size !important` to EVERY element, so all page titles shrank to body size (Teacher's List h1 was 14px, now 30px). Headings are now excluded.
+  - Student panel: "My Results" was not in the menu at all. It is added, and `p_G9n4s/results` was rebuilt: class-based exam list, GPA/Grade/Position/Total tiles, parts table, optional row, inline messages instead of alert().
+  - The student dashboard got a profile card, a due-balance highlight and quick links.
+  - NEW `components/ui/PeopleDirectory.tsx` for the public Teacher's/Staff List: phones get cards (tap-to-call/email), desktop keeps the table; plus search.
+  - `PhotoWithPreview.tsx`: a broken image shows initials instead of a broken icon + alt text.
+  - NEW `components/layout/BackToTop.tsx` (public pages, after 600px).
+  - ESLint errors fixed:
+    - use-before-define: `p_W4q6z/result-publish`, `p_Xk7mN/publish-result` (before they were replaced).
+    - setState-in-effect: `p_F7c2j/students` (student ID now derived via useMemo), `p_Xk7mN/id-cards` (loading reset moved to the type change + stale-response guard), homepage slide index (derived).
+    - Unescaped apostrophes: 4.
+  - Settings colour picker no longer receives `rgba(...)`.
+- **Local-only data notes (not code):** `uploads/hero`, `gallery`, profile photos only exist on live (local 404 → browser ORB block). Local `logo_width/height` = 100.
+- **Deploy (frontend `out/` is already a fresh live build):**
+  - Backend:
+    - NEW: `routes/student/results.php`, `routes/admin/id-cards.php`, `routes/teacher/attendance.php`, `routes/admin/changelog.php`.
+    - Changed: `routes/exam-controller/results.php`, `routes/admin/users.php`, `index.php`.
+    - Plus all of Sessions 67–77, with the OPcache rename trick.
+  - **Important:** the workspace backend is NEWER than the June snapshot but was MISSING these files. Live already lacks them too (verified by logged-out probes: 404), so uploading index.php is safe.
+
+**Session 77 — User Filters/Search + Panel Layout Fixes (COMPLETED, local)**
+- **New shared `src/components/users/UserManager.tsx`** (scope `all` | `teacher-staff` | `student`):
+  - Search by name, email, user ID or student ID; Role filter (with counts); Status filter (Active/Frozen); 25/50/100 per page with Prev/Next; Total/Active/Frozen pills; "Clear filters".
+  - Success messages replace the old `alert()` pop-ups.
+  - On scoped pages, editing keeps roles outside the scope. Before, saving a teacher who was also admin from Teacher/Staff silently dropped admin.
+  - The Students scope has no Create form (students are added in Student Management) but supports edit, reset password, freeze and delete.
+- **Pages:** `p_Xk7mN/users` (All), `users/teacher-staff` and NEW `users/students` are now thin wrappers. Menu: Users → All Users / Teacher/Staff / **Students**.
+- **Backend `routes/admin/users.php`:**
+  - `GET /api/admin/users` now honours `?roles=a,b`. The Teacher/Staff page always sent `?roles=teacher,staff`, but it was ignored, so the page listed all 435 users. It now lists 67.
+  - Rows include `student_id` and `student_class` (LEFT JOIN students, MAX() so it is ONLY_FULL_GROUP_BY safe).
+- **`src/components/ui/FormFields.tsx`:** `Input`, `Textarea` and `Select` get an automatic `useId()` id when none is passed, so every label in the site is linked to its field (click-to-focus, screen readers, browser tests).
+- **`PanelLayout.tsx`:**
+  - The main column has `min-w-0`. Before, a wide table widened the whole page on phones (users page was 1002px wider than a 390px screen).
+  - Padding is `p-3 sm:p-4 lg:p-6`, the header is sticky, the title truncates, and the menu button has an aria-label.
+- **NEW `src/components/layout/PublicChrome.tsx`** (`useIsPanelRoute()`, `<PublicOnly>`):
+  - `app/layout.tsx` now hides the public banner, top menu and footer on panel routes (`/p_xxx/...`, except `/login`). Before, every admin/teacher/student page showed the full public banner + menu above the panel; on phones that menu bar alone was 1161px wide.
+  - Route-based, so the static HTML has no flash, and the hidden parts make no settings requests.
+- **Verified:** All 435, Teacher/Staff 67, Students 367; search "271004" finds 1; Teacher filter 50, Teacher+Frozen 45; page 2 = 26–50 of 18 pages; no-match message works. Phone width (390px): no sideways scroll. 0 console errors; tsc and eslint clean.
+- **Deploy:** backend `routes/admin/users.php`; frontend rebuild.
+
+**Session 76 — Public Site: Duplicate Top Menu Fixed (COMPLETED, local)**
+- **Problem:** every public page showed two menus, a white header bar with a hard-coded menu and the blue `TopNav` bar.
+- **Cause:** the 2026-11-11 commit f2ccea3 ("Restore lost sessions") overwrote `src/components/layout/Header.tsx` with an OLD version that carries its own `navItems` menu. The real header (last changed in 6f6212b "Heading overflow problem solved") is the settings-driven college banner and has no menu. The menu lives only in `TopNav.tsx`, which the admin can configure via the `nav_menu` and colour settings.
+- **Fix:** restored `Header.tsx` from 6f6212b. `layout.tsx` is unchanged (it still renders `<Header />` + `<TopNav />`). Student Login stays in TopNav (`/p_G9n4s/login`).
+- **Local data note:** local `site_settings` has logo_width = logo_height = 100. The unit is "% of screen" (Settings placeholder "e.g. 8"), so the logo fills the screen locally. I tested with 8 (header 143px, looked right) and restored 100. Live is probably fine; if the logo is huge, set it to about 8 in Admin → Settings.
+- **Verified:** one `<nav>`, 0 console errors, tsc clean. **Deploy:** frontend rebuild.
+
+**Session 75 — Transcript: "Position" Replaces "GPA (Without Optional)" Pill (COMPLETED, local)**
+- **Backend `routes/admin/transcript.php`:**
+  - New shared helpers `transcriptTotalMarks()` and `transcriptMeritPositions()`. Positions use the same rules as the Result Summary (passed only, GPA then total, ties share).
+  - `POST /api/admin/transcript` now builds the whole class once, ranks it, then filters by student / group. It adds `position` (null for failed students), `total_marks` and `position_out_of`.
+- **Backend `routes/admin/result-summary.php`:** uses the shared helper, and positions are now counted across the WHOLE class even when filtered by group, so they match the transcript (before, they were counted within the group).
+- **Frontend:** the transcript summary pill "GPA (Without Optional)" is replaced by "Position" ("–" when failed). The GPA (Without Optional) column in the marks table is unchanged. The Result Summary note text was updated.
+- **Verified:** 271010 is position 1, 271009 position 4, 271004 (failed) "–", matching the Result Summary. The Science filter returns 10 transcripts with tokens (local 12th has 10 Science, 20 Business, 170 Humanities). Print is 1 A4 page, 0 console errors.
+- **Deploy:** `routes/admin/transcript.php` and `routes/admin/result-summary.php`, plus a frontend rebuild.
+
+**Session 74 — Transcript: Stronger Background Logo (COMPLETED, local)**
+- `TranscriptGenerator.tsx`:
+  - The `.watermark` opacity went from 0.06 to 0.12.
+  - The marks table background went from white 0.6 to 0.3, and the even rows to `rgba(219,234,254,0.45)`, so the logo shows through the table.
+- Verified: screenshot shows it clearly with the text readable, print is 1 A4 page, 0 console errors. Deploy: frontend rebuild.
+
+**Session 73 — Admin Result Summary Page (COMPLETED, local)**
+- **New menu:** Admin → Exam Management → **Result Summary** (`/p_Xk7mN/result-summary`), admin only.
+- **Backend:**
+  - NEW `routes/admin/result-summary.php`: `POST /api/admin/result-summary` `{year, class, exam_name, group?}`, `Auth::requireRole('admin')`.
+  - It reuses `transcriptBuild()`, so GPA / fail / absent / optional rules are identical to the transcript.
+  - It returns:
+    - `rows`: per student, the subjects, total_marks, gpa, grade, passed, failed_subjects, position and merit_index.
+    - `stats`: registered, appeared, no_result, passed, failed, pass_rate, gpa5, grade_distribution and by_group.
+  - Students with no result for the exam are counted as `no_result` and left out of the rows.
+  - Merit position: passed students only, ranked by GPA desc, then total marks desc. Equal GPA and equal total share a position (1, 1, 3). Failed students get no position and are listed after the passed students, by total marks desc, then fewest failed subjects.
+  - `index.php` requires it after `transcript-verify.php`.
+  - `transcript.php` now also returns `class_roll`.
+- **Frontend `src/app/p_Xk7mN/result-summary/page.tsx`:**
+  - Filters: Year, Class, Exam, Group, Failed Students (show / hide / only failed), Sort By (merit position / student ID / class roll / name), and a "Show subject-wise marks" checkbox. The fail filter and sorting run in the browser, so changing them is instant.
+  - Report content:
+    - College header and stat pills (Registered, Appeared, Passed, Failed, Pass Rate, GPA 5.00).
+    - A grade-distribution table, plus a group-wise table when All Groups is chosen and there is more than one group.
+    - The main table, with subject columns ordered by code: marks + grade, `*` for the optional subject, A for absent, failed cells in red, failed rows tinted. The Result column shows "Failed (n)", with the failed subjects in its tooltip.
+    - Signatures.
+  - Print: A4 landscape with a repeating table header.
+  - `PanelLayout.tsx`: added the menu item and added `/p_Xk7mN/result-summary` to the Exam Management expand and highlight rules.
+- **Verified:**
+  - php -l and tsc are clean. eslint is clean apart from the 2 PanelLayout alt-text warnings that were already there.
+  - The API returns 401 without login.
+  - Pre-Test 2026, 12th: 10 appeared, 6 passed (positions 1–6), 4 failed, pass rate 60%.
+  - In the browser, the merit, hide-failed and student-ID sorts all work. The print is 1 landscape page (row height was cut from 36px to 22px by putting the grade beside the marks). 0 console errors.
+- **Deploy:**
+  - Backend: `routes/admin/result-summary.php` (NEW), `routes/admin/transcript.php` and `index.php` (OPcache rename trick).
+  - Frontend: rebuild.
+
+**Session 72 — Transcript: QR Moved to the Top Right (COMPLETED, local)**
+- `TranscriptGenerator.tsx`: `.qr-box` changed from `left: 14px` to `right: 14px`, so the QR now sits at the top right of the header. Verified: screenshot OK, print is 1 A4 page, 0 console errors. Deploy: frontend rebuild.
+
+**Session 71 — Transcript: Absent Handling (COMPLETED, local)**
+- **How absence is stored:** in `exam_results.absent_in`, a JSON list of part names such as `["Practical"]`. There is no "Absent" grade.
+- **Backend `routes/admin/transcript.php`:**
+  - New helper `transcriptAbsentState()`.
+  - A subject absent in any part gets grade F and GP 0. This is the same rule as the teacher result upload, applied to single, average-mode and optional subjects.
+  - New field `absent`, true when the student was absent in every part of the subject.
+  - Through the Session 70 rule, an F in a compulsory subject makes the overall result F / 0.00.
+- **Frontend:** `totalText()` shows "A" for the total when `absent` is true; an absent part already shows "A".
+- **Data note:** row 172 (student 271005, ICT) had Practical absent but a stored grade of B. The transcript now shows it as F, so 271005 is overall F.
+- **Verified:** partial absence (271005) and full absence (temporary edit to row 152, reverted afterwards). tsc and eslint are clean.
+- **Deploy:** `routes/admin/transcript.php` and a frontend rebuild.
+
+**Session 70 — Transcript: Fail Rule (COMPLETED, local)**
+- **`backend/routes/admin/transcript.php`:** if any compulsory (non-optional) subject has grade F or Absent, the overall GPA and GPA (Without Optional) become 0.00 and the grade becomes F. An F in the optional subject does not fail the student.
+- **Verified:** Pre-Test 2026, 12th: 3 students with an F now show 0.00 F (271003, 271004, 271008), and the 7 passing students are unchanged. The public verify page uses the same calculation.
+- **Deploy:** `routes/admin/transcript.php` (the same file as Session 69).
+
+**Session 69 — Transcript: Part Marks, Subject Codes, Optional-Subject Fix, Layout (COMPLETED, local)**
+- **Requirement:** Marks Obtained shows every part mark plus the total; compact GPA row; drop the "Subjects" chip; Grading System at the top; Optional Subject separated as before; show the paper name only (no "Subject - " prefix) plus its code.
+- **Bug found + fixed (backend `routes/admin/transcript.php`):** results are stored as `"Subject - Paper"` (e.g. `Higher Mathematics - Higher Mathematics-2`), but the transcript compared them against plain paper names. As a result:
+  - The optional subject was never detected, so it sat among the main subjects with no "GP Above 2".
+  - The exam_subject_config "single paper" check never matched.
+  - The fix splits on `" - "` and uses the paper / subject part for the optional and config lookups.
+- **Backend changes:**
+  - New helpers `transcriptParts($r)` and `transcriptPartsCombine($list, $divide)`. Each subject row now has `parts: {cq, mcq, practical}`, read from `parts_data`:
+    - `null` means the subject has no such part.
+    - `'A'` means absent in that part (from `absent_in`).
+    - Old rows fall back to the columns.
+    - Average-mode subjects average the parts; the optional subject sums them, matching its total.
+  - Each row has `code` (paper code, falling back to the subject code), and `subject` is now the paper name only.
+  - A single-paper optional subject now uses its stored grade/gpa, like the main subjects, so a part pass-mark failure stays F. Multi-paper optional subjects are still averaged.
+  - Overall GPA is capped at 5.00.
+  - Not changed: an F in a compulsory subject still doesn't force GPA 0 (same as the previous system).
+- **Frontend `src/components/transcript/TranscriptGenerator.tsx`:**
+  - QR moved to the top-left of the header, and the Grading System table sits at the top right beside the student info.
+  - The GPA / Letter Grade / GPA (Without Optional) row is now compact pills, and the Subjects chip is removed.
+  - The marks table now has a Code column, and "Marks Obtained" is split into CQ, MCQ, Prac. and Total.
+  - New exports: `PartMark`, `partText()` and `totalText()`.
+  - Gotcha: cells built in a helper function lose styled-jsx scoping, so the cells are written inline.
+- **Frontend `src/app/verify/transcript/page.tsx`:** the public table shows the code and CQ / MCQ / Prac. / Total.
+- **Verified:** php -l, tsc and eslint are clean (2 pre-existing errors in `verify/exam-fee/page.tsx`, not touched). API checked for 271001, 271004 and 271005. Browser: screenshot OK, print is 1 A4 page, 0 console errors.
+- **Deploy:** backend `routes/admin/transcript.php` (OPcache rename trick) and a frontend rebuild with `.env.local` renamed aside.
+
+**Session 68 — Transcript Redesign (Logo + QR) + Transcript QR Verify Menu (COMPLETED, local)**
+- **Requirement:** Transcript gets the college logo + a QR code like the Admit Card, and an admit-card-style design. Scanning the QR verifies the transcript online, but only for students the admin switched ON (all of a class, a group, or hand-picked students). Everyone else sees exactly "Please contact Exam office to online verify your Transcript."
+- **Backend** (workspace + XAMPP synced, `php -l` clean):
+  - `routes/admin/transcript.php`: generation logic moved unchanged into `transcriptBuild($exam, $studentId, $group, $ignoreClass)`. The POST response now also returns `photo_path`, `exam_id`, `verify_token`, `verify_enabled`, and the verify metadata is wrapped in try/catch so it can't break generation.
+  - `routes/admin/transcript-verify.php` (NEW): `GET/POST /api/admin/transcript-verify` (admin only). The list covers students in the class plus any with results for that exam, ordered Science → Business → Humanities → roll. POST takes `student_ids[]` or `all` (+ optional `group`), only ever touches students eligible for that exam, and turns verification ON (INSERT IGNORE) or OFF (DELETE). Public `GET /api/public/transcript-verify?id=&exam=&t=`: a bad token returns 404, OFF returns `{verified:false, message}` with no student data, ON returns the transcript without DOB.
+  - **QR security:** token = HMAC-SHA256(student_id|exam_id) with a random secret in the new `app_secrets` table. It is deliberately NOT in `site_settings`, because `/api/settings/{key}` is public. Without the token, anyone could walk the sequential student IDs and read results.
+  - Tables `transcript_verifications` + `app_secrets` are created on demand (CREATE TABLE IF NOT EXISTS), and the same SQL is in `database/migration_025_transcript_verify.sql`.
+  - `index.php`: added the `transcript-verify.php` require. **Also fixed: the workspace `index.php` was missing the `mark-entry-form.php` require that the XAMPP copy had** — uploading the old workspace copy would have broken Mark Entry Form on live.
+- **Frontend:**
+  - `src/components/transcript/TranscriptGenerator.tsx` (NEW): the shared generator and the A4 `TranscriptSheet`, used by both `p_Xk7mN/transcript` and `p_H3v5d/transcript` (both pages are now thin wrappers). Design: navy rounded frame + inner outline, gradient header, logo left of the college name (public `/settings/college_logo`, so it works for exam_controller too), "ACADEMIC TRANSCRIPT" pill, red exam label, faint logo watermark, photo, 86px QR "Scan to Verify", GPA/Grade chips, navy-header zebra marks table (same rowSpan/optional logic), grading-system table, signatures pinned to the bottom. Print = exactly 1 A4 page per student (verified via PDF).
+  - `src/app/p_Xk7mN/transcript-verify/page.tsx` (NEW): Year/Class/Exam → Load Students; Group/Status/Search filters; checkboxes + select-all-shown; Verify ON/OFF for Selected; Verify ON/OFF for All (class or chosen group, with confirm); ON/OFF counts.
+  - `src/app/verify/transcript/page.tsx` (NEW): public mobile-first page with a green "Verified Transcript" card + subjects table, or the amber contact-Exam-office message.
+  - `PanelLayout.tsx`: added the "Transcript QR Verify" menu item under Exam Management.
+- **Verification:** tsc 0, eslint 0 errors. API matrix: OFF message, forged token 404, token reused for another ID 404, ON shows transcript, all/group/selected toggles, admin 401 without auth, full-class generate 200 rows. Browser QA (admin + exam controller + logged-out public at phone width): 0 console errors, 0 failed requests. Caught and fixed a bug where the success message was cleared by the reload. Temporary QA results rows were deleted afterwards.
+- **Deployment (pending):** backend `routes/admin/transcript.php`, `routes/admin/transcript-verify.php` (NEW), `index.php` (OPcache rename trick). SQL optional (`migration_025_transcript_verify.sql`; the tables auto-create). Frontend rebuild with `.env.local` renamed aside.
+
+---
+
+**Session 67 — Mark Entry Form: Top Print Margin Halved (COMPLETED)**
+- **Requirement:** Admin → Mark Entry Form Download — reduce the top margin by 50%.
+- **Frontend** `src/app/p_Xk7mN/mark-entry-form/page.tsx` (only file): print-only `.mark-entry-sheet` padding `55px 30px 55px 30px` → `28px 30px 55px 30px`. Bottom/sides unchanged. `box-decoration-break: clone` still applies, so continuation pages get the same smaller top margin. Print and PDF both use `window.print()`, so one rule covers both.
+- **Verification:** `npx eslint` on the file 0 errors; `npx tsc --noEmit` 0 errors.
+- **Deployment (pending):** frontend rebuild only (`.env.local` renamed aside). No backend, no SQL.
+
+---
+
 ## 2026-11-15 (Sun)
 
 ### Done

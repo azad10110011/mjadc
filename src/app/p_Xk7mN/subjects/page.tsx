@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent } from '@/components/ui'
 import { api } from '@/lib/api'
+import { useGroupOptions } from '@/lib/catalog'
 import { Plus, Trash2, Edit3, ChevronDown, ChevronRight, FolderOpen } from 'lucide-react'
 
 interface SubjectPart {
@@ -39,13 +40,8 @@ const SUBJECT_TYPES = [
   { value: 'both', label: 'Both' },
 ]
 
-const SUBJECT_GROUPS = [
-  { value: 'General', label: 'General' },
-  { value: 'Science', label: 'Science' },
-  { value: 'Business Studies', label: 'Business Studies' },
-  { value: 'Humanities', label: 'Humanities' },
-  { value: 'BMT', label: 'BMT' },
-]
+const SUBJECT_GROUPS_BEFORE = [{ value: 'General', label: 'General' }]
+const SUBJECT_GROUPS_AFTER = [{ value: 'BMT', label: 'BMT' }]
 
 function PartRow({ part, subject, onEdit, onDelete }: {
   part: SubjectPart
@@ -72,6 +68,7 @@ function PartRow({ part, subject, onEdit, onDelete }: {
 }
 
 export default function AdminSubjectsPage() {
+  const SUBJECT_GROUPS = useGroupOptions(SUBJECT_GROUPS_BEFORE, SUBJECT_GROUPS_AFTER)
   const [tree, setTree] = useState<SubjectGroup[]>([])
   const [error, setError] = useState('')
 

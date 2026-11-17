@@ -10,6 +10,10 @@ export interface User {
   default_role?: string
   status: 'active' | 'frozen'
   created_at: string
+  /** effective permission keys (page paths) — Session 80 */
+  permissions?: string[]
+  /** every permission-controlled page key */
+  permission_keys?: string[]
 }
 
 export type StudentGroup = 'Science' | 'Business Studies' | 'Humanities'

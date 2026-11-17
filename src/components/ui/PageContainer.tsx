@@ -43,9 +43,11 @@ export function PageContainer({ children, className = '' }: { children: ReactNod
     if (fontSize || fontWeight) {
       const style = document.createElement('style')
       style.id = styleId
+      // Session 77: applies to body text only — headings (and their contents) keep their own sizes.
+      // Before, "* { font-size: … !important }" shrank every page title to body-text size.
       style.textContent = `
         .${uid},
-        .${uid} * {
+        .${uid} *:not(h1, h2, h3, h4, h1 *, h2 *, h3 *, h4 *) {
           ${fontSize ? `font-size: ${fontSize} !important;` : ''}
           ${fontWeight ? `font-weight: ${fontWeight} !important;` : ''}
         }

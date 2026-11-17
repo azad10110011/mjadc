@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { api } from '@/lib/api'
+import { useGroupOptions } from '@/lib/catalog'
 
 const designations = [
   { value: 'Principal', label: 'Principal' },
@@ -17,16 +18,11 @@ const designations = [
   { value: 'Assistant Teacher', label: 'Assistant Teacher' },
 ]
 
-const TEACHER_GROUPS = [
-  { value: '', label: 'None' },
-  { value: 'Science', label: 'Science' },
-  { value: 'Business Studies', label: 'Business Studies' },
-  { value: 'Humanities', label: 'Humanities' },
-  { value: 'General', label: 'General' },
-  { value: 'BMT', label: 'BMT' },
-]
+const TEACHER_GROUPS_BEFORE = [{ value: '', label: 'None' }]
+const TEACHER_GROUPS_AFTER = [{ value: 'General', label: 'General' }, { value: 'BMT', label: 'BMT' }]
 
 export default function PrincipalAddTeacherPage() {
+  const TEACHER_GROUPS = useGroupOptions(TEACHER_GROUPS_BEFORE, TEACHER_GROUPS_AFTER)
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)

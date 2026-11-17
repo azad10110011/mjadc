@@ -102,16 +102,9 @@ export function TopNav() {
     })
   }, [])
 
-  useEffect(() => {
-    const el = document.querySelector('nav')
-    if (!el) return
-    const sync = () => { (el as HTMLElement).style.width = `${document.documentElement.scrollWidth}px` }
-    sync()
-    const timer = setInterval(sync, 200)
-    const stop = setTimeout(() => clearInterval(timer), 3000)
-    window.addEventListener('resize', sync)
-    return () => { clearInterval(timer); clearTimeout(stop); window.removeEventListener('resize', sync) }
-  }, [])
+  // (Session 77) Removed a hack that copied document.scrollWidth onto the <nav> every 200ms:
+  // once anything was wide, the menu itself kept the page wide (and never shrank on rotate).
+  // The header/menu are now sized to never overflow, so the bar is simply full width.
 
   const handleMouseEnter = (label: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
@@ -230,21 +223,24 @@ export function TopNav() {
     })
 
   return (
-    <nav className="relative z-40 shadow-sm" style={{ backgroundColor: menuBg, minWidth: '100vw' }}>
+    <nav className="sticky top-0 z-40 w-full shadow-md" style={{ backgroundColor: menuBg }}>
       <style>{`
-        @media (width < 768px) { .tn-desktop { display: none !important; } .tn-hamburger { display: flex !important; } .tn-mobile { display: block !important; } }
+        @media (width < 768px) { .tn-desktop { display: none !important; } .tn-hamburger { display: flex !important; } .tn-mobile { display: block !important; } .tn-bar { min-height: 52px; } }
         @media (width >= 768px) { .tn-desktop { display: flex !important; } .tn-hamburger { display: none !important; } .tn-mobile { display: none !important; } }
       `}</style>
-      <div className={`mx-auto flex items-center px-4 relative`} style={{ maxWidth: `${navWidth}%`, justifyContent: navAlign === 'left' ? 'flex-start' : navAlign === 'center' ? 'center' : 'flex-end' }}>
-        <div className="tn-desktop items-center gap-1 py-2 flex-wrap">
+      <div className="tn-bar relative mx-auto flex items-center px-4" style={{ maxWidth: `${navWidth}%`, justifyContent: navAlign === 'left' ? 'flex-start' : navAlign === 'center' ? 'center' : 'flex-end' }}>
+        <div className="tn-desktop flex-wrap items-center gap-1 py-2">
           {renderMenu(menuItems)}
         </div>
         <button
-          className="tn-hamburger rounded-md p-2 transition-colors absolute top-1/2 -translate-y-1/2"
-          style={{ color: menuTextColor, backgroundColor: hamburgerBg, ...(hamburgerPos === 'left' ? { left: '4px' } : { right: '4px' }) }}
+          className="tn-hamburger absolute top-1/2 -translate-y-1/2 items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition-colors"
+          style={{ color: menuTextColor, backgroundColor: hamburgerBg, ...(hamburgerPos === 'left' ? { left: '12px' } : { right: '12px' }) }}
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <span>Menu</span>
         </button>
       </div>
       {mobileOpen && (

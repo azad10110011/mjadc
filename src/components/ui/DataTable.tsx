@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { ChevronDown, GripVertical } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -20,6 +20,8 @@ interface DataTableProps {
   loading?: boolean
   emptyMessage?: string
   rowKey?: string
+  /** Pin the horizontal scrollbar to the bottom of the screen while the table is in view (wide tables). */
+  stickyScrollbar?: boolean
 }
 
 export function DataTable({
@@ -33,6 +35,7 @@ export function DataTable({
   loading,
   emptyMessage = 'No data found',
   rowKey = 'id',
+  stickyScrollbar = false,
 }: DataTableProps) {
   const [columns, setColumns] = useState(initialColumns)
   const [dragColIndex, setDragColIndex] = useState<number | null>(null)
@@ -40,6 +43,51 @@ export function DataTable({
   const dragSourceIndex = useRef<number | null>(null)
   const dragOverColIndex = useRef<number | null>(null)
   const dragOverRowIndex = useRef<number | null>(null)
+
+  // ----- fixed horizontal scrollbar (Session 94) -----
+  // While a wide table is on screen but its own scrollbar is below the fold, show a copy of the
+  // scrollbar fixed to the bottom of the window (kept in sync both ways). position:fixed works even
+  // inside the panel's overflow:auto <main>, where position:sticky cannot.
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const barRef = useRef<HTMLDivElement>(null)
+  const [bar, setBar] = useState<{ left: number; width: number; scrollW: number } | null>(null)
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!stickyScrollbar || !el) return
+    let raf = 0
+    const update = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect()
+        const vh = window.innerHeight
+        const show = el.scrollWidth > el.clientWidth + 1 && r.top < vh - 60 && r.bottom > vh
+        setBar((prev) => {
+          if (!show) return null
+          const next = { left: Math.round(r.left), width: Math.round(r.width), scrollW: el.scrollWidth }
+          return prev && prev.left === next.left && prev.width === next.width && prev.scrollW === next.scrollW ? prev : next
+        })
+      })
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
+    window.addEventListener('scroll', update, true) // capture: also catches scrolling inside <main>
+    window.addEventListener('resize', update)
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [stickyScrollbar, columns, data, loading])
+  const barShown = !!bar
+  useEffect(() => {
+    if (barShown && barRef.current && wrapRef.current) barRef.current.scrollLeft = wrapRef.current.scrollLeft
+  }, [barShown])
+  const syncScroll = (from: HTMLDivElement | null, to: HTMLDivElement | null) => {
+    if (from && to && Math.abs(to.scrollLeft - from.scrollLeft) > 0.5) to.scrollLeft = from.scrollLeft
+  }
 
   const handleColDragStart = useCallback((index: number) => {
     setDragColIndex(index)
@@ -100,7 +148,8 @@ export function DataTable({
   }, [data, onRowReorder])
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
+    <div className="rounded-lg border border-gray-200">
+    <div ref={wrapRef} onScroll={() => syncScroll(wrapRef.current, barRef.current)} className="overflow-x-auto rounded-lg">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
@@ -177,6 +226,14 @@ export function DataTable({
           )}
         </tbody>
       </table>
+    </div>
+    {bar && (
+      <div ref={barRef} onScroll={() => syncScroll(barRef.current, wrapRef.current)}
+        className="fixed-hscroll fixed bottom-0 z-30 h-4 overflow-x-scroll overflow-y-hidden border-t border-gray-300 bg-white/95 shadow-[0_-2px_6px_rgba(0,0,0,0.08)] backdrop-blur"
+        style={{ left: bar.left, width: bar.width }} aria-hidden="true">
+        <div style={{ width: bar.scrollW, height: 1 }} />
+      </div>
+    )}
     </div>
   )
 }

@@ -758,7 +758,8 @@ export default function AdminSettingsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-600">Hamburger BG:</label>
-                <input type="color" value={hamburgerBg} onChange={(e) => setHamburgerBg(e.target.value)} className="h-9 w-12 cursor-pointer rounded border" />
+                {/* colour pickers only accept #rrggbb; the default is rgba(...) (semi-transparent), so show a neutral swatch for it */}
+                <input type="color" value={/^#[0-9a-f]{6}$/i.test(hamburgerBg) ? hamburgerBg : '#ffffff'} onChange={(e) => setHamburgerBg(e.target.value)} className="h-9 w-12 cursor-pointer rounded border" />
                 <span className="text-xs text-gray-500">{hamburgerBg}</span>
               </div>
               <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { cn } from '@/lib/utils'
 import type { InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes } from 'react'
 
@@ -7,6 +8,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ label, error, className, id, ...props }: InputProps) {
+  // auto id so the <label> is linked to its field (click-to-focus + screen readers)
+  const autoId = useId()
+  id = id ?? autoId
   return (
     <div className="space-y-1">
       {label && <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>}
@@ -30,6 +34,8 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 export function Textarea({ label, error, className, id, ...props }: TextareaProps) {
+  const autoId = useId()
+  id = id ?? autoId
   return (
     <div className="space-y-1">
       {label && <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>}
@@ -55,6 +61,8 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export function Select({ label, error, options, placeholder, className, id, ...props }: SelectProps) {
+  const autoId = useId()
+  id = id ?? autoId
   return (
     <div className="space-y-1">
       {label && <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>}

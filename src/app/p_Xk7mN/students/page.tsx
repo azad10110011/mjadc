@@ -16,13 +16,9 @@ import {
 import { ArrowUp, ArrowDown, Copy } from "lucide-react"; // Copy used in details view
 
 import { api, UPLOAD_BASE } from "@/lib/api";
+import { useGroupOptions } from "@/lib/catalog";
 import { exportToExcel, exportToPDF, type ExportColumn } from "@/lib/export";
 
-const GROUPS = [
-  { value: "Science", label: "Science" },
-  { value: "Business Studies", label: "Business Studies" },
-  { value: "Humanities", label: "Humanities" },
-];
 
 const CLASSES = [
   { value: "11th", label: "11th" },
@@ -31,6 +27,7 @@ const CLASSES = [
 ];
 
 function StudentsPageInner() {
+  const GROUPS = useGroupOptions();
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlClass = searchParams.get("class");
@@ -511,6 +508,7 @@ function StudentsPageInner() {
             loading={loading}
             emptyMessage="No students"
             onRowReorder={handleReorder}
+            stickyScrollbar
           />
         </CardContent>
       </Card>

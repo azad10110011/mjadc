@@ -20,7 +20,9 @@ async function request<T>(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Request failed' }))
-    throw new Error(error.message || `HTTP ${res.status}`)
+    // validation errors carry the reasons in `errors`; show them instead of a bare "Validation failed"
+    const details = Array.isArray(error.errors) ? error.errors.filter((x: unknown) => typeof x === 'string') : []
+    throw new Error(details.length && /^validation failed$/i.test(String(error.message || '')) ? details.join('; ') : error.message || `HTTP ${res.status}`)
   }
 
   return res.json()

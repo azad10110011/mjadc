@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Select, Card, CardContent, DataTable } from '@/components/ui'
-import { EXAM_NAMES, calculateGradeFromParts, type StudentClass, type SubjectPart } from '@/types'
+import { calculateGradeFromParts, type SubjectPart } from '@/types'
+import { useExamNames } from '@/lib/catalog'
 import { api } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
 
@@ -17,6 +18,7 @@ interface ExamSubjectItem {
 }
 
 export default function AdminResultsPage() {
+  const EXAM_NAMES = useExamNames()
   const [results, setResults] = useState<any[]>([])
   const [filterExamName, setFilterExamName] = useState('')
   const [filterClass, setFilterClass] = useState('')
@@ -40,7 +42,7 @@ export default function AdminResultsPage() {
   const [filterSubjects, setFilterSubjects] = useState<string[]>([])
 
   const years = Array.from({ length: 25 }, (_, i) => ({ value: String(2026 + i), label: String(2026 + i) }))
-  const examOptions = cls ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e })) : []
+  const examOptions = cls ? EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e })) : []
   const subjectOptions = examSubjects.map((s) => ({ value: s.key, label: s.label }))
   const filterSubjectOptions = filterSubjects.map((s) => ({ value: s, label: s }))
 

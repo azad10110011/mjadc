@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PanelLayout } from "@/components/layout";
 import { Button, Select, Card, CardContent } from "@/components/ui";
-import { EXAM_NAMES, type StudentClass } from "@/types";
+import { useExamNames, useGroupOptions } from "@/lib/catalog";
 import { api, UPLOAD_BASE } from "@/lib/api";
 import { Printer } from "lucide-react";
 
+const ALL_GROUPS = [{ value: "", label: "All Groups" }];
 interface MarkStudent {
   student_id: string;
   name: string;
@@ -42,6 +43,7 @@ interface SubjectWithParts {
 }
 
 export default function AdminMarkEntryFormPage() {
+  const EXAM_NAMES = useExamNames();
   const { user, loading: authLoading } = useAuth();
   const requestVersion = useRef(0);
   const [year, setYear] = useState(String(new Date().getFullYear()));
@@ -63,14 +65,9 @@ export default function AdminMarkEntryFormPage() {
     label: String(2026 + i),
   }));
   const examOptions = cls
-    ? EXAM_NAMES[cls as StudentClass]?.map((e) => ({ value: e, label: e }))
+    ? EXAM_NAMES[cls]?.map((e) => ({ value: e, label: e }))
     : [];
-  const groupOptions = [
-    { value: "", label: "All Groups" },
-    { value: "Science", label: "Science" },
-    { value: "Business Studies", label: "Business Studies" },
-    { value: "Humanities", label: "Humanities" },
-  ];
+  const groupOptions = useGroupOptions(ALL_GROUPS);
   // Fail closed: a sheet must match BOTH a configured checkbox and its selection.
   const allowedKeys = new Set(availableSubjects.map((item) => item.key));
   const shownSubjects = subjects.filter((s) =>
@@ -585,7 +582,7 @@ export default function AdminMarkEntryFormPage() {
                box-decoration-break: clone re-applies this padding on EVERY printed page
                fragment - without it the browser slices the element at the paper edge and
                page 2+ would start with the table border touching the top of the paper. */
-            padding: 55px 30px 55px 30px;
+            padding: 28px 30px 55px 30px; /* top halved from 55px (Session 67) */
             -webkit-box-decoration-break: clone;
             box-decoration-break: clone;
             page-break-inside: auto;
