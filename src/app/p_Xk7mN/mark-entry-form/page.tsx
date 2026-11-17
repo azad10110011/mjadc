@@ -6,6 +6,7 @@ import { PanelLayout } from "@/components/layout";
 import { Button, Select, Card, CardContent } from "@/components/ui";
 import { useExamNames, useGroupOptions } from "@/lib/catalog";
 import { api, UPLOAD_BASE } from "@/lib/api";
+import { DUE_FILTER_OPTIONS, dueFilterLabel } from "@/lib/dues";
 import { Printer } from "lucide-react";
 
 const ALL_GROUPS = [{ value: "", label: "All Groups" }];
@@ -50,6 +51,8 @@ export default function AdminMarkEntryFormPage() {
   const [cls, setCls] = useState("");
   const [examName, setExamName] = useState("");
   const [group, setGroup] = useState("");
+  const [dueFilter, setDueFilter] = useState("all");
+  const [dueInfo, setDueInfo] = useState("");
   const [subjects, setSubjects] = useState<SubjectWithParts[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<AvailableSubjectItem[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -183,12 +186,13 @@ export default function AdminMarkEntryFormPage() {
     try {
       const res: {
         status: number;
-        data: { subjects: SubjectWithParts[] };
+        data: { subjects: SubjectWithParts[]; excluded_due?: number };
       } = await api.post("/admin/mark-entry-form", {
         year,
         class: cls,
         exam_name: examName,
         selected_keys: requestedKeys,
+        due_filter: dueFilter,
         ...(group && { group }),
       });
       if (version !== requestVersion.current) return;
@@ -200,7 +204,8 @@ export default function AdminMarkEntryFormPage() {
       if (returned.length > 0 && valid.length === 0) {
         setError("No returned forms matched the selected exam papers. The Mark Entry Form API must return the configured paper keys.");
       }
-      setExamLabel(`${examName} Examination - ${year} • Class ${cls}`);
+      setExamLabel(`${examName} Examination - ${year} • Class ${cls}${dueFilter !== "all" ? ` • ${dueFilterLabel(dueFilter)}` : ""}`);
+      setDueInfo(dueFilter !== "all" ? `Showing ${dueFilterLabel(dueFilter).toLowerCase()} students only — ${res.data?.excluded_due ?? 0} student(s) left out.` : "");
     } catch (err: unknown) {
       if (version !== requestVersion.current) return;
       setError(
@@ -221,7 +226,7 @@ export default function AdminMarkEntryFormPage() {
     <PanelLayout role="admin" title="Mark Entry Form Download">
       <Card className="mb-6 no-print">
         <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Select
               label="Year"
               options={years}
@@ -255,7 +260,14 @@ export default function AdminMarkEntryFormPage() {
               value={group}
               onChange={(e) => setGroup(e.target.value)}
             />
+            <Select
+              label="Students (fee status)"
+              options={DUE_FILTER_OPTIONS}
+              value={dueFilter}
+              onChange={(e) => setDueFilter(e.target.value)}
+            />
           </div>
+          {dueInfo && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 print:hidden">{dueInfo}</p>}
 
           {/* Subject selection — shown after exam is selected */}
           {availableSubjects.length > 0 && (
@@ -302,7 +314,7 @@ export default function AdminMarkEntryFormPage() {
           {cls && examName && !loadingSubjects && availableSubjects.length === 0 && (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               No subjects or papers have been configured for this exam yet. Please configure them in{" "}
-              <strong>Exam Management → Exam Paper Selection</strong> first.
+              <strong>Internal Exam Management → Exam Paper Selection</strong> first.
             </div>
           )}
 

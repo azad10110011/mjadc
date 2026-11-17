@@ -6,6 +6,7 @@ import { Button, Select, Card, CardContent, DataTable } from '@/components/ui'
 import { calculateGradeFromParts, type SubjectPart } from '@/types'
 import { useExamNames } from '@/lib/catalog'
 import { api } from '@/lib/api'
+import { DUE_FILTER_OPTIONS, DueBadges } from '@/lib/dues'
 import { exportToExcel, exportToPDF } from '@/lib/export'
 
 interface ExamSubjectItem {
@@ -31,6 +32,7 @@ export default function AdminResultsPage() {
   const [examName, setExamName] = useState('')
   const [subject, setSubject] = useState('')
   const [students, setStudents] = useState<any[]>([])
+  const [dueFilter, setDueFilter] = useState('all') // Session 100: admin enters marks for any fee status
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [partConfigs, setPartConfigs] = useState<SubjectPart[]>([])
@@ -122,6 +124,7 @@ export default function AdminResultsPage() {
         subject: selected.subject_name,
         subject_id: String(selected.subject_id),
         paper_name: selected.paper_name || '',
+        due_filter: dueFilter,
       })
       const res: any = await api.get(`/admin/results/upload-data?${params}`)
       const configs: SubjectPart[] = res.data?.part_configs || []
@@ -271,7 +274,7 @@ export default function AdminResultsPage() {
   }
 
   const uploadRows = students.map((s, i) => {
-    const row: any = { sl: s.sl, student_id: s.student_id, name: s.name, student_group: s.student_group || '-' }
+    const row: any = { sl: s.sl, student_id: s.student_id, name: <span>{s.name}<DueBadges dues={s.dues} /></span>, student_group: s.student_group || '-' }
     partConfigs.forEach((p) => {
       const config = p
       const val = s.partsData?.[p.part_name] ?? 0
@@ -369,6 +372,8 @@ export default function AdminResultsPage() {
               onChange={(e) => { setSubject(e.target.value); setStudents([]) }}
               placeholder={loadingSubjects ? 'Loading configured subjects...' : subjectError ? 'Could not load subjects' : examSubjects.length === 0 ? 'No subjects configured for this exam' : 'Select Subject'}
               disabled={loadingSubjects || examSubjects.length === 0} />
+            <Select label="Students (fee status)" options={DUE_FILTER_OPTIONS} value={dueFilter}
+              onChange={(e) => { setDueFilter(e.target.value); setStudents([]) }} />
           </div>
           {subjectError && <p className="text-sm text-red-600">{subjectError}</p>}
           <div className="flex gap-2">

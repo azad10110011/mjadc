@@ -1,5 +1,15 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://mjadc.makafoodbd.com/mjadc-api/api'
-export const UPLOAD_BASE = process.env.NEXT_PUBLIC_UPLOAD_URL || 'https://mjadc.makafoodbd.com/mjadc-api'
+// Session 108: a build accidentally made WITH .env.local (localhost addresses) must still work on the real
+// website — the live site was broken twice that way (every API call went to the visitor's own computer).
+// When the page is NOT opened on localhost but the built address IS localhost, use the site's own server.
+const LOCALHOST_URL = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i
+function liveSafe(built: string, path: string): string {
+  if (typeof window === 'undefined') return built
+  const host = window.location.hostname
+  if (LOCALHOST_URL.test(built) && host !== 'localhost' && host !== '127.0.0.1') return window.location.origin + path
+  return built
+}
+export const API_BASE = liveSafe(process.env.NEXT_PUBLIC_API_URL || 'https://www.mjadc.ac.bd/mjadc-api/api', '/mjadc-api/api')
+export const UPLOAD_BASE = liveSafe(process.env.NEXT_PUBLIC_UPLOAD_URL || 'https://www.mjadc.ac.bd/mjadc-api', '/mjadc-api')
 
 async function request<T>(
   endpoint: string,

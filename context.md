@@ -5,6 +5,235 @@
 ## 2026-11-17 (Tue)
 
 ### Done
+**Session 109 — LIVE DEPLOYMENT COMPLETE (Sessions 66–108) — user confirmed "Now work on live"**
+- **Re-uploaded website:** `2-website-public_html.zip` (18:30). Live check: 0 of the home page's JS chunks contain localhost; `<head>` has favicon.ico / icon.png / apple-icon.png; `favicon.ico` = 49,762 B (the new college-logo icon).
+- **What was wrong before (Sessions 107–108):** the website had been uploaded twice from builds made WITH `.env.local` — first `admission.zip`, then the user's own build. Every visitor's browser then called `http://localhost/mjadc-api/api`, so no data and no images loaded. Fixed for good by `liveSafe()` in `src/lib/api.ts`.
+- **Lessons / standing notes for future releases:**
+  - Prefer the prepared zips in `UPLOAD-TO-LIVE-*`. If building by hand, `.env.local` no longer breaks live (liveSafe), but still rename it aside so the build points at www.
+  - Before zipping, check that no `out/_next/static/chunks/*.js` contains `localhost/mjadc-api`.
+  - Live server = LiteSpeed (PHP 8.2, MariaDB 11.4). A non-existent `uploads/x.php` returns the API's JSON 404, not 403 — test the uploads protection with a REAL file. The working CORS header on images proves `uploads/.htaccess` is active.
+  - Live is the source of truth for operational data (fee collections, passwords, teachers, subjects / papers / mark distribution). Compare with a fresh `live.sql` before any data sync and never copy the local DB over live.
+  - **Transcript QR:** the admin must enable verification on live (Transcript QR Verify), and transcripts must be printed from the live site (its signing secret differs from local).
+  - Online payment confirmation is locked until the gateway is set up (`PAYMENT_CALLBACK_SECRET`).
+- Do not reuse `d:\opencode 09062026\admission.zip` (localhost build).
+
+**Session 108 — Live still showed no images (the user's own build again had localhost); permanent safety net**
+- **Live check (12:19 GMT upload):** the chunk `0s4__iuziwwbs.js` still calls `http://localhost/mjadc-api/api`. The user built with `.env.local` present, and Next.js gives `.env.local` priority over `.env.production`.
+- **Permanent fix in `src/lib/api.ts`:** `liveSafe()`. When the page is opened anywhere but localhost and the built API / upload address is localhost, use `window.location.origin + '/mjadc-api(/api)'`. A wrong build can no longer break live (www and non-www both work).
+  - The fallback default changed from `mjadc.makafoodbd.com` to `www.mjadc.ac.bd`. `API_BASE` is now exported.
+  - Unit-tested 5 cases (live www/non-www with a localhost build, live with a correct build, local dev, server prerender): all pass. Confirmed in the built bundle.
+- **Other pages unified:**
+  - `p_Xk7mN/media/page.tsx` and `media/[id]/client.tsx` used their own `NEXT_PUBLIC_API_URL || makafoodbd` copies; they now use `API_BASE`.
+  - `p_R2t9b/form-download`: PDF links were built from the API URL (ending in `/api`), so they were broken; they now use `UPLOAD_BASE` + path.
+- **Session 107 pending item done:** the production build (0 localhost, tab icon = college logo, safety net) was copied into `UPLOAD-TO-LIVE-2026-11-17/public_html`, and `2-website-public_html.zip` was rebuilt (1,627 files incl. favicon.ico, icon.png, apple-icon.png, .htaccess).
+
+**Session 107 — LIVE BROKEN: website uploaded from `admission.zip` (localhost build); browser tab icon = college logo**
+- **Report:** teacher / staff / student photos and all images missing on live.
+- **Diagnosis:**
+  - The image files are served fine (200, correct types).
+  - The live JS calls `http://localhost/mjadc-api/api` (CORS-blocked in every visitor's browser), so no data loads: teacher list "0 of 0", empty gallery, no slideshow or settings, hence no images.
+  - The live chunk `_next/static/chunks/0s4__iuziwwbs.js` (uploaded 17:56 +06) exists only in **`d:\opencode 09062026\admission.zip`** (created 17:24, NOT made by Claude; 4 JS files contain localhost because it was built without moving `.env.local` aside).
+  - `UPLOAD-TO-LIVE-2026-11-17/2-website-public_html.zip` (17:37) has 0 localhost refs.
+- **Fix:** re-upload and extract `2-website-public_html.zip` into `public_html` (overwrite). Never upload `admission.zip`.
+- **Tab icon:** `src/app/favicon.ico` was the default Next.js icon (25,931 B) and browsers used it first.
+  - Replaced with an ICO made from `public/college_logo.png` (16–256 px PNG entries, palette-compressed, 49 KB, made with sharp). Added `src/app/icon.png` (512) and `apple-icon.png` (180, white background).
+  - Removed `icons: { icon: '/college_logo.png' }` (a 1 MB PNG) from `layout.tsx`.
+  - The old icon was saved to scratchpad `favicon-nextjs-default.ico`.
+- **Build:** the first attempt failed with EBUSY (`out/p_Xk7mN/gallery` locked — likely a File Explorer window open on it); the retry succeeded with 0 localhost refs and 3 icon links in `<head>`.
+- **PENDING (the command-safety service was down):** copy `frontend/out` into `UPLOAD-TO-LIVE-2026-11-17/public_html` and re-zip `2-website-public_html.zip` so it also has the new tab icon. The existing zip (17:37) is correct apart from the icon.
+
+**Session 106 — QR codes checked for live; admit-card QR pinned to the public site**
+- **Admit card QR (exam-fee verify):** probed live before the upload.
+  - `GET /api/public/exam-fee-verify?student_id=271005&year=2026&exam=Pre-Test` → 200, fee_paid true, due 0 (real live collection).
+  - `/verify/exam-fee/` → 200; the no-slash URL 301s with the query kept. So it works on live today.
+  - Hardened: the QR used `window.location.origin` (a card printed on localhost or the non-www host got that address). Now `${NEXT_PUBLIC_SITE_URL}/verify/exam-fee/?…`, like the transcript QR.
+- **Transcript QR:** the build uses `https://www.mjadc.ac.bd/verify/transcript/?…`; tested end to end locally in Session 92. Live currently returns 404 for both the page and `/api/public/transcript-verify`, as expected until the upload.
+  - After the upload, the admin must turn verification ON (Transcript QR Verify) and print transcripts from the live site; the signing secret differs from local.
+- Rebuilt; 0 localhost refs; both QR URLs confirmed in the bundle; `public_html` and `2-website-public_html.zip` refreshed (1,623 files).
+
+**Session 105 — Final live upload package + step-by-step procedure for the user**
+- Fresh production build (`.env.local` set aside; 0 localhost refs; API `https://www.mjadc.ac.bd/mjadc-api`) copied into `UPLOAD-TO-LIVE-2026-11-17/public_html`. The out/ and upload folder had drifted on 3 files; they are now identical.
+- **NEW zips in `UPLOAD-TO-LIVE-2026-11-17`:**
+  - `1-backend-mjadc-api.zip` (43 files: 41 code files + 2 photos + `uploads/.htaccess`; no `config/database.php`).
+  - `2-website-public_html.zip` (1,623 files incl. `.htaccess`; no mjadc-api).
+  - Built with Python zipfile so dotfiles are included.
+- `READ-ME-FIRST.txt` now describes the 2-zip method. Claude has no hosting access: the user uploads; Claude verifies afterwards from outside.
+
+**Session 104 — Mark distribution: LIVE is correct → local updated from live; sync script no longer touches subjects**
+- **User:** "exam paper mark distribution, live data is correct, local data may be incorrect."
+- **Local DB:**
+  - `subject_parts` replaced with live's 121 rows (same ids; all 121 verified identical). Bangla-1 is back to CQ 100/33; ICT parts are under the full subject name, which the code accepts.
+  - The 3 live-only papers were added: Soil Science-1 (288), Soil Science-2 (289), and the "Information and Communication Technology" paper (275), attached to local ICT subject #48 by name (live's ICT subject is #111). 49 papers = live.
+  - Backups of the old local tables: `subject_parts_backup_s104`, `subject_papers_backup_s104`.
+- **`DATA-SYNC-local-to-live.sql`:** the old section 5 (ICT code + Bangla-1 parts) was removed; now 537 statements in 5 sections.
+  - Tested on a fresh live copy, run twice: subjects / subject_papers / subject_parts checksums are identical to live; 366/366 students with role.
+  - `READ-ME-FIRST.txt` says subjects / papers / marks are not changed.
+- **Follow-up (user: "subjects, papers and marks aren't changed on live"):**
+  - Verified that neither `SQL-COMMANDS.txt` nor `DATA-SYNC-local-to-live.sql` mentions subject_parts / subject_papers / subjects, and that none of the 41 backend files in the upload folder write to those tables (they change only via the admin Subjects page).
+  - Local ICT subject `code` set to NULL to match live. The transcript still shows ICT as 275 (taken from the ICT paper).
+
+**Session 103 — Live DB (live.sql, 17 Nov 06:20) compared with local; data sync script (PREPARED)**
+- **Method:** `live.sql` was imported into scratch DB `live_snapshot`, then compared by schema, row counts, content hash and natural keys (email, student_id, exam, setting key…). Scratch DBs dropped afterwards.
+- **Schema:**
+  - Local-only: 20 new tables (Part A of `SQL-COMMANDS.txt`) and fee columns (auto-added).
+  - `students.student_group` VARCHAR locally (auto-widened when a group is added).
+  - Live-only: `exam_routines_backup`, `exam_subject_config_backup`.
+- **Identical (27 tables):** notices, gallery, pages, staff, teacher_attendance, payments, tuition_fees, …
+- **Live is AHEAD — must not be overwritten:**
+  - exam_fees: the 120 payments were collected on live with real times, so Part C of `SQL-COMMANDS.txt` is not needed.
+  - users: newer passwords / default_role.
+  - teachers: name edit "Md.Abdul Halim".
+  - teacher_subjects: Asraful History-1/2.
+  - subject_papers: ICT paper, Soil Science-1/2.
+  - subject_parts: ICT under its full name, Soil Science.
+  - setting `exam_fee_amount_pre-test`; admit_card_config (only a trailing dot).
+- **Local is AHEAD:**
+  - Class-11 ID conversion: 2611xxxx → 281xxx, plus class_roll (backup in `students_11th_id_backup`).
+  - 12th sort_order; photos 271001 / 271002.
+  - ICT code 275; Bangla-1 CQ 70/23 + MCQ 30/10.
+  - catalog_groups (incl. BMT = 4); transcript_config.
+- **Live BUG found:** all 200 class-12 students have NO `student` role row (only `default_role`), so every student-panel API is refused for them.
+- **Live data glitch:** 271002 `photo_path` holds a subject-list JSON.
+- **Not synced (ambiguous or test data — ask the user):**
+  - 69 local draft exam_results (12th Pre-Test).
+  - Local extra exams 11th / 12th Model Test and 12th Test.
+  - Local hand edits on 271001–271003 (address, custom_fields).
+  - exam_routines (same subjects, different order).
+- **Local cleanup:** 2 leftover QA teacher rows from Session 102 tests deleted (users had already been deleted).
+- **NEW `UPLOAD-TO-LIVE-2026-11-17/DATA-SYNC-local-to-live.sql`** (540 statements, idempotent, no deletes):
+  1. Insert the missing student roles.
+  2. 166 × (users.email + students.student_id / class_roll) updates.
+  3. 12th sort_order.
+  4. 2 photo paths (also overwrite a non-file value); files added to `public_html/mjadc-api/uploads/profiles/`.
+  5. ICT code and Bangla-1 parts.
+  6. catalog_groups and transcript_config upsert.
+  - Tested twice on a fresh copy of live.sql: 366/366 students with role, 0 old IDs / logins, login 281001 → correct student, exam_fees untouched (120, ৳60,000).
+  - The re-diff then showed only intended differences. `READ-ME-FIRST.txt` updated.
+
+**Session 102 — Panel tasks chosen when creating / editing a user + role-strip bug fixed (COMPLETED, local)**
+- **NEW `components/users/PanelTaskPicker.tsx`:**
+  - After roles are ticked, it lists every task (catalog feature) of those panels — one section per panel (Teacher / Exam Controller / Principal / Administration / Staff / Student Panel) with counts and All / None buttons.
+  - All tasks start ticked; unticked tasks are sent as `disabled_features`. A task shared by two selected panels is listed once.
+  - Admin role → note "Admin has every task".
+  - `loadDisabledTasks(userId)` loads the current revokes for edit forms.
+- **Used in:**
+  - `UserManager` (Users › All Users, Teacher/Staff list edit, Add Teacher/Staff, Students edit). Hidden roles of scoped pages are included so their revokes are not cleared.
+  - Teachers › Add / Edit (`TeachersAdmin`) and Staff › Add / Edit (`StaffAdmin`).
+- **Backend:**
+  - `Permissions::applyPanelTasks(userId, off, by)`: for every role-default task of the user's roles, unticked → REVOKE, ticked → revoke removed. Extra grants are kept; admins skipped.
+  - Called by `POST/PUT /api/admin/users` and `POST/PUT /api/admin/teachers-staff/{teacher|staff}` when `disabled_features` is sent (not sent = unchanged).
+- **Bug fixed — editing a teacher / staff stripped roles:**
+  - The Teacher and Staff edit forms always reset roles to teacher / administration (the list API had no roles), and the PUT deleted ALL `user_roles` before re-inserting. So editing e.g. a teacher who is also admin / exam controller removed those roles.
+  - Now the list APIs return `user_id` and `roles`; the forms load the real roles; the PUT only replaces the 5 roles the form manages and keeps the others (admin, student).
+- **Verified:**
+  - **API:** create teacher + EC with 2 tasks unticked → 2 revokes; the user's permissions lack them; edit re-ticks one → 1 revoke; edit without the field → unchanged. Add teacher (teacher + principal) with a task off → revoke stored; list returns roles; edit with [teacher] keeps admin and drops principal.
+  - **Browser:** Add Teacher/Staff with Teacher + Staff shows the two sections (5 + 1); unticking 2 gives 3/5; Create works; logging in as the user shows only Upload / Update Result + Leave in the Teacher panel.
+  - All test users deleted (users and permissions 0). tsc clean; eslint 0 errors.
+- **Deploy:** backend `utils/Permissions.php`, `routes/admin/users.php`, `routes/admin/teachers-staff.php` (all in `UPLOAD-TO-LIVE-2026-11-17`, still 41 files); frontend rebuilt into the upload folder and zip.
+
+**Session 101 — Per-user feature ON/OFF: dashboards and profile follow it too (COMPLETED, local)**
+- **Request:** every panel user can do all of their panel's work by default; admin can turn any feature OFF for any user, and then the user can neither see nor use it.
+- **Already in place (Session 80):**
+  - `effective = role defaults + grants − revokes`.
+  - Admin › Users › User Permissions gives a per-user tick list per feature; unticking a default stores a REVOKE.
+  - The menu is filtered (`canOpenPage`), and opening a page directly shows "No access".
+  - The backend blocks a revoked feature's APIs (403 "Access to this feature has been removed for your account") unless another allowed feature uses the same API.
+  - The catalog covers every menu item of every non-admin panel; dashboards are always shown.
+- **Gaps fixed:**
+  - **Dashboard cards and links** listed every feature regardless. Teacher, Exam Controller, Principal, Administration (quick links, stat cards, and their API calls) and Student (stat cards and quick links) now filter with the new `canSeeLink(user, href)` in `lib/permissions.ts` — the same rule as the menu.
+  - **Student dashboard API** sent last-exam GPA and the fee balance even when Results / Pay Fees were turned off. Now `null` plus `features: {results, fees}`, via the new `Permissions::has()`.
+  - A result held for dues (Session 100) is no longer shown as "Last Exam GPA".
+- **Verified:**
+  - Teacher 34 with Attendance and Form Download OFF: menu and dashboard show only Upload / Update Result and Leave; `/p_R2t9b/attendance` shows "No access"; attendance and forms APIs 403; Upload Result API still 200.
+  - Student 456 with Pay Fees OFF: no fee card, link or menu item; `/p_G9n4s/pay-fees` shows "No access"; `/student/fees` 403; dashboard fee fields null.
+  - Overrides restored (0 rows). tsc clean, eslint 0 errors.
+- **Deploy:**
+  - Backend `utils/Permissions.php` and `routes/student/dashboard.php`; the latter was added to `UPLOAD-TO-LIVE-2026-11-17` (now 41 backend files).
+  - Frontend rebuilt into `UPLOAD-TO-LIVE-2026-11-17/public_html` and `deploy-2026-11-17/mjadc-frontend.zip`.
+
+**Session 100 — Fee Due Rules (mark entry / forms / result hold) + Fee Process Review & Fixes (COMPLETED, local)**
+- **NEW `backend/utils/Dues.php`** (required in `index.php`):
+  - `duesStatusFor()` gives each student's status for one exam:
+    - exam fee paid: paid + waived ≥ that exam's fee. The fee is looked up as "exam (class)" first, then plain; with no fee set, any payment counts.
+    - tuition clear: no outstanding tuition / other fee up to the current month (future months are not due).
+    - all clear: both.
+  - `duesMatches()` uses the filters `all | exam_paid | tuition_paid | all_paid | exam_due | tuition_due | any_due`.
+  - `duesHeld()` and `duesHoldMessage()` handle the hold rule.
+  - `duesSettings()` reads `site_settings 'due_rules'` = `{mark_entry: all|exam_paid|tuition_paid|all_paid, result_hold: none|exam_due|tuition_due|any_due}`.
+  - `duesApplyToTuition()` spreads money (amount_paid or waiver) over the oldest outstanding rows first.
+  - `duesEnsureSchema()` runs only on fee routes (regex in `index.php`).
+- **NEW `routes/admin/due-rules.php`:** `GET`/`PUT /api/admin/due-rules` and `POST /api/admin/due-rules/preview` (every student's status, allowed / held, plus counts).
+- **Enforcement:**
+  - **Mark Entry Form:** `POST /api/admin/mark-entry-form` takes `due_filter` and returns `excluded_due`.
+  - **Teacher / exam-controller mark entry:**
+    - `/api/teacher/results/load-students` hides students outside the `mark_entry` rule and returns `hidden_due` plus the rule label.
+    - `/api/teacher/results/upload` skips them server-side (`skipped_due`).
+    - The legacy `/api/exam-controller/results/upload` follows the same rule.
+  - **Admin mark entry:** `/api/admin/results/upload-data` takes `due_filter` (any of the 7) and attaches `dues` to every row. Admin is never restricted.
+  - **Hold:**
+    - `/api/student/results` returns 403 with the hold message.
+    - `/api/results/search` (public) returns 403.
+    - `/api/public/transcript-verify` returns verified:false with a hold message.
+    - `/api/admin/transcript` leaves held students out (message lists them). Admin may send `include_held` (rows get `held:true`); the exam controller can't.
+- **Fee process review — bugs found and fixed:**
+  1. **Missing columns** (`tuition_fees.fee_type`, `payments.fee_type`, `payments.collected_by`): Add Fee, Collected Summary (admin and administration), administration collect and Transactions all crashed with "Unknown column". They are now auto-added. `unique_fee` became (student, year, month, fee_type), with `idx_tf_student` kept for the FK.
+  2. **Exam fee total always 0:** Fee Set saves "Pre-Test (12th)" while collection read "Pre-Test", so there was never a due and partial payments counted as fully paid. `$examFeeTotal` now uses `duesExamFee`; status is computed per student class.
+  3. **Principal waiver** added the full amount to EVERY unpaid month. It is now spread once over the oldest dues; the excess is reported.
+  4. **Admin waiver:** same shared rule (oldest first); any amount over the dues is reported as not applied.
+  5. **Administration collect:** money now pays the oldest dues of that fee type first; only the rest becomes an advance on the current month (it used to go to the current month regardless).
+  6. **Add Fee:** a year can be chosen (was always the current year); amount > 0; tuition needs months; duplicate months and repeated non-tuition fees are skipped and reported (they used to crash on the unique key).
+  7. **Student online pay** wrote the roll code into `payments.student_id` (alias clash); now uses `students.id` plus `fee_type`.
+  8. **Payment callback was open:** anyone could POST success and mark fees paid. It now requires `PAYMENT_CALLBACK_SECRET` (env) via the `X-Callback-Secret` header, and rejects everything until the gateway is integrated.
+  9. **Public fee lookup** no longer returns the student's mobile number.
+- **Frontend:**
+  - NEW page **Internal Exam Management › Fee Due Rules** (`/p_Xk7mN/due-rules`): two rule dropdowns, an exam checker with counts, a search / status filter and a per-student table.
+  - `lib/dues.tsx`: options and `DueBadges`.
+  - Mark Entry Form: "Students (fee status)" dropdown, an excluded note, and the label added to the sheet title.
+  - Result Management: "Students (fee status)" dropdown and due badges on names.
+  - Teacher upload / update and EC upload: a notice when students are hidden by the rule.
+  - TranscriptGenerator: hold note, plus an admin checkbox "Include students whose result is on hold".
+  - Menu and permission key `/p_Xk7mN/due-rules` (not grantable).
+- **Verified:**
+  - **API scripted:** columns added; reports 200; FIFO collection (Sep, Oct, then Nov, then advance); waiver once (500) and excess reported (2,700); exam fee status 500.
+  - **Rules:** load-students 200 → 120 shown / 80 hidden; unpaid upload skipped with no row written; forms all 200 / exam_paid 120 / all_paid 2 / any_due 198.
+  - **Hold:** public 403; transcripts 2 vs 200 with include; QR verify false; student panel 403 message vs paid student OK; forged callback 403.
+  - **Browser:** Due Rules page counts and table; form "80 left out"; admin entry badges; transcript 1 sheet vs 200 with include; no console errors. tsc clean; eslint 0 errors.
+  - All seeded data restored (tuition 0, payments 0, rules removed, results draft).
+- **Deploy:** 18 backend files (2 NEW: `utils/Dues.php`, `routes/admin/due-rules.php`) are in the `deploy-2026-11-17` package; `DEPLOY-STEPS.txt` updated. No SQL (columns auto-add). Optional `.env PAYMENT_CALLBACK_SECRET` for when the gateway is integrated. Frontend zip rebuilt.
+
+**Session 99 — Board Exam Management + "Exam Management" renamed to "Internal Exam Management" (COMPLETED, local)**
+- **Rename:**
+  - Menu label, its open/active rules and the permission groups (`Admin › Internal Exam Management`) now say "Internal Exam Management".
+  - Two help texts updated (mark-entry-form, MovedNotice). Paths are unchanged.
+- **User's choices:**
+  - Candidates come from one or more other colleges (imported).
+  - All 4 feature areas.
+  - Organised as a board exam + year that owns everything.
+- **NEW backend `routes/admin/board-exam.php`** (admin only; tables auto-create):
+  - **Tables:** `board_exams` (name, year, centre name/code, seat_mode college_mixed|roll, per_invigilator, seat warnings), `board_venues` (colleges JSON = which colleges sit there; empty = any), `board_rooms` (UNIQUE venue+name, so the same room number is allowed in different venues), `board_candidates` (roll UNIQUE per exam, reg, name, college, group, gender, type, subjects JSON), `board_routine` (date, time, code, name), `board_seats` (one fixed seat per candidate for the whole exam), `board_external_teachers` (shared list, no login).
+  - **Endpoints:** exams CRUD + copy venues/rooms from another exam; venues/rooms CRUD (blocked while candidates are seated there); candidates list, import (upsert by roll or replace; errors per line), delete one / by college / all; routine add/delete (with candidate count per code); seat generation; seats view; attendance data per session; external teachers CRUD (delete blocked if they have duties).
+  - **Seating:** the internal seat-plan algorithm with colleges in place of groups. Venues limited to certain colleges seat first. `college_mixed` alternates colleges on each bench (round-robin per college in roll order); `roll` keeps roll order. Gender modes mixed/male/female/separate are the same as internal. Blocked while duties are finalized.
+- **NEW backend `routes/admin/board-duty.php`:**
+  - **Tables:** `board_duty_config`, `board_duty_rules` (keyed by tkey t<id>/x<id>, with a per-exam priority), `board_duties`.
+  - **Teacher pool:** our teachers (optional `use_internal`; the global "disabled from exam duty" is honoured) plus enabled external teachers.
+  - **Sessions:** routine date+time. A room needs invigilators when any seated candidate's subject token (code or name, lower-case) matches that day. need = the room's invigilators, or ceil(n / per_invigilator) when set.
+  - **Generate:** the same target / priority / fair-pace / own-subject (none/avoid/must) / gender / pinned logic as internal.
+  - **Other endpoints:** finalize; letters data (external teachers carry their own college).
+- **`index.php`** requires both files. **`config/permissions.php`** has 8 new keys under "Admin › Board Exam Management", not grantable.
+- **Frontend:**
+  - New menu **Board Exam Management**: Board Exams & Venues, Candidates, Board Routine, Board Seat Plan, Attendance Sheets, External Teachers, Board Hall Duty, Board Duty Letters (`/p_Xk7mN/board/*`).
+  - `lib/boardExam.ts`: types, `useBoardExam()` (selected exam remembered in localStorage), board seat cards, door lists (roll ranges per college + room map + full list) and the attendance-sheet PDF (only that day's candidates; paper code, answer-script no., signature, totals, 2 invigilator signatures).
+  - `components/board/BoardExamBar.tsx`: the exam selector.
+  - **Candidates import:** Excel/CSV via xlsx with flexible headings (Roll/Reg No/Name/College/Group/Gender/Type/Subjects), a preview, and a template download.
+  - **`examPdf.ts`:** `drawRoomMap` exported; `LetterTeacher.college` (external letters are addressed to their own college; id may be a string); the room column is wider for "Venue · Room".
+  - **Internal duty-letters page:** selection set type widened (no behaviour change).
+- **Verified:**
+  - **API (scripted):** duplicate exam blocked; room "101" allowed in 2 venues but not twice in one; import validation per line and upsert; 70/70 seated; Girls Branch only Beta Girls College; Main 101 fully alternating colleges.
+  - **Duties:** 10 with 0 warnings, external teachers included; the Physics external teacher had no duty on Physics day (avoid rule). Letters blocked until finalized; seats blocked while finalized; external teacher with duties not deletable; attendance 50 for the Physics/Civics day.
+  - **Browser:** all 8 pages; template xlsx; seat cards 7 pp, door lists 6 pp, attendance 3 pp, external letter 1 p (rendered and checked); 0 page errors; no overflow at 390 px. tsc clean; eslint 0 errors.
+  - All test data deleted (board tables empty).
+- **Deploy:** backend NEW `routes/admin/board-exam.php` and `routes/admin/board-duty.php`, plus `index.php` and `config/permissions.php` (all in the `deploy-2026-11-17` package). The SQL file now has 20 tables (10 board tables appended; tested twice on a scratch DB). Frontend zip rebuilt.
+
 **Session 98 — Exam Fee Paid List: Subjects Sorted by Subject Group (COMPLETED, local)**
 - **Backend** `routes/admin/exam-fees.php` (paid-by-subject): every subject now carries `subject_group`, taken from the `subjects` table.
   - When a name has several groups, the best rank wins: General, then the catalog groups, then others (e.g. English is General, not BMT; History is Humanities, not BMT). Bangla/English/ICT are forced to General.
@@ -1296,6 +1525,7 @@ Only prepare a deployment when the user explicitly requests it after approving t
 > Workflow: build/test locally first. Move items to "Ready to Deploy" ONLY after the user confirms the task works locally. Deploy items in the next release window.
 
 ### Ready to Deploy (tested locally, awaiting release approval)
+- **Nothing pending as of 2026-11-17** — Sessions 66–108 were deployed and confirmed working on live (see "Already Deployed"). The items below are OLD entries kept for history; all of them were deployed long ago or superseded.
 - [~] **Sessions 21–27 + 28–33 DEPLOY IN PROGRESS** (zip built, SQL composed, files uploaded once; broken — see Session 34 for live-debugging state and next steps)
   - Frontend: `mjadc-frontend-deploy.zip` at `d:\opencode 09062026\` (rebuild+rezip after any fix)
   - Backend + SQL: `d:\opencode 09062026\deploy-package\`
@@ -1341,7 +1571,12 @@ Only prepare a deployment when the user explicitly requests it after approving t
     - `backend/database/migration_020_exam_subject_config.sql` (creates `exam_subject_config` table)
 
 ### Already Deployed
-- (nothing yet in this log section; Sessions 1–19 were deployed before this tracking started)
+- **2026-11-17 — Sessions 66–108 DEPLOYED and confirmed by the user ("Now work on live").** Package: `d:\opencode 09062026\UPLOAD-TO-LIVE-2026-11-17\`.
+  - SQL: `SQL-COMMANDS.txt` Part A (20 new tables) and `DATA-SYNC-local-to-live.sql` (student roles, class-11 ID conversion, 12th order, 2 photos, groups and transcript settings).
+  - Backend: `1-backend-mjadc-api.zip` (41 files + 2 photos + uploads/.htaccess).
+  - Website: `2-website-public_html.zip` (18:30 build: liveSafe, college-logo tab icon).
+  - Verified from outside: 0 localhost chunks; favicon 49,762 B (new); catalog, transcript-verify and Fee Due Rules routes live; new 11th IDs (281001) found and old ones gone; BMT group in the catalog; mobile hidden on the public fee lookup; admit-card fee QR OK; uploads CORS header present.
+- (Sessions 1–19 were deployed before this tracking started; Sessions 20–65 were deployed in earlier releases.)
 
 ### How to update this section
 - After finishing a task locally and the user says it works: move the task from "untested" to "Ready to Deploy" with its file list + SQL

@@ -4,8 +4,11 @@ import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
 import { Upload, FileText, ClipboardList, Download } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
+import { canSeeLink } from '@/lib/permissions'
 
 export default function TeacherDashboardPage() {
+  const { user } = useAuth() // Session 101: only features this user has
   return (
     <PanelLayout role="teacher" title="Teacher Dashboard">
       <div className="overflow-x-auto pb-2 scrollbar-thin">
@@ -15,7 +18,7 @@ export default function TeacherDashboardPage() {
           { label: 'Update Result', href: '/p_R2t9b/update-result', icon: FileText, color: 'text-green-600 bg-green-100' },
           { label: 'Leave Management', href: '/p_R2t9b/leave-management', icon: ClipboardList, color: 'text-purple-600 bg-purple-100' },
           { label: 'Form Download', href: '/p_R2t9b/form-download', icon: Download, color: 'text-orange-600 bg-orange-100' },
-        ].map((item) => (
+        ].filter((item) => canSeeLink(user, item.href)).map((item) => (
           <Link key={item.href} href={item.href}>
             <Card className="cursor-pointer transition-shadow hover:shadow-md">
               <CardContent className="flex items-center gap-4 pt-6">

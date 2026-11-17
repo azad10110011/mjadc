@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Card, CardContent } from '@/components/ui'
-import { api, UPLOAD_BASE } from '@/lib/api'
+import { api, API_BASE, UPLOAD_BASE } from '@/lib/api'
 
 interface MediaItem {
   filename: string
@@ -62,7 +62,7 @@ export default function AdminMediaViewClient({ params }: { params: Promise<{ id:
         fd.append('directory', directory)
         await api.upload('/admin/media/upload', fd)
         const token = localStorage.getItem('token')
-        const delRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mjadc.makafoodbd.com/mjadc-api/api'}/admin/media`, {
+        const delRes = await fetch(`${API_BASE}/admin/media`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ path: item.path }),
@@ -80,7 +80,7 @@ export default function AdminMediaViewClient({ params }: { params: Promise<{ id:
     if (!item || !confirm(`Delete "${item.filename}"?`)) return
     const token = localStorage.getItem('token')
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://mjadc.makafoodbd.com/mjadc-api/api'}/admin/media`, {
+      await fetch(`${API_BASE}/admin/media`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ path: item.path }),

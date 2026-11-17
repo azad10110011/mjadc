@@ -4,8 +4,11 @@ import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
 import { UserPlus, CheckSquare, DollarSign, ClipboardList } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
+import { canSeeLink } from '@/lib/permissions'
 
 export default function PrincipalDashboardPage() {
+  const { user } = useAuth() // Session 101: only features this user has
   return (
     <PanelLayout role="principal" title="Principal Dashboard">
       <div className="overflow-x-auto pb-2 scrollbar-thin">
@@ -16,7 +19,7 @@ export default function PrincipalDashboardPage() {
           { label: 'Result Publish', href: '/p_W4q6z/result-publish', icon: CheckSquare, color: 'text-purple-600 bg-purple-100' },
           { label: 'Tuition Fee', href: '/p_W4q6z/tuition-fee', icon: DollarSign, color: 'text-orange-600 bg-orange-100' },
           { label: 'Leave Management', href: '/p_W4q6z/leave-management', icon: ClipboardList, color: 'text-red-600 bg-red-100' },
-        ].map((item) => (
+        ].filter((item) => canSeeLink(user, item.href)).map((item) => (
           <Link key={item.href} href={item.href}>
             <Card className="cursor-pointer transition-shadow hover:shadow-md">
               <CardContent className="flex items-center gap-4 pt-6">

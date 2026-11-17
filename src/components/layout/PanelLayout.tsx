@@ -9,8 +9,7 @@ import {
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck, ListPlus,
   ClipboardList, Upload, Download, CheckSquare,
   UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign, CreditCard,
-  ArrowLeftRight, ShieldOff, Star,
-} from 'lucide-react'
+  ArrowLeftRight, ShieldOff, Star, Landmark } from 'lucide-react'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
@@ -86,7 +85,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/p_Xk7mN', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Notices', href: '/p_Xk7mN/notices', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Exam Management', icon: <GraduationCap className="h-4 w-4" />, children: [
+    { label: 'Internal Exam Management', icon: <GraduationCap className="h-4 w-4" />, children: [
       { label: 'All Results', href: '/p_Xk7mN/results' },
       { label: 'Result Summary', href: '/p_Xk7mN/result-summary' },
       { label: 'Transcript', href: '/p_Xk7mN/transcript' },
@@ -100,9 +99,20 @@ const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'Exam Fee Waiver', href: '/p_Xk7mN/exam-fee-waiver' },
       { label: 'Exam Fee Collection', href: '/p_Xk7mN/exam-fee-collection' },
       { label: 'Exam Fee Paid List', href: '/p_Xk7mN/exam-fee-paid-list' },
+      { label: 'Fee Due Rules', href: '/p_Xk7mN/due-rules' },
       { label: 'Exam Seat Plan', href: '/p_Xk7mN/seat-plan' },
       { label: 'Hall Duty Allocation', href: '/p_Xk7mN/exam-duty' },
       { label: 'Duty Appointment Letters', href: '/p_Xk7mN/duty-letters' },
+    ] },
+    { label: 'Board Exam Management', icon: <Landmark className="h-4 w-4" />, children: [
+      { label: 'Board Exams & Venues', href: '/p_Xk7mN/board/exams' },
+      { label: 'Candidates', href: '/p_Xk7mN/board/candidates' },
+      { label: 'Board Routine', href: '/p_Xk7mN/board/routine' },
+      { label: 'Board Seat Plan', href: '/p_Xk7mN/board/seat-plan' },
+      { label: 'Attendance Sheets', href: '/p_Xk7mN/board/attendance' },
+      { label: 'External Teachers', href: '/p_Xk7mN/board/external-teachers' },
+      { label: 'Board Hall Duty', href: '/p_Xk7mN/board/hall-duty' },
+      { label: 'Board Duty Letters', href: '/p_Xk7mN/board/duty-letters' },
     ] },
     { label: 'Custom Entry Fields', href: '/p_Xk7mN/custom-fields', icon: <ListPlus className="h-4 w-4" /> },
     { label: 'Subjects', href: '/p_Xk7mN/subjects', icon: <BookOpen className="h-4 w-4" /> },
@@ -216,9 +226,10 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     const expanded: Record<string, boolean> = {}
     if (pathname.startsWith('/p_Xk7mN/pages')) expanded['Pages'] = true
     if (pathname.startsWith('/p_Xk7mN/users')) expanded['Users'] = true
+    if (pathname.startsWith('/p_Xk7mN/board/')) expanded['Board Exam Management'] = true
     if (pathname.startsWith('/p_Xk7mN/teachers/') || pathname === '/p_Xk7mN/teachers') expanded['Teachers'] = true
     if (pathname.startsWith('/p_Xk7mN/staff')) expanded['Staff'] = true
-    if (pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/result-summary') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form') || pathname.startsWith('/p_Xk7mN/seat-plan') || pathname.startsWith('/p_Xk7mN/duty-letters') || pathname.startsWith('/p_Xk7mN/exams-groups')) expanded['Exam Management'] = true
+    if (pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/result-summary') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form') || pathname.startsWith('/p_Xk7mN/seat-plan') || pathname.startsWith('/p_Xk7mN/duty-letters') || pathname.startsWith('/p_Xk7mN/exams-groups') || pathname.startsWith('/p_Xk7mN/due-rules')) expanded['Internal Exam Management'] = true
     if (pathname.startsWith('/p_Xk7mN/students')) expanded['Student Management'] = true
     if (pathname.startsWith('/p_F7c2j/students')) expanded['Student Management'] = true
     return expanded
@@ -396,8 +407,8 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
                   ? pathname.startsWith('/p_Xk7mN/users')
                   : item.label === 'Student Management'
                     ? pathname.startsWith('/p_Xk7mN/students') || pathname.startsWith('/p_F7c2j/students') || pathname.startsWith('/p_Xk7mN/class-change') || pathname.startsWith('/p_Xk7mN/student-info')
-                    : item.label === 'Exam Management'
-                      ? pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/result-summary') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form') || pathname.startsWith('/p_Xk7mN/seat-plan') || pathname.startsWith('/p_Xk7mN/duty-letters') || pathname.startsWith('/p_Xk7mN/exams-groups')
+                    : item.label === 'Internal Exam Management'
+                      ? pathname.startsWith('/p_Xk7mN/results') || pathname.startsWith('/p_Xk7mN/result-summary') || pathname.startsWith('/p_Xk7mN/transcript') || pathname.startsWith('/p_Xk7mN/exam-') || pathname.startsWith('/p_Xk7mN/admit-card') || pathname.startsWith('/p_Xk7mN/mark-entry-form') || pathname.startsWith('/p_Xk7mN/seat-plan') || pathname.startsWith('/p_Xk7mN/duty-letters') || pathname.startsWith('/p_Xk7mN/exams-groups') || pathname.startsWith('/p_Xk7mN/due-rules')
                       : item.children.some((c) => c.href && normPath(pathname) === normPath(c.href))
               return (
                 <div key={item.label}>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, Modal } from '@/components/ui'
+import { PanelTaskPicker, loadDisabledTasks } from '@/components/users/PanelTaskPicker'
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { PhotoWithPreview } from '@/components/ui/PhotoWithPreview'
 import { exportToExcel, exportToPDF, type ExportColumn } from '@/lib/export'
@@ -84,6 +85,8 @@ export default function StaffAdmin({ mode }: { mode: 'list' | 'add' }) {
   const [permanentAddress, setPermanentAddress] = useState('')
   const [password, setPassword] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<string[]>(['administration'])
+  const [disabledTasks, setDisabledTasks] = useState<string[]>([]) // Session 102: unticked panel tasks
+  const [otherRoles, setOtherRoles] = useState<string[]>([]) // roles this form does not manage (e.g. admin)
   const [pdsId, setPdsId] = useState('')
   const [mpoIndex, setMpoIndex] = useState('')
   const [bloodGroup, setBloodGroup] = useState('')
@@ -131,7 +134,7 @@ export default function StaffAdmin({ mode }: { mode: 'list' | 'add' }) {
 
   const resetForm = () => {
     setEditingId(null); setName(''); setNameBangla(''); setDesignation(''); setSubject('')
-    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['administration']); setPdsId(''); setMpoIndex(''); setBloodGroup(''); setEmergencyContact(''); setPhotoFile(null); setExistingPhotoPath(null)
+    setJoiningDate(''); setFirstMpoDate(''); setDateOfBirth(''); setGender(''); setMobile(''); setWhatsappNumber(''); setNidNumber(''); setEmail(''); setPresentAddress(''); setPermanentAddress(''); setPassword(''); setSelectedRoles(['administration']); setDisabledTasks([]); setOtherRoles([]); setPdsId(''); setMpoIndex(''); setBloodGroup(''); setEmergencyContact(''); setPhotoFile(null); setExistingPhotoPath(null)
   }
 
   const fetchStaff = () => {
@@ -170,6 +173,7 @@ export default function StaffAdmin({ mode }: { mode: 'list' | 'add' }) {
         name, designation, subject: subject || undefined,
         joining_date: joiningDate, date_of_birth: dateOfBirth || undefined, gender, mobile, email: email || undefined,
         roles: selectedRoles,
+        disabled_features: otherRoles.includes('admin') ? [] : disabledTasks,
         ...extraFields,
         ...(photoPath && { photo_path: photoPath }),
       }
@@ -198,7 +202,16 @@ export default function StaffAdmin({ mode }: { mode: 'list' | 'add' }) {
     setDateOfBirth(s.date_of_birth || ''); setGender(s.gender || ''); setMobile(s.mobile || ''); setWhatsappNumber(s.whatsapp_number || ''); setNidNumber(s.nid_number || ''); setEmail(s.email || ''); setPresentAddress(s.present_address || ''); setPermanentAddress(s.permanent_address || '')
     setPdsId(s.pds_id || ''); setMpoIndex(s.mpo_index || '')
     setBloodGroup(s.blood_group || ''); setEmergencyContact(s.emergency_contact || '')
-    setExistingPhotoPath(s.photo_path || null); setPhotoFile(null); setPassword(''); setSelectedRoles(['administration'])
+    setExistingPhotoPath(s.photo_path || null); setPhotoFile(null); setPassword('')
+    {
+      // Session 102: load the user's real roles (was always reset to 'administration', and saving then dropped the others)
+      const all = String(s.roles || '').split(',').filter(Boolean)
+      const managed = AVAILABLE_ROLES.map((r) => r.value)
+      setSelectedRoles(all.filter((r) => managed.includes(r)).length ? all.filter((r) => managed.includes(r)) : ['administration'])
+      setOtherRoles(all.filter((r) => !managed.includes(r)))
+      setDisabledTasks([])
+      if (s.user_id) void loadDisabledTasks(Number(s.user_id)).then(setDisabledTasks)
+    }
   }
 
   const handleDelete = (id: number) => {
@@ -391,6 +404,7 @@ export default function StaffAdmin({ mode }: { mode: 'list' | 'add' }) {
             <Input label="MPO Index" placeholder="MPO Index" value={mpoIndex} onChange={(e) => setMpoIndex(e.target.value)} />
             <Input label="Picture" type="file" accept=".png,.jpg" key={editingId ?? 'new'} onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
           </div>
+          <PanelTaskPicker roles={Array.from(new Set([...otherRoles, ...selectedRoles]))} disabled={disabledTasks} onChange={setDisabledTasks} />
           <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
             {submitting ? 'Saving...' : editingId ? 'Update Staff' : 'Add Staff'}
           </Button>

@@ -39,7 +39,7 @@ function LettersInner() {
   const [error, setError] = useState('')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selected, setSelected] = useState<Set<number | string>>(new Set())
   const [search, setSearch] = useState('')
   const [form, setForm] = useState({ memo_no: '', issue_date: '', signatory_name: '', signatory_designation: '', reporting_minutes: 30, instructions: DEFAULT_INSTRUCTIONS })
 

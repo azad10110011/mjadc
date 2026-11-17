@@ -36,3 +36,11 @@ export function pageKeyFor(pathname: string, user: User | null | undefined): str
   }
   return best
 }
+
+/** Should a link to this page be shown? (Session 101) Same rule as the menu: pages that are not
+ *  permission-controlled (dashboards, change password) always show; others only when the user has them. */
+export function canSeeLink(user: User | null | undefined, href: string): boolean {
+  if (!user || !user.permission_keys) return true
+  const key = pageKeyFor(href, user)
+  return key ? canOpenPage(user, key) : true
+}

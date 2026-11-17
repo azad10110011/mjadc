@@ -42,6 +42,7 @@ export default function TeacherUploadResultPage() {
   const [subject, setSubject] = useState('')
   const [showGrid, setShowGrid] = useState(false)
   const [students, setStudents] = useState<any[]>([])
+  const [dueNote, setDueNote] = useState('') // Session 100: students hidden by the admin's fee rule
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [availableSubjects, setAvailableSubjects] = useState<{ key: string; label: string; subject_id: number; subject_name: string; paper_name: string | null }[]>([])
@@ -133,6 +134,7 @@ export default function TeacherUploadResultPage() {
       const configs: SubjectPart[] = res.data?.part_configs || []
       setPartConfigs(configs)
       const data = res.data?.students || []
+      setDueNote(res.data?.hidden_due ? `${res.data.hidden_due} student(s) are not listed: the admin allows mark entry only for "${res.data.mark_entry_rule_label}" students. Contact the admin / exam office.` : '')
       setStudents(data.map((s: any, i: number) => {
         const absentIn: string[] = [...(s.absent_in || [])]
         const rawParts: Record<string, number> = s.parts_data || {}
@@ -292,6 +294,7 @@ export default function TeacherUploadResultPage() {
 
   return (
     <PanelLayout role="teacher" title="Upload Result">
+      {dueNote && <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{dueNote}</p>}
       <Card className="mb-6">
         <CardContent className="space-y-4 pt-6">
           {examName && !loadingSubjects && availableSubjects.length === 0 && !subjectError && (

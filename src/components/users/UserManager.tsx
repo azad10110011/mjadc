@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge } from '@/components/ui'
 import { api } from '@/lib/api'
+import { PanelTaskPicker, loadDisabledTasks } from '@/components/users/PanelTaskPicker'
 import { Search, X, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 
 interface User {
@@ -81,6 +82,7 @@ export function UserManager({ scope, title, listTitle, mode = 'both' }: Props) {
   const [examSubjects, setExamSubjects] = useState<string[]>([])
   const [publicSubjects, setPublicSubjects] = useState<string[]>([])
   const [formError, setFormError] = useState('')
+  const [disabledTasks, setDisabledTasks] = useState<string[]>([]) // Session 102: unticked panel tasks
   const [notice, setNotice] = useState('')
   const [resetPwUser, setResetPwUser] = useState<User | null>(null)
   const [resetPwValue, setResetPwValue] = useState('')
@@ -125,7 +127,7 @@ export function UserManager({ scope, title, listTitle, mode = 'both' }: Props) {
   const resetForm = () => {
     setEditingId(null); setEditingRoles([]); setName(''); setEmail(''); setPassword('')
     setSelectedRoles(scope === 'student' ? ['student'] : []); setDefaultRole('')
-    setSelectedSubjects([]); setSelectedResultSubjects([]); setFormError('')
+    setSelectedSubjects([]); setSelectedResultSubjects([]); setFormError(''); setDisabledTasks([])
   }
 
   const handleSubmit = async () => {
@@ -138,7 +140,7 @@ export function UserManager({ scope, title, listTitle, mode = 'both' }: Props) {
     const roles = Array.from(new Set([...hidden, ...selectedRoles]))
     if (roles.length === 0) { setFormError('Select at least one role'); return }
     try {
-      const payload: Record<string, unknown> = { name: name.trim(), email: email.trim(), roles }
+      const payload: Record<string, unknown> = { name: name.trim(), email: email.trim(), roles, disabled_features: roles.includes('admin') ? [] : disabledTasks }
       if (cfg.defaultPanel) payload.default_role = defaultRole || null
       if (roles.includes('teacher') && cfg.roles.includes('teacher')) {
         payload.subjects = selectedSubjects
@@ -165,6 +167,8 @@ export function UserManager({ scope, title, listTitle, mode = 'both' }: Props) {
     setSelectedRoles(u.roles.filter((r) => cfg.roles.includes(r)))
     setDefaultRole(u.default_role || ''); setSelectedSubjects(u.subjects || []); setSelectedResultSubjects(u.result_subjects || [])
     setPassword(''); setFormError(''); setNotice('')
+    setDisabledTasks([])
+    void loadDisabledTasks(u.id).then(setDisabledTasks)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -305,6 +309,8 @@ export function UserManager({ scope, title, listTitle, mode = 'both' }: Props) {
                 )}
               </div>
             )}
+            <PanelTaskPicker roles={Array.from(new Set([...editingRoles.filter((r) => !cfg.roles.includes(r)), ...selectedRoles]))}
+              disabled={disabledTasks} onChange={setDisabledTasks} />
             {cfg.defaultPanel && selectedRoles.length > 0 && (
               <div className="max-w-sm">
                 <label className="mb-2 block text-sm font-medium text-gray-700">Default Panel (on login)</label>

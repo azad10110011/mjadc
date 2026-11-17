@@ -141,6 +141,8 @@ export function TranscriptGenerator({ role, title }: Props) {
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [includeHeld, setIncludeHeld] = useState(false) // Session 100: admin may print marksheets held for dues
+  const [holdNote, setHoldNote] = useState('')
   const logoSrc = useCollegeLogo()
   const [config, reloadConfig] = useTranscriptConfig()
 
@@ -153,11 +155,13 @@ export function TranscriptGenerator({ role, title }: Props) {
     setLoading(true)
     setError('')
     try {
-      const res: { status: number; data: TranscriptData[] } = await api.post('/admin/transcript', {
+      const res: { status: number; data: TranscriptData[]; message?: string } = await api.post('/admin/transcript', {
         class: cls, exam_name: examName, year,
         ...(studentId && { student_id: studentId }),
         ...(group && { group }),
+        ...(role === 'admin' && includeHeld && { include_held: true }),
       })
+      setHoldNote(res.message && /hold|unpaid/i.test(res.message) ? res.message : '')
       const list = res.data || []
       // QR images are generated before the sheets render so Print never catches a sheet without one
       const qrMap: Record<string, string> = {}
@@ -201,6 +205,13 @@ export function TranscriptGenerator({ role, title }: Props) {
               </Button>
             )}
           </div>
+          {role === 'admin' && (
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={includeHeld} onChange={(e) => setIncludeHeld(e.target.checked)} />
+              Include students whose result is on hold for unpaid fees (Fee Due Rules)
+            </label>
+          )}
+          {holdNote && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{holdNote}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           {transcripts.length > 0 && (
             <p className="flex flex-wrap items-center gap-1 text-sm text-gray-600">

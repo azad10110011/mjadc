@@ -9,6 +9,8 @@ import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
 import { GraduationCap, DollarSign, FileText, KeyRound, ChevronRight, UserRound, CalendarCheck } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
+import { canSeeLink } from '@/lib/permissions'
 
 interface DashboardData {
   student: { name: string; class: string; student_id: string }
@@ -26,6 +28,9 @@ const LINKS = [
 ]
 
 export default function StudentDashboardPage() {
+  const { user } = useAuth() // Session 101: hide features the admin turned off for this student
+  const showResults = canSeeLink(user, '/p_G9n4s/results')
+  const showFees = canSeeLink(user, '/p_G9n4s/pay-fees')
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState('')
 
@@ -53,8 +58,8 @@ export default function StudentDashboardPage() {
 
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
+        {(showResults || showFees) && <div className="grid gap-4 sm:grid-cols-2">
+          {showResults && <Card>
             <CardContent className="flex items-center gap-4 pt-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                 <GraduationCap className="h-6 w-6" />
@@ -65,8 +70,8 @@ export default function StudentDashboardPage() {
                 <p className="text-xs text-gray-400">{data?.last_result ? data.last_result.exam_name : 'No published result yet'}</p>
               </div>
             </CardContent>
-          </Card>
-          <Card>
+          </Card>}
+          {showFees && <Card>
             <CardContent className="flex items-center gap-4 pt-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 text-green-600">
                 <DollarSign className="h-6 w-6" />
@@ -77,13 +82,13 @@ export default function StudentDashboardPage() {
                 <p className="text-xs text-gray-400">{data && data.outstanding > 0 ? 'Please pay from Pay Fees' : 'No dues'}</p>
               </div>
             </CardContent>
-          </Card>
-        </div>
+          </Card>}
+        </div>}
 
         <div>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Quick Links</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {LINKS.map(({ href, label, desc, icon: Icon, tone }) => (
+            {LINKS.filter((l) => canSeeLink(user, l.href)).map(({ href, label, desc, icon: Icon, tone }) => (
               <Link key={href} href={href}
                 className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow">
                 <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tone}`}><Icon className="h-5 w-5" /></span>

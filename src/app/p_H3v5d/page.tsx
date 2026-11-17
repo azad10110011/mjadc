@@ -4,15 +4,18 @@ import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
 import { Upload, CheckSquare } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
+import { canSeeLink } from '@/lib/permissions'
 
 export default function ExamControllerDashboardPage() {
+  const { user } = useAuth() // Session 101: only features this user has
   return (
     <PanelLayout role="exam_controller" title="Exam Controller Dashboard">
       <div className="grid gap-4 sm:grid-cols-2">
         {[
           { label: 'Upload Result', href: '/p_H3v5d/upload-result', icon: Upload, color: 'text-blue-600 bg-blue-100' },
           { label: 'Approve Result', href: '/p_H3v5d/approve-result', icon: CheckSquare, color: 'text-green-600 bg-green-100' },
-        ].map((item) => (
+        ].filter((item) => canSeeLink(user, item.href)).map((item) => (
           <Link key={item.href} href={item.href}>
             <Card className="cursor-pointer transition-shadow hover:shadow-md">
               <CardContent className="flex items-center gap-4 pt-6">

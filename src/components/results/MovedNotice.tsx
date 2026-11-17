@@ -16,7 +16,7 @@ export function MovedNotice({ title, where }: { title: string; where: string }) 
           <div className="space-y-1 text-sm text-gray-700">
             <p className="font-semibold text-gray-900">{title} has moved</p>
             <p>{where}</p>
-            <p className="text-gray-500">Results can be reviewed any time from Exam Management → All Results or Result Summary.</p>
+            <p className="text-gray-500">Results can be reviewed any time from Internal Exam Management → All Results or Result Summary.</p>
           </div>
         </CardContent>
       </Card>

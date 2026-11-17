@@ -281,7 +281,9 @@ export default function AdminAdmitCardPage() {
       // Pre-generate QR code data URL per student (verify URL scanned by anyone)
       const qrMap: Record<string, string> = {};
       for (const s of list) {
-        const verifyUrl = `${window.location.origin}/verify/exam-fee?student_id=${encodeURIComponent(s.student_id)}&year=${year}&exam=${encodeURIComponent(examName)}`;
+        // Session 106: printed QR codes always point at the public website (never localhost / a non-www alias)
+        const site = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/+$/, "");
+        const verifyUrl = `${site}/verify/exam-fee/?student_id=${encodeURIComponent(s.student_id)}&year=${year}&exam=${encodeURIComponent(examName)}`;
         qrMap[s.student_id] = await QRCode.toDataURL(verifyUrl, {
           width: 200,
           margin: 1,

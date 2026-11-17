@@ -181,7 +181,7 @@ const groupFill = (g: string): [number, number, number] =>
  * every column with its own benches, and the student ID in each seat (colour = group).
  * Returns the y just below the drawing.
  */
-function drawRoomMap(doc: jsPDF, room: RoomInfo, list: SeatRow[], x: number, y: number, w: number, maxH: number): number {
+export function drawRoomMap(doc: jsPDF, room: RoomInfo, list: SeatRow[], x: number, y: number, w: number, maxH: number): number {
   const cb = room.column_benches?.length ? room.column_benches : Array(room.columns_count).fill(room.benches_per_column)
   const cols = cb.length
   const maxB = Math.max(1, ...cb)
@@ -345,7 +345,8 @@ export function doorListPdf(title: string, rooms: RoomInfo[], seats: SeatRow[], 
 
 // ---------------------------------------------------------------- duty appointment letters
 export interface LetterDuty { exam_date: string; exam_time: string; room: string; subjects: string[]; classes: string[] }
-export interface LetterTeacher { id: number; name: string; designation: string; subject: string | null; gender: string; duties: LetterDuty[] }
+// college: set for external teachers (board exams) — printed instead of our college in the address
+export interface LetterTeacher { id: number | string; name: string; designation: string; subject: string | null; gender: string; college?: string; duties: LetterDuty[] }
 export interface LetterSettings {
   examTitle: string            // e.g. "Pre-Test Examination 2026"
   classes: string[]
@@ -401,7 +402,7 @@ function drawLetter(doc: jsPDF, t: LetterTeacher, s: LetterSettings, logo: strin
   doc.setFont('helvetica', 'bold'); doc.text(t.name, L, y); y += 5
   doc.setFont('helvetica', 'normal')
   doc.text(t.designation + (t.subject ? `, Department of ${t.subject}` : ''), L, y); y += 5
-  doc.text(COLLEGE, L, y); y += 9
+  doc.text(t.college || COLLEGE, L, y); y += 9
 
   doc.setFont('helvetica', 'bold')
   doc.text(`Subject: Appointment as invigilator — ${s.examTitle}${s.classes.length ? ` (Class ${s.classes.join(' & ')})` : ''}`, L, y, { maxWidth: R - L }); y += 8
@@ -420,7 +421,7 @@ function drawLetter(doc: jsPDF, t: LetterTeacher, s: LetterSettings, logo: strin
     styles: { fontSize: 9, cellPadding: 1.8, valign: 'middle' },
     headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [239, 246, 255] },
-    columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 32 }, 2: { cellWidth: 22 }, 3: { cellWidth: 20 }, 4: { cellWidth: 22, fontStyle: 'bold' } },
+    columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 32 }, 2: { cellWidth: 22 }, 3: { cellWidth: 20 }, 4: { cellWidth: t.duties.some((d) => d.room.length > 12) ? 36 : 22, fontStyle: 'bold' } },
   })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = ((doc as any).lastAutoTable?.finalY ?? y) + 5

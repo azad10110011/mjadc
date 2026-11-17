@@ -6,26 +6,31 @@ import { Card, CardContent } from '@/components/ui'
 import { FileText, BookOpen, Calendar, DollarSign, Users, GraduationCap, Download } from 'lucide-react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
+import { canSeeLink } from '@/lib/permissions'
 
 export default function AdministrationDashboardPage() {
+  const { user } = useAuth() // Session 101: only features this user has
   const [noticeCount, setNoticeCount] = useState('0')
   const [syllabusCount, setSyllabusCount] = useState('0')
   const [routineCount, setRoutineCount] = useState('0')
   const [studentCount, setStudentCount] = useState('0')
 
   useEffect(() => {
-    api.get('/admin-panel/notices').then((r: any) => setNoticeCount(String(r.data?.length || 0))).catch(() => {})
-    api.get('/admin-panel/syllabus').then((r: any) => setSyllabusCount(String(r.data?.length || 0))).catch(() => {})
-    api.get('/admin-panel/routines').then((r: any) => setRoutineCount(String(r.data?.length || 0))).catch(() => {})
-    api.get('/admin-panel/students').then((r: any) => setStudentCount(String(r.data?.length || 0))).catch(() => {})
-  }, [])
+    if (!user) return
+    const on = (href: string) => canSeeLink(user, href)
+    if (on('/p_F7c2j/notices')) api.get('/admin-panel/notices').then((r: any) => setNoticeCount(String(r.data?.length || 0))).catch(() => {})
+    if (on('/p_F7c2j/syllabus')) api.get('/admin-panel/syllabus').then((r: any) => setSyllabusCount(String(r.data?.length || 0))).catch(() => {})
+    if (on('/p_F7c2j/routine')) api.get('/admin-panel/routines').then((r: any) => setRoutineCount(String(r.data?.length || 0))).catch(() => {})
+    if (on('/p_F7c2j/students')) api.get('/admin-panel/students').then((r: any) => setStudentCount(String(r.data?.length || 0))).catch(() => {})
+  }, [user])
 
   const statCards = [
-    { label: 'Notices', value: noticeCount, color: 'text-blue-600 bg-blue-100' },
-    { label: 'Syllabus', value: syllabusCount, color: 'text-green-600 bg-green-100' },
-    { label: 'Routines', value: routineCount, color: 'text-purple-600 bg-purple-100' },
-    { label: 'Students', value: studentCount, color: 'text-cyan-600 bg-cyan-100' },
-  ]
+    { label: 'Notices', value: noticeCount, color: 'text-blue-600 bg-blue-100', href: '/p_F7c2j/notices' },
+    { label: 'Syllabus', value: syllabusCount, color: 'text-green-600 bg-green-100', href: '/p_F7c2j/syllabus' },
+    { label: 'Routines', value: routineCount, color: 'text-purple-600 bg-purple-100', href: '/p_F7c2j/routine' },
+    { label: 'Students', value: studentCount, color: 'text-cyan-600 bg-cyan-100', href: '/p_F7c2j/students' },
+  ].filter((c) => canSeeLink(user, c.href))
 
   const quickLinks = [
     { label: 'Notices', href: '/p_F7c2j/notices', icon: FileText, color: 'text-blue-600 bg-blue-100' },
@@ -35,7 +40,7 @@ export default function AdministrationDashboardPage() {
     { label: 'Fee Collection', href: '/p_F7c2j/fee-collection', icon: DollarSign, color: 'text-orange-600 bg-orange-100' },
     { label: 'Students', href: '/p_F7c2j/students', icon: Users, color: 'text-cyan-600 bg-cyan-100' },
     { label: 'Forms', href: '/p_F7c2j/forms', icon: Download, color: 'text-pink-600 bg-pink-100' },
-  ]
+  ].filter((l) => canSeeLink(user, l.href))
 
   return (
     <PanelLayout role="administration" title="Administration Panel">

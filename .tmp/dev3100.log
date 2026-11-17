@@ -1,0 +1,18 @@
+
+> opencode@0.1.0 dev
+> next dev -p 3100
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3100
+- Network:       http://192.168.197.1:3100
+- Environments: .env.local, .env
+✓ Ready in 757ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          9340
+- Dir:          D:\opencode 09062026\frontend
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 9340 /F to stop it.
+[?25h
