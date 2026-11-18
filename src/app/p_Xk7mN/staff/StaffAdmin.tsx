@@ -182,8 +182,9 @@ export default function StaffAdmin({ mode }: { mode: 'list' | 'add' }) {
         await api.put(`/admin/teachers-staff/staff/${editingId}`, payload)
         alert('Staff updated successfully')
       } else {
-        await api.post('/admin/teachers-staff/staff', payload)
-        alert('Staff added successfully')
+        const r: any = await api.post('/admin/teachers-staff/staff', payload)
+        const tmp = r?.data?.temp_password
+        alert(tmp ? `Staff added.\n\nTemporary password: ${tmp}\n\nShare it with them — they must set a new password at first login.` : 'Staff added successfully')
       }
       resetForm()
       const r: any = await api.get('/admin/teachers-staff/staff')

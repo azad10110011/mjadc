@@ -223,8 +223,9 @@ export default function TeachersAdmin({ mode }: { mode: 'list' | 'add' }) {
         await api.put(`/admin/teachers-staff/teacher/${editingId}`, payload)
         alert('Teacher updated successfully')
       } else {
-        await api.post('/admin/teachers-staff/teacher', payload)
-        alert('Teacher added successfully')
+        const r: any = await api.post('/admin/teachers-staff/teacher', payload)
+        const tmp = r?.data?.temp_password
+        alert(tmp ? `Teacher added.\n\nTemporary password: ${tmp}\n\nShare it with them — they must set a new password at first login.` : 'Teacher added successfully')
       }
       resetForm()
       const r: any = await api.get('/admin/teachers-staff/teachers')

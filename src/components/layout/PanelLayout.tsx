@@ -27,17 +27,17 @@ interface PanelLayoutProps {
   title: string
 }
 
-const ROLE_HOME: Record<PanelRole, string> = {
+export const ROLE_HOME: Record<PanelRole, string> = {
   admin: '/p_Xk7mN',
   student: '/p_G9n4s/dashboard',
   teacher: '/p_R2t9b',
-  staff: '/p_L8p1x/leave-management',
+  staff: '/p_L8p1x',
   exam_controller: '/p_H3v5d',
   principal: '/p_W4q6z',
   administration: '/p_F7c2j',
 }
 
-const ROLE_LABELS: Record<PanelRole, string> = {
+export const ROLE_LABELS: Record<PanelRole, string> = {
   admin: 'Admin',
   student: 'Student',
   teacher: 'Teacher',
@@ -49,12 +49,12 @@ const ROLE_LABELS: Record<PanelRole, string> = {
 
 const ROLE_PRIORITY: PanelRole[] = ['admin', 'principal', 'administration', 'exam_controller', 'teacher', 'staff', 'student']
 
-interface SubNavItem {
+export interface SubNavItem {
   label: string
   href: string
 }
 
-interface NavItem {
+export interface NavItem {
   label: string
   href?: string
   icon: ReactNode
@@ -81,7 +81,7 @@ const PAGE_SUB_ITEMS: SubNavItem[] = [
   { label: 'Notices', href: '/p_Xk7mN/pages/notices_intro' },
 ]
 
-const panelNav: Record<PanelRole, NavItem[]> = {
+export const panelNav: Record<PanelRole, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/p_Xk7mN', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Notices', href: '/p_Xk7mN/notices', icon: <FileText className="h-4 w-4" /> },
@@ -154,6 +154,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'Add Teacher/Staff', href: '/p_Xk7mN/users/teacher-staff/add' },
       { label: 'Students', href: '/p_Xk7mN/users/students' },
       { label: 'User Permissions', href: '/p_Xk7mN/users/permissions' },
+      { label: 'Dashboard Quick Access', href: '/p_Xk7mN/users/quick-access' },
     ] },
     { label: 'Tuition Fees', href: '/p_Xk7mN/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },
     { label: 'Transactions', href: '/p_Xk7mN/transactions', icon: <Receipt className="h-4 w-4" /> },
@@ -179,6 +180,7 @@ const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Form Download', href: '/p_R2t9b/form-download', icon: <Download className="h-4 w-4" /> },
   ],
   staff: [
+    { label: 'Dashboard', href: '/p_L8p1x', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Leave Management', href: '/p_L8p1x/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
   ],
   exam_controller: [
@@ -245,6 +247,15 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     logout()
     router.push('/')
   }, [logout, router])
+
+  // Session 112: force a password change before anything else when the account still
+  // uses its default/temporary password. The change-password page itself is exempt.
+  useEffect(() => {
+    if (loading || !user) return
+    if (user.must_change_password && pathname !== '/change-password') {
+      router.replace('/change-password')
+    }
+  }, [user, loading, pathname, router])
 
   useEffect(() => {
     if (loading) return

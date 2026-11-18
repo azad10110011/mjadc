@@ -9,6 +9,8 @@ export interface User {
   roles: UserRole[]
   default_role?: string
   status: 'active' | 'frozen'
+  /** 1 = must change the (default/temp) password before using the app — Session 112 */
+  must_change_password?: number
   created_at: string
   /** effective permission keys (page paths) — Session 80 */
   permissions?: string[]

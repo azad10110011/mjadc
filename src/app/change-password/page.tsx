@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PanelLayout } from '@/components/layout'
 import { Card, CardContent, Button, Input } from '@/components/ui'
-import type { PanelRole } from '@/components/layout/PanelLayout'
+import { ROLE_HOME, type PanelRole } from '@/components/layout/PanelLayout'
 import { api } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 function getRoleFromToken(): PanelRole | null {
   if (typeof window === 'undefined') return null
@@ -29,6 +30,8 @@ function getRoleFromToken(): PanelRole | null {
 
 export default function ChangePasswordPage() {
   const router = useRouter()
+  const { user, refresh } = useAuth()
+  const mustChange = !!user?.must_change_password
   const [role, setRole] = useState<PanelRole | null>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -58,6 +61,11 @@ export default function ChangePasswordPage() {
       await api.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword })
       setSuccess('Password changed successfully')
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
+      if (mustChange) {
+        // Forced first-login change: clear the flag in memory, then go to the panel home.
+        await refresh()
+        if (role) router.replace(ROLE_HOME[role] || '/')
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to change password')
     }
@@ -70,6 +78,12 @@ export default function ChangePasswordPage() {
         <Card>
           <CardContent className="space-y-4 pt-6">
             <h3 className="font-semibold text-gray-900">Change Your Password</h3>
+            {mustChange && (
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                For your security, please set a new password before continuing. Your current password is the
+                temporary one you were given (students: your mobile number).
+              </p>
+            )}
             <Input label="Current Password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
             <Input label="New Password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             <Input label="Confirm New Password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />

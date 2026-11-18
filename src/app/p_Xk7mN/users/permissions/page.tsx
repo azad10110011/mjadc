@@ -11,6 +11,7 @@ import { PanelLayout } from '@/components/layout'
 import { Button, Card, CardContent } from '@/components/ui'
 import { api } from '@/lib/api'
 import { Search, ShieldCheck, Lock, RotateCcw, Save } from 'lucide-react'
+import { UserQuickAccess } from '@/components/quickAccess/UserQuickAccess'
 
 interface CatalogItem { key: string; label: string; group: string; roles: string[]; grantable: boolean }
 interface UserRow { id: number; name: string; email: string; roles: string[]; status: string; student_id?: string | null }
@@ -111,6 +112,9 @@ function PermissionsInner() {
       setSaving(false)
     }
   }
+
+  const catalogKeys = useMemo(() => catalog.map((it) => it.key), [catalog])
+  const tickedKeys = useMemo(() => (data?.is_admin ? catalogKeys : Object.keys(checked).filter((k) => checked[k])), [data, catalogKeys, checked])
 
   const resetToRole = () => setChecked(Object.fromEntries(catalog.filter(isDefault).map((it) => [it.key, true])))
 
@@ -218,6 +222,9 @@ function PermissionsInner() {
                   ))}
                 </>
               )}
+
+              {/* Session 110: this user's dashboard shortcuts */}
+              <UserQuickAccess key={data.user.id} userId={data.user.id} roles={roles} permissions={tickedKeys} permissionKeys={catalogKeys} />
             </>
           )}
         </div>

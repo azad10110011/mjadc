@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
 import { api } from '@/lib/api'
+import { QuickAccessGrid } from '@/components/quickAccess/QuickAccessGrid'
 
 export default function AdminDashboardPage() {
   const [noticeCount, setNoticeCount] = useState('0')
@@ -37,6 +38,7 @@ export default function AdminDashboardPage() {
         ))}
         </div>
       </div>
+      <div className="mt-6"><QuickAccessGrid panel="admin" /></div>
     </PanelLayout>
   )
 }

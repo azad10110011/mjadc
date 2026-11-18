@@ -27,14 +27,14 @@ export default function TeacherLoginPage() {
       if (defaultRole) {
         const home: Record<string, string> = {
           teacher: '/p_R2t9b',
-          staff: '/p_L8p1x/leave-management',
+          staff: '/p_L8p1x',
           exam_controller: '/p_H3v5d',
           principal: '/p_W4q6z',
           administration: '/p_F7c2j',
         }
         router.push(home[defaultRole] || '/p_R2t9b')
       } else if (roles.includes('teacher')) router.push('/p_R2t9b')
-      else if (roles.includes('staff')) router.push('/p_L8p1x/leave-management')
+      else if (roles.includes('staff')) router.push('/p_L8p1x')
       else if (roles.includes('exam_controller')) router.push('/p_H3v5d')
       else if (roles.includes('principal')) router.push('/p_W4q6z')
       else if (roles.includes('administration')) router.push('/p_F7c2j')

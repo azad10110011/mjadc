@@ -2,9 +2,96 @@
 
 > **AI instruction:** always append a new session entry to this file after a successful code update — summary of files changed, migrations, verification, and deployment needs.
 
+## 2026-11-18 (Wed)
+
+### Done
+**Session 112 — Security audit + hardening fixes (COMPLETED + DEPLOYED TO LIVE 2026-11-18)**
+- **Deployed 2026-11-18:** all Session 110–112 backend files and the rebuilt frontend `out/` were uploaded to live by the user. `securityEnsureSchema()` runs on the first live login to add `users.must_change_password` + the `login_attempts` table (no manual SQL). Live `.env` already has a 52-char `JWT_SECRET` so the fail-hard check passes.
+- **Request:** audit the full live + local site for security issues and give a report; then apply the code-level fixes (`.htaccess`, CORS, login throttling, upload allow-lists, fail-hard secrets) and force users to change their default password after first login.
+- **Report:** `SECURITY-AUDIT-2026-11-18.md` at the repo root. Headline live issues (the user fixed these on the server manually): backend `*.zip` and `database/schema.sql` (with the seeded admin hash) were publicly downloadable. No SQL injection found; passwords are bcrypt; permission checks are server-side.
+- **Backend changes (all copied to XAMPP, PHP-linted):**
+  - **NEW `utils/Security.php`** (required in `index.php` after Dues): `securityEnsureSchema()` (lazily creates `login_attempts` table + adds `users.must_change_password TINYINT(1) DEFAULT 0`), login throttle helpers (`loginThrottleGuard/Fail/Reset`, 5 failures per `ip|email` → 15-min lock, 429), `genTempPassword()`, `newAccountPassword($provided)` → `[hash, mustChange(0|1), plainTemp|null]`.
+  - **`.htaccess`:** `FilesMatch` deny now also covers `zip|tar|gz|tgz|rar|7z|sql|sqlite|db|bak|old|orig|swp|dist|ini|sh|log` (was only `env|json|lock|md`); switched to `Require all denied`.
+  - **`middleware/Cors.php`:** exact allow-list incl. `https://www.mjadc.ac.bd`; **no `*` fallback** — unknown origins get no ACAO header; added `Vary: Origin`. `config/app.php` cors list updated to match.
+  - **`utils/JWTHandler.php`:** `getSecret()` now fails hard (500) if `JWT_SECRET` is missing or <32 chars instead of using `'default-secret-key'`. `config/app.php`: `debug` defaults false, `jwt_secret` defaults `''`.
+  - **`routes/auth.php`:** login calls `loginThrottleGuard/Fail/Reset`; login + `/auth/me` return `must_change_password` (cast int); `change-password` rejects a <6-char new password and clears the flag.
+  - **Default passwords → random temp + forced change:** `teachers-staff.php` (4 user-insert spots), `principal/staff.php`, `principal/teachers.php` now use `newAccountPassword()` (no more `password123`) and set `must_change_password`; create responses return `temp_password` and put it in the message. Students (`admin/students.php`, `administration/students.php`) keep mobile as the first-login password but set `must_change_password = 1`. Admin `/api/admin/users` (explicit password required) is unchanged → no forced change there.
+  - **Upload allow-lists:** public `admissions.php` (photo = jpg/jpeg/png/webp + `getimagesize`; certificate = those + pdf; 5 MB cap) and `admin/forms.php` + `administration/forms.php` (PDF only, 10 MB).
+- **Frontend changes (tsc clean, eslint 0 errors):**
+  - `types/index.ts`: `User.must_change_password?: number`.
+  - `contexts/AuthContext.tsx`: added `refresh()` (re-fetch `/auth/me`).
+  - `components/layout/PanelLayout.tsx`: new guard — if `user.must_change_password` and not on `/change-password`, `router.replace('/change-password')`. Exported `ROLE_HOME`.
+  - `app/change-password/page.tsx`: shows a forced-change notice; on success in forced mode calls `refresh()` then redirects to the panel home.
+  - `TeachersAdmin.tsx` / `StaffAdmin.tsx`: create now shows the returned `temp_password` in the alert.
+- **Verified (local, all test data removed afterwards):** 6 wrong logins → 429 lockout; throwaway must-change user → login shows `must_change_password:1`, wrong current pw 401, short new pw 422, good change 200, re-login shows 0; admin create-teacher with no password → `temp_password` returned + DB flag 1; CORS echoes www origin, gives attacker origin no header; browser: must-change teacher hitting `/p_R2t9b` is redirected to `/change-password` with the notice. Existing 435 users all have `must_change_password = 0` (unaffected).
+- **Deploy:** upload the changed backend files listed above **plus NEW `utils/Security.php`**, and rebuild/upload the frontend `out/` (done locally, 0 localhost refs). **No manual SQL** — `securityEnsureSchema()` adds the column + table on first login. Live `.env` already has a 52-char `JWT_SECRET`, so the fail-hard check passes.
+
 ## 2026-11-17 (Tue)
 
 ### Done
+**Session 111 — Administration Panel collects Exam Fee (own report); "Reports only" removed (COMPLETED + DEPLOYED TO LIVE 2026-11-18)**
+- **Request:**
+  - "Exam Fee Collection – Reports only" is no longer needed.
+  - Administration users can collect exam fees and see their own report.
+  - Reports for all collectors are for the Exam Controller and Admin only.
+- **`config/permissions.php`:**
+  - `/p_Xk7mN/exam-fee-collection` (collect + own report) now has default roles `['exam_controller', 'administration']`.
+  - The `#report` item was removed.
+  - Any old `#report` grant or revoke rows in `user_permissions` are ignored, because `effective()` only walks the catalog.
+- **`routes/admin/exam-fees.php`:** comments only. Collecting already works for Administration through the permission, because `Auth::requireAnyRole` + `Permissions::allows` open the collect / status / lookup / report APIs. The report already forces `collected_by` = self unless the role is admin or exam_controller, and `/collectors` and `/waiver` stay admin / EC only.
+- **Frontend:** no change needed. The page uses `canCollect = can(user, key)`, and `canSeeAll` = admin or exam_controller role.
+- **Verified (Administration-only user 72, temporarily unfrozen and then re-frozen):**
+  - `/auth/me` includes `/p_Xk7mN/exam-fee-collection`.
+  - Collect: 200.
+  - Report with `collected_by`=1 returned only their own row.
+  - `/collectors` and `/waiver`: 403.
+  - Browser: Collect and "My Reports" tabs, "My Total Collection", no "All users" option, 0 console errors.
+  - The test payment was deleted.
+- **Deploy:** backend `config/permissions.php` and `routes/admin/exam-fees.php` (comments). No frontend rebuild is needed for this change (the Session 110 rebuild is still pending). No SQL.
+
+**Session 110 — Dashboard Quick Access: admin sets a default per panel, or a custom list per user (COMPLETED + DEPLOYED TO LIVE 2026-11-18)**
+- **Request:** admin sets the Quick Access list of any panel as the default, or for a specific user (e.g. when the user is given extra permissions).
+- **NEW backend `routes/admin/quick-access.php`** (required in `index.php` after catalog.php):
+  - Panel defaults are stored in `site_settings 'quick_access_defaults'` = `{panels: {<panel>: [paths]}, add_assigned: bool}`. A panel that is not set uses the built-in list in the frontend.
+  - Per-user lists are in the NEW table `user_quick_access` (user_id, panel, items JSON; UNIQUE user+panel; FK cascade). It is auto-created, so no SQL is needed.
+  - Endpoints:
+    - `GET /api/quick-access` (any logged-in user)
+    - `GET /api/admin/quick-access`
+    - `PUT /api/admin/quick-access/defaults {panel, items|null}`
+    - `PUT /api/admin/quick-access/options {add_assigned}`
+    - `GET`/`PUT /api/admin/quick-access/user/{id} {panel, items|null}`
+    - All are admin-only except the first. Paths are validated by regex, duplicates are removed, and lists are capped at 40.
+- **Frontend:**
+  - NEW `lib/quickAccess.tsx`:
+    - Link registry built from `panelNav` (now exported from `PanelLayout`, with `ROLE_LABELS`, `NavItem` and `SubNavItem`), plus Change Password.
+    - `QA_BUILTIN` = the earlier dashboard lists. The admin list is new: Notices, All Results, All Students, Teachers, Exam Fee Collection, Settings.
+    - Resolve order: the user's custom list → the admin default → built-in. "Add assigned" appends pages granted from other panels, but not to a custom list.
+    - Filtering uses `canSeeLink`. Pages outside the permission catalog also need the owning panel's role.
+    - `useQuickAccess(panel)` caches its data per user.
+  - NEW components in `components/quickAccess/`:
+    - `QuickAccessGrid`: responsive tiles; admins also see a "Customize" link.
+    - `QuickAccessEditor`: ordered list with ↑ ↓ ✕ and an "add page" select grouped by panel.
+    - `UserQuickAccess`: per-user, per-panel switch between "Panel default" and "Custom for this user"; the preview marks granted pages.
+  - NEW page **Users › Dashboard Quick Access** (`/p_Xk7mN/users/quick-access`, `?panel=`): panel tabs, editor, Save, "Built-in list" reset, and the "Also add pages given from other panels" checkbox. It is covered by the `/p_Xk7mN/users` permission key (admin only).
+  - **Users › User Permissions:** a new "Dashboard Quick Access" card for the selected user (`key` = user id). It follows the current ticks, so a newly granted page shows up straight away.
+  - **Dashboards now use `QuickAccessGrid`:** Admin (new, below the stats), Principal, Administration (stat cards kept), Exam Controller, Teacher, Student (title "Quick Links").
+  - **NEW Staff dashboard** `/p_L8p1x`: staff nav now has Dashboard, `ROLE_HOME` staff is `/p_L8p1x`, and the `MAKA/tea` login redirect was changed to match.
+- **Verified:**
+  - **API:** 401 when logged out; 403 for a teacher; 422 for an unknown panel or a `javascript:` path; duplicate removed; 404 for an unknown user.
+  - **Browser:**
+    - Admin dashboard shows 6 tiles.
+    - Teacher default edited (Attendance added and moved, Form Download removed) and saved.
+    - User Permissions: Exam Fee Collection granted to teacher 34; the preview showed "(granted)". Then a custom list was saved.
+    - Teacher 34's dashboard showed exactly Upload Result, Update Result, Attendance, Exam Fee Collection, with no Customize link.
+    - Staff dashboard shows Leave Management (user 59 was unfrozen for the test and re-frozen).
+    - Student dashboard shows its 4 links.
+    - 390 px: no overflow. 0 console errors.
+  - tsc clean; eslint 0 errors (warnings only in old files).
+  - Test data restored: user_permissions 0, user_quick_access 0, setting removed.
+- **Deploy (when going live):**
+  - Backend: NEW `routes/admin/quick-access.php` and `index.php`.
+  - Frontend: rebuild. No SQL.
+
 **Session 109 — LIVE DEPLOYMENT COMPLETE (Sessions 66–108) — user confirmed "Now work on live"**
 - **Re-uploaded website:** `2-website-public_html.zip` (18:30). Live check: 0 of the home page's JS chunks contain localhost; `<head>` has favicon.ico / icon.png / apple-icon.png; `favicon.ico` = 49,762 B (the new college-logo icon).
 - **What was wrong before (Sessions 107–108):** the website had been uploaded twice from builds made WITH `.env.local` — first `admission.zip`, then the user's own build. Every visitor's browser then called `http://localhost/mjadc-api/api`, so no data and no images loaded. Fixed for good by `liveSafe()` in `src/lib/api.ts`.

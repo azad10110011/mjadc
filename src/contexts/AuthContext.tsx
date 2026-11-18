@@ -11,6 +11,8 @@ interface AuthContextType {
   logout: () => void
   hasRole: (role: UserRole) => boolean
   hasAnyRole: (roles: UserRole[]) => boolean
+  /** re-fetch the current user (e.g. after a forced password change) — Session 112 */
+  refresh: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -43,6 +45,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const refresh = useCallback(async () => {
+    if (typeof window === 'undefined' || !localStorage.getItem('token')) return
+    try {
+      const res = await api.get<{ status: number; data: User }>('/auth/me')
+      setUser(res.data)
+    } catch {
+      /* keep the current user on a transient failure */
+    }
+  }, [])
+
   const hasRole = useCallback((role: UserRole) => {
     return user?.roles.includes(role) ?? false
   }, [user])
@@ -53,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasRole, hasAnyRole }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasRole, hasAnyRole, refresh }}>
       {children}
     </AuthContext.Provider>
   )

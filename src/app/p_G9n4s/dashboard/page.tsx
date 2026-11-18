@@ -4,13 +4,13 @@
 // (My Results was not reachable from the menu before).
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
-import { GraduationCap, DollarSign, FileText, KeyRound, ChevronRight, UserRound, CalendarCheck } from 'lucide-react'
+import { GraduationCap, DollarSign, UserRound } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { canSeeLink } from '@/lib/permissions'
+import { QuickAccessGrid } from '@/components/quickAccess/QuickAccessGrid'
 
 interface DashboardData {
   student: { name: string; class: string; student_id: string }
@@ -20,12 +20,6 @@ interface DashboardData {
   outstanding: number
 }
 
-const LINKS = [
-  { href: '/p_G9n4s/results', label: 'My Results', desc: 'Marks, GPA and position', icon: FileText, tone: 'bg-blue-100 text-blue-700' },
-  { href: '/p_G9n4s/attendance', label: 'My Attendance', desc: 'Subject-wise report', icon: CalendarCheck, tone: 'bg-purple-100 text-purple-700' },
-  { href: '/p_G9n4s/pay-fees', label: 'Pay Fees', desc: 'Dues and online payment', icon: DollarSign, tone: 'bg-green-100 text-green-700' },
-  { href: '/change-password', label: 'Change Password', desc: 'Keep your account safe', icon: KeyRound, tone: 'bg-amber-100 text-amber-700' },
-]
 
 export default function StudentDashboardPage() {
   const { user } = useAuth() // Session 101: hide features the admin turned off for this student
@@ -85,22 +79,7 @@ export default function StudentDashboardPage() {
           </Card>}
         </div>}
 
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Quick Links</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {LINKS.filter((l) => canSeeLink(user, l.href)).map(({ href, label, desc, icon: Icon, tone }) => (
-              <Link key={href} href={href}
-                className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tone}`}><Icon className="h-5 w-5" /></span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-gray-900">{label}</span>
-                  <span className="block text-xs text-gray-500">{desc}</span>
-                </span>
-                <ChevronRight className="h-4 w-4 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-blue-600" />
-              </Link>
-            ))}
-          </div>
-        </div>
+        <QuickAccessGrid panel="student" title="Quick Links" />
       </div>
     </PanelLayout>
   )
