@@ -40,7 +40,7 @@ const staffDesignations = [
 ]
 
 const subjects = [
-  { value: 'ICT', label: 'ICT' },
+  { value: 'Information and Communications Technology', label: 'Information and Communications Technology' },
   { value: 'Physics', label: 'Physics' },
   { value: 'Chemistry', label: 'Chemistry' },
   { value: 'Biology', label: 'Biology' },

@@ -5,6 +5,7 @@ import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
 import { api } from '@/lib/api'
 import { QuickAccessGrid } from '@/components/quickAccess/QuickAccessGrid'
+import { ProfileCard } from '@/components/profile/ProfileCard'
 
 export default function AdminDashboardPage() {
   const [noticeCount, setNoticeCount] = useState('0')
@@ -21,6 +22,7 @@ export default function AdminDashboardPage() {
 
   return (
     <PanelLayout role="admin" title="Admin Dashboard">
+      <ProfileCard />
       <div className="overflow-x-auto pb-2 scrollbar-thin">
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))' }}>
         {[

@@ -5,10 +5,12 @@ import { useSearchParams } from 'next/navigation'
 import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, DataTable, Badge, PhotoWithPreview } from '@/components/ui'
 import { ArrowUp, ArrowDown, Copy } from 'lucide-react'
+import { COMPULSORY_SUBJECTS, isCompulsorySubject } from '@/lib/subjects'
 
 import { api, UPLOAD_BASE } from '@/lib/api'
 import { useGroupOptions } from '@/lib/catalog'
 import { exportToExcel, exportToPDF, type ExportColumn } from '@/lib/export'
+import { EMPTY_STUDENT_FILTERS, StudentFilters, filterStudents, studentFiltersActive } from '@/components/students/StudentFilters'
 
 
 const CLASSES = [
@@ -28,11 +30,11 @@ const BLOOD_GROUPS = [
   { value: 'O-', label: 'O-' },
 ]
 
-const COMPULSORY_SUBJECTS = ['Bangla', 'English', 'ICT']
 
 function StudentsPageInner() {
   const GROUPS = useGroupOptions()
   const [students, setStudents] = useState<any[]>([])
+  const [filters, setFilters] = useState(EMPTY_STUDENT_FILTERS) // Session 120: search + filters
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [viewingStudent, setViewingStudent] = useState<any | null>(null)
@@ -61,10 +63,6 @@ function StudentsPageInner() {
   const [resetPwValue, setResetPwValue] = useState('')
   const [resetPwResult, setResetPwResult] = useState('')
   const [resetPwLoading, setResetPwLoading] = useState(false)
-  const [bulkFromClass, setBulkFromClass] = useState('11th')
-  const [bulkToClass, setBulkToClass] = useState('12th')
-  const [bulkMessage, setBulkMessage] = useState('')
-  const [bulkSubmitting, setBulkSubmitting] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copiedField, setCopiedField] = useState('')
 
@@ -178,13 +176,9 @@ function StudentsPageInner() {
       if (photoFile) formData.append('photo', photoFile)
       if (existingPhotoPath) formData.append('photo_path', existingPhotoPath)
 
-      if (editingId) {
-        await api.upload(`/admin/students/${editingId}`, formData)
-        alert('Student updated')
-      } else {
-        await api.upload('/admin/students', formData)
-        alert('Student created. Login ID: ' + studentId + ', Password: ' + mobile)
-      }
+      if (!editingId) return // creating is done on Add Student only (Session 118)
+      await api.upload(`/admin/students/${editingId}`, formData)
+      alert('Student updated')
       resetForm()
       fetchStudents()
     } catch (err: unknown) {
@@ -232,6 +226,9 @@ function StudentsPageInner() {
     setBloodGroup(s.blood_group || '')
     setExistingPhotoPath(s.photo_path || null)
     setPhotoFile(null)
+    // the edit form now only appears at the top when editing — bring it into view
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    document.querySelector('main main, main')?.scrollTo?.({ top: 0, behavior: 'smooth' })
   }
 
   const handleDelete = async (id: number) => {
@@ -242,23 +239,6 @@ function StudentsPageInner() {
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to delete')
     }
-  }
-
-  const handleBulkChangeClass = async () => {
-    if (!confirm(`Move ALL students from "${bulkFromClass}" to "${bulkToClass}"?`)) return
-    setBulkSubmitting(true)
-    setBulkMessage('')
-    try {
-      const res = await api.post<{ message: string }>('/admin/students/bulk-change-class', {
-        from_class: bulkFromClass,
-        to_class: bulkToClass,
-      })
-      setBulkMessage(res.message)
-      fetchStudents()
-    } catch (err: unknown) {
-      setBulkMessage(err instanceof Error ? err.message : 'Failed to change class')
-    }
-    setBulkSubmitting(false)
   }
 
   const handleReorder = useCallback((reordered: Record<string, unknown>[]) => {
@@ -306,7 +286,9 @@ function StudentsPageInner() {
     { key: 'actions', label: 'Actions' },
   ]
 
-  const rows = students.map((s, i) => ({
+  const filtered = useMemo(() => filterStudents(students, filters), [students, filters])
+  const filtering = studentFiltersActive(filters)
+  const rows = filtered.map((s, i) => ({
     ...s,
     sl: i + 1,
     photo: s.photo_path ? <PhotoWithPreview src={`${UPLOAD_BASE}/${s.photo_path}`} alt={s.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-gray-200" />,
@@ -331,7 +313,7 @@ function StudentsPageInner() {
         <Button variant="ghost" size="sm" onClick={() => handleMoveUp(s.id)} disabled={i === 0} title="Move up">
           <ArrowUp className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => handleMoveDown(s.id)} disabled={i === students.length - 1} title="Move down">
+        <Button variant="ghost" size="sm" onClick={() => handleMoveDown(s.id)} disabled={i === filtered.length - 1} title="Move down">
           <ArrowDown className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="sm" onClick={() => handleView(s)}>View</Button>
@@ -347,11 +329,14 @@ function StudentsPageInner() {
 
   return (
     <PanelLayout role="admin" title="Student Management">
+      {/* Session 118: All Students no longer creates students (use Student Management › Add Student);
+          this form only appears after tapping Edit on a student. */}
+      {editingId && (
       <Card className="mb-6">
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900">{editingId ? 'Edit Student' : 'Create New Student'}</h3>
-            {editingId && <Button variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>}
+            <h3 className="font-semibold text-gray-900">Edit Student</h3>
+            <Button variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Input label="Student ID" value={studentId} disabled className="bg-gray-50 text-gray-500" />
@@ -384,7 +369,7 @@ function StudentsPageInner() {
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">Selective Subjects</label>
             <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3">
-              {publicSubjects.filter((s) => !COMPULSORY_SUBJECTS.includes(s)).map((s) => (
+              {publicSubjects.filter((s) => !isCompulsorySubject(s)).map((s) => (
                 <label key={s} className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-sm hover:bg-gray-100">
                   <input type="checkbox" checked={selectiveSubjects.includes(s)} onChange={() => toggleSelectiveSubject(s)} /> {s}
                 </label>
@@ -396,17 +381,18 @@ function StudentsPageInner() {
             <select value={optionalSubject} onChange={(e) => setOptionalSubject(e.target.value)}
               className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
               <option value="">-- None --</option>
-              {publicSubjects.filter((s) => !COMPULSORY_SUBJECTS.includes(s)).map((s) => (
+              {publicSubjects.filter((s) => !isCompulsorySubject(s)).map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button variant="primary" onClick={handleSubmit}>
-            {editingId ? 'Update Student' : 'Create Student'}
+            Update Student
           </Button>
         </CardContent>
       </Card>
+      )}
       {viewingStudent && (
         <Card className="mb-6">
           <CardContent className="space-y-4 pt-6">
@@ -484,19 +470,7 @@ function StudentsPageInner() {
           </CardContent>
         </Card>
       )}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <h3 className="mb-4 font-semibold text-gray-900">Bulk Class Change</h3>
-          <div className="flex items-end gap-4">
-            <Select label="From Class" options={CLASSES} value={bulkFromClass} onChange={(e) => setBulkFromClass(e.target.value)} />
-            <Select label="To Class" options={CLASSES} value={bulkToClass} onChange={(e) => setBulkToClass(e.target.value)} />
-            <Button variant="primary" onClick={handleBulkChangeClass} disabled={bulkSubmitting}>
-              {bulkSubmitting ? 'Changing...' : 'Change All'}
-            </Button>
-          </div>
-          {bulkMessage && <p className="mt-3 text-sm font-medium text-blue-700">{bulkMessage}</p>}
-        </CardContent>
-      </Card>
+      {/* Session 119: Bulk Class Change moved out of All Students — admin only, Admin › Student Management › Bulk Class Change */}
       <Card>
         <CardContent className="pt-6">
           <div className="mb-4 flex items-center justify-between">
@@ -514,7 +488,7 @@ function StudentsPageInner() {
                   { key: 'permanent_address', label: 'Permanent Address' },
                   { key: 'optional_subject', label: 'Optional Subject' },
                 ]
-                exportToExcel(students, cols, 'Students')
+                exportToExcel(filtered, cols, 'Students')
               }}>Excel</Button>
               <Button variant="outline" size="sm" onClick={() => {
                 const cols: ExportColumn[] = [
@@ -528,11 +502,12 @@ function StudentsPageInner() {
                   { key: 'permanent_address', label: 'Permanent Address' },
                   { key: 'optional_subject', label: 'Optional Subject' },
                 ]
-                exportToPDF(students, cols, 'Students List', 'Students')
+                exportToPDF(filtered, cols, 'Students List', 'Students')
               }}>PDF</Button>
             </div>
           </div>
-          <DataTable columns={columns} data={rows} loading={loading} emptyMessage="No students" onRowReorder={handleReorder} stickyScrollbar />
+          <StudentFilters students={students} value={filters} onChange={setFilters} shown={filtered.length} classes={CLASSES} hideClass={!!urlClass} />
+          <DataTable columns={columns} data={rows} loading={loading} emptyMessage={filtering ? 'No students match the search / filters' : 'No students'} onRowReorder={filtering ? undefined : handleReorder} stickyScrollbar />
         </CardContent>
       </Card>
     </PanelLayout>

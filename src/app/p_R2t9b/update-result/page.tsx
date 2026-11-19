@@ -221,7 +221,8 @@ export default function TeacherUpdateResultPage() {
     })
   }
 
-  const isLocked = (s: any) => s.status === 'approved' || s.status === 'published'
+  // Session 113: a teacher is locked out once the marks are submitted to the Exam Controller.
+  const isLocked = (s: any) => s.status === 'submitted' || s.status === 'approved' || s.status === 'published'
 
   const tableData = students.map((s, i) => {
     const locked = isLocked(s)

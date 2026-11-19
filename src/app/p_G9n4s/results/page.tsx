@@ -1,14 +1,21 @@
 'use client'
 
-// Student → My Results (Session 77). Uses GET /api/student/results (same GPA rules as the transcript).
+// Student → My Results (Session 77; access rules Session 115). Uses GET /api/student/results.
+// By default the student sees only the summary: GPA when passed, failed subject names when failed.
+// When the admin has turned ON online QR verification for this student + exam, the full official
+// transcript is shown and can be printed / saved as PDF.
 
 import { useEffect, useState } from 'react'
+import QRCode from 'qrcode'
 import { PanelLayout } from '@/components/layout'
 import { Button, Select, Card, CardContent } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useExamNames } from '@/lib/catalog'
-import { partText, totalText, type TranscriptSubjectRow } from '@/components/transcript/TranscriptGenerator'
-import { CheckCircle2, XCircle, Info } from 'lucide-react'
+import {
+  TranscriptSheet, transcriptVerifyUrl, useCollegeLogo, type TranscriptData,
+} from '@/components/transcript/TranscriptGenerator'
+import { useTranscriptConfig } from '@/components/transcript/transcriptConfig'
+import { CheckCircle2, XCircle, Info, Printer, Lock } from 'lucide-react'
 
 interface MyResult {
   student_id: string
@@ -18,22 +25,22 @@ interface MyResult {
   exam_name: string
   year: string
   status: 'Passed' | 'Failed'
-  final_gpa: number
+  final_gpa: number | null
   grade: string
-  gpa_without_optional: number
-  optional_gp_above_2: number
-  total_marks: number
-  position: number | null
   fail_subjects: string[]
-  subjects: TranscriptSubjectRow[]
+  transcript_available: boolean
+  transcript?: TranscriptData
 }
 
 export default function StudentResultsPage() {
   const EXAM_NAMES = useExamNames()
+  const logoSrc = useCollegeLogo()
+  const [config] = useTranscriptConfig()
   const [studentClass, setStudentClass] = useState<string>('')
   const [examName, setExamName] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<MyResult | null>(null)
+  const [qr, setQr] = useState('')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -48,9 +55,12 @@ export default function StudentResultsPage() {
     if (!examName) return
     setLoading(true)
     setMessage('')
+    setQr('')
     try {
       const r = await api.get<{ data: MyResult }>(`/student/results?exam_name=${encodeURIComponent(examName)}`)
       setResult(r.data)
+      const url = r.data.transcript ? transcriptVerifyUrl(r.data.transcript) : null
+      if (url) setQr(await QRCode.toDataURL(url, { margin: 0, width: 220, errorCorrectionLevel: 'M' }))
     } catch (e: unknown) {
       setResult(null)
       setMessage(e instanceof Error ? e.message : 'Could not load the result')
@@ -60,28 +70,10 @@ export default function StudentResultsPage() {
   }
 
   const passed = result?.status === 'Passed'
-  const main = result?.subjects.filter((s) => !s.is_optional) ?? []
-  const optional = result?.subjects.filter((s) => s.is_optional) ?? []
-
-  const row = (s: TranscriptSubjectRow, i: number) => {
-    const fail = s.grade.toUpperCase() === 'F'
-    return (
-      <tr key={`${s.subject}-${i}`} className={`border-t border-gray-100 ${fail ? 'bg-red-50' : 'even:bg-gray-50'}`}>
-        <td className="px-3 py-2 text-center text-gray-500">{s.code || '–'}</td>
-        <td className="px-3 py-2 font-medium text-gray-900">{s.subject}</td>
-        <td className="px-2 py-2 text-center">{partText(s.parts?.cq)}</td>
-        <td className="px-2 py-2 text-center">{partText(s.parts?.mcq)}</td>
-        <td className="px-2 py-2 text-center">{partText(s.parts?.practical)}</td>
-        <td className="px-2 py-2 text-center font-semibold">{totalText(s)}</td>
-        <td className={`px-2 py-2 text-center font-bold ${fail ? 'text-red-600' : 'text-gray-900'}`}>{s.grade}</td>
-        <td className="px-2 py-2 text-center">{s.gpa.toFixed(2)}</td>
-      </tr>
-    )
-  }
 
   return (
     <PanelLayout role="student" title="My Results">
-      <Card className="mb-6">
+      <Card className="mb-6 no-print">
         <CardContent className="pt-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
@@ -101,8 +93,8 @@ export default function StudentResultsPage() {
       </Card>
 
       {result && (
-        <Card>
-          <CardContent className="space-y-5 pt-6">
+        <Card className="mb-6 no-print">
+          <CardContent className="space-y-4 pt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">{result.exam_name} {result.year}</h2>
@@ -114,65 +106,73 @@ export default function StudentResultsPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl bg-blue-900 p-3 text-center text-white">
-                <p className="text-xs font-semibold uppercase tracking-wide opacity-80">GPA</p>
-                <p className="text-2xl font-bold">{result.final_gpa.toFixed(2)}</p>
-              </div>
-              <div className="rounded-xl bg-blue-900 p-3 text-center text-white">
-                <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Grade</p>
-                <p className="text-2xl font-bold">{result.grade}</p>
-              </div>
-              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-center">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-900">Position</p>
-                <p className="text-2xl font-bold text-gray-900">{result.position ?? '–'}</p>
-              </div>
-              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-center">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-900">Total Marks</p>
-                <p className="text-2xl font-bold text-gray-900">{Math.round(result.total_marks)}</p>
-              </div>
-            </div>
-
-            {result.fail_subjects.length > 0 && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                <p className="mb-1 font-medium text-red-700">Failed Subjects</p>
-                <p className="text-sm text-red-600">{result.fail_subjects.join(', ')}</p>
+            {passed && result.final_gpa !== null && (
+              <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
+                <div className="rounded-xl bg-blue-900 p-3 text-center text-white">
+                  <p className="text-xs font-semibold uppercase tracking-wide opacity-80">GPA</p>
+                  <p className="text-2xl font-bold">{result.final_gpa.toFixed(2)}</p>
+                </div>
+                <div className="rounded-xl bg-blue-900 p-3 text-center text-white">
+                  <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Grade</p>
+                  <p className="text-2xl font-bold">{result.grade}</p>
+                </div>
               </div>
             )}
 
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="w-full min-w-[560px] text-sm">
-                <thead className="bg-blue-900 text-white">
-                  <tr>
-                    <th className="px-3 py-2">Code</th>
-                    <th className="px-3 py-2 text-left">Subject</th>
-                    <th className="px-2 py-2">CQ</th>
-                    <th className="px-2 py-2">MCQ</th>
-                    <th className="px-2 py-2">Prac.</th>
-                    <th className="px-2 py-2">Total</th>
-                    <th className="px-2 py-2">Grade</th>
-                    <th className="px-2 py-2">GP</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {main.map(row)}
-                  {optional.length > 0 && (
-                    <tr className="border-t border-gray-200 bg-blue-50">
-                      <td colSpan={8} className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-900">
-                        Optional Subject · GP above 2: {result.optional_gp_above_2.toFixed(2)}
-                      </td>
-                    </tr>
-                  )}
-                  {optional.map(row)}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-xs text-gray-500">
-              GPA without optional subject: {result.gpa_without_optional.toFixed(2)}. – = no such part · A = absent.
-            </p>
+            {!passed && result.fail_subjects.length > 0 && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                <p className="mb-1 font-medium text-red-700">Failed Subjects</p>
+                <ul className="list-inside list-disc text-sm text-red-600">
+                  {result.fail_subjects.map((s) => <li key={s}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {result.transcript_available && result.transcript ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3">
+                <p className="flex-1 text-sm text-green-800">Your full transcript is available below.</p>
+                <Button variant="primary" size="sm" onClick={() => window.print()}>
+                  <Printer className="mr-1 h-4 w-4" /> Print / Download PDF
+                </Button>
+              </div>
+            ) : (
+              <p className="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                Your full transcript will be available here once the college enables online verification for this exam.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
+
+      {result?.transcript_available && result.transcript && (
+        <div className="ts-container">
+          <div className="ts-page">
+            <TranscriptSheet t={result.transcript} logoSrc={logoSrc} qr={qr || undefined} config={config} />
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .ts-container {
+          overflow-x: auto;
+        }
+        .ts-page {
+          margin: 0 auto 24px;
+          width: 210mm;
+        }
+        @media print {
+          :global(html), :global(body) { margin: 0 !important; padding: 0 !important; }
+          :global(aside), :global(header) { display: none !important; }
+          :global(.flex-1.overflow-auto) { overflow: visible !important; padding: 0 !important; }
+          :global(.flex.min-h-screen), :global(.flex.flex-1.flex-col) { display: block !important; }
+          :global(body) { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          :global(.no-print) { display: none !important; }
+          .ts-container { overflow: visible; }
+          .ts-page { margin: 0; width: auto; }
+          @page { size: A4; margin: 0; }
+        }
+      `}</style>
     </PanelLayout>
   )
 }

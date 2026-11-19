@@ -6,6 +6,7 @@ import { PanelLayout } from '@/components/layout'
 import { Button, Input, Select, Card, CardContent, CustomFieldInput, DynamicFields, useCustomFields, type CustomFieldDef, type CustomFieldValues } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useGroupCodes, useGroupOptions } from '@/lib/catalog'
+import { COMPULSORY_SUBJECTS, isCompulsorySubject, isIct } from '@/lib/subjects'
 
 
 const CLASSES = [
@@ -21,11 +22,7 @@ const HSC_BATCHES = Array.from({ length: 24 }, (_, i) => {
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
-// Internal subject names; display names shown as tags on the form
-const COMPULSORY_SUBJECTS = ['Bangla', 'English', 'ICT']
-const COMPULSORY_SUBJECT_LABELS: Record<string, string> = {
-  ICT: 'Information and Communication Technology',
-}
+// Compulsory subjects, stored with their official names (Session 124: ICT = Information and Communications Technology)
 
 // Subjects not offered as Selective/Optional choices (matched case-insensitively)
 const EXCLUDED_SELECTIVE_SUBJECTS = [
@@ -34,7 +31,7 @@ const EXCLUDED_SELECTIVE_SUBJECTS = [
   'n/a (not applicable)',
 ]
 const isExcludedSubject = (s: string) =>
-  EXCLUDED_SELECTIVE_SUBJECTS.includes(s.toLowerCase())
+  EXCLUDED_SELECTIVE_SUBJECTS.includes(s.toLowerCase()) || isIct(s)
 
 const buildStudentId = (batch: string, group: string, roll: string, groupCodes: Record<string, string>): string => {
   const yy = batch ? batch.slice(-2) : ''
@@ -81,7 +78,7 @@ function AddStudentForm() {
 
   const autoStudentId = editId ? studentId : buildStudentId(hscBatch, studentGroup, classRoll, groupCodes)
   const selectableSubjects = publicSubjects.filter(
-    (s) => !COMPULSORY_SUBJECTS.includes(s) && !isExcludedSubject(s),
+    (s) => !isCompulsorySubject(s) && !isExcludedSubject(s),
   )
 
   useEffect(() => {
@@ -272,7 +269,7 @@ function AddStudentForm() {
         <label className="mb-2 block text-sm font-medium text-gray-700">{def.label}</label>
         <div className="flex flex-wrap gap-2">
           {COMPULSORY_SUBJECTS.map((s) => (
-            <span key={s} className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">{COMPULSORY_SUBJECT_LABELS[s] ?? s}</span>
+            <span key={s} className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">{s}</span>
           ))}
         </div>
       </div>

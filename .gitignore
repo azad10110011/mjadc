@@ -42,3 +42,5 @@ next-env.d.ts
 
 Keep:
 .env.production
+# Android app web build (Session 116)
+/out-app/

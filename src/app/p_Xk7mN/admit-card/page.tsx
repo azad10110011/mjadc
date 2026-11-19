@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { useExamNames, useGroupOptions } from "@/lib/catalog";
 import { api, UPLOAD_BASE } from "@/lib/api";
+import { COMPULSORY_SUBJECTS } from "@/lib/subjects";
 import { photoUrl } from "@/lib/photo";
 import { Printer, Download, Save } from "lucide-react";
 
@@ -96,7 +97,6 @@ const DEFAULT_CONFIG: AdmitConfig = {
   college_address: "Garaganj, Shailkupa, Jhenaidah",
 };
 
-const COMPULSORY_SUBJECTS = ["Bangla", "English", "ICT"];
 
 /** Subject name equality that tolerates spelling variants (ICT vs full name). */
 const sameSubject = (a: string, b: string): boolean => {

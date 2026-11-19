@@ -9,12 +9,14 @@ import {
   Calendar, Image, Settings, LogOut, Menu, X, UserCheck, ListPlus,
   ClipboardList, Upload, Download, CheckSquare,
   UserPlus, UserCog, ChevronLeft, ChevronDown, KeyRound, Receipt, MapPin, Type, Award, DollarSign, CreditCard,
-  ArrowLeftRight, ShieldOff, Star, Landmark } from 'lucide-react'
+  ArrowLeftRight, ShieldOff, Star, Landmark, History, Camera } from 'lucide-react'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { UserRole } from '@/types'
 import { canOpenPage, isAdminUser, normPath, pageKeyFor } from '@/lib/permissions'
+import { APP_KIND, APP_LOGIN, APP_MODE } from '@/lib/appMode'
+import { OfflineScreen } from '@/components/layout/OfflineScreen'
 
 const INACTIVITY_MS = 5 * 60 * 1000
 const CHECK_INTERVAL_MS = 30 * 1000
@@ -49,9 +51,17 @@ export const ROLE_LABELS: Record<PanelRole, string> = {
 
 const ROLE_PRIORITY: PanelRole[] = ['admin', 'principal', 'administration', 'exam_controller', 'teacher', 'staff', 'student']
 
+/** Session 116: the student app shows only the student panel; the staff app never shows it. */
+function roleInThisApp(r: PanelRole): boolean {
+  if (!APP_MODE) return true
+  return APP_KIND === 'student' ? r === 'student' : r !== 'student'
+}
+
 export interface SubNavItem {
   label: string
   href: string
+  /** shown only in the mobile apps (Session 123) */
+  appOnly?: boolean
 }
 
 export interface NavItem {
@@ -59,6 +69,8 @@ export interface NavItem {
   href?: string
   icon: ReactNode
   children?: SubNavItem[]
+  /** shown only in the mobile apps (Session 123) */
+  appOnly?: boolean
 }
 
 const PAGE_SUB_ITEMS: SubNavItem[] = [
@@ -87,6 +99,7 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Notices', href: '/p_Xk7mN/notices', icon: <FileText className="h-4 w-4" /> },
     { label: 'Internal Exam Management', icon: <GraduationCap className="h-4 w-4" />, children: [
       { label: 'All Results', href: '/p_Xk7mN/results' },
+      { label: 'Result Images', href: '/p_Xk7mN/result-images' },
       { label: 'Result Summary', href: '/p_Xk7mN/result-summary' },
       { label: 'Transcript', href: '/p_Xk7mN/transcript' },
       { label: 'Transcript QR Verify', href: '/p_Xk7mN/transcript-verify' },
@@ -117,6 +130,7 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Custom Entry Fields', href: '/p_Xk7mN/custom-fields', icon: <ListPlus className="h-4 w-4" /> },
     { label: 'Subjects', href: '/p_Xk7mN/subjects', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'User History', href: '/p_Xk7mN/user-history', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Update History', href: '/p_Xk7mN/update-history', icon: <History className="h-4 w-4" /> },
     { label: 'Routines', href: '/p_Xk7mN/routines', icon: <Calendar className="h-4 w-4" /> },
     { label: 'Syllabus', href: '/p_Xk7mN/syllabus', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'Teachers', icon: <GraduationCap className="h-4 w-4" />, children: [
@@ -131,9 +145,10 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'All Students', href: '/p_Xk7mN/students' },
       { label: 'Add Student', href: '/p_Xk7mN/students/add' },
       { label: 'Bulk Photo Upload', href: '/p_Xk7mN/students/photos' },
-      { label: 'Class Change', href: '/p_Xk7mN/class-change' },
+      { label: 'Bulk Class Change', href: '/p_Xk7mN/class-change' },
       { label: 'Student Info', href: '/p_Xk7mN/student-info' },
       { label: 'Old Students', href: '/p_Xk7mN/students?class=Old' },
+      { label: 'Student Images', href: '/p_F7c2j/student-images' },
     ] },
     { label: 'Governing Body', href: '/p_Xk7mN/governing-body', icon: <UserCheck className="h-4 w-4" /> },
     { label: 'Principal & Vice-Principal', href: '/p_Xk7mN/principals', icon: <UserCheck className="h-4 w-4" /> },
@@ -155,6 +170,7 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'Students', href: '/p_Xk7mN/users/students' },
       { label: 'User Permissions', href: '/p_Xk7mN/users/permissions' },
       { label: 'Dashboard Quick Access', href: '/p_Xk7mN/users/quick-access' },
+      { label: 'Dashboard Profile Card', href: '/p_Xk7mN/users/profile-card' },
     ] },
     { label: 'Tuition Fees', href: '/p_Xk7mN/tuition-fees', icon: <DollarSign className="h-4 w-4" /> },
     { label: 'Transactions', href: '/p_Xk7mN/transactions', icon: <Receipt className="h-4 w-4" /> },
@@ -174,6 +190,7 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
   teacher: [
     { label: 'Dashboard', href: '/p_R2t9b', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Upload Result', href: '/p_R2t9b/upload-result', icon: <Upload className="h-4 w-4" /> },
+    { label: 'Result Image Upload', href: '/p_R2t9b/result-images', icon: <Camera className="h-4 w-4" />, appOnly: true },
     { label: 'Update Result', href: '/p_R2t9b/update-result', icon: <FileText className="h-4 w-4" /> },
     { label: 'Attendance', href: '/p_R2t9b/attendance', icon: <UserCheck className="h-4 w-4" /> },
     { label: 'Leave Management', href: '/p_R2t9b/leave-management', icon: <ClipboardList className="h-4 w-4" /> },
@@ -188,6 +205,7 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
     { label: 'Results', icon: <GraduationCap className="h-4 w-4" />, children: [
       { label: 'Upload Result', href: '/p_H3v5d/upload-result' },
       { label: 'Approve Result', href: '/p_H3v5d/approve-result' },
+      { label: 'Result Images', href: '/p_Xk7mN/result-images' },
       { label: 'Transcript', href: '/p_H3v5d/transcript' },
       { label: 'Exam Fee Waiver', href: '/p_Xk7mN/exam-fee-waiver' },
     ] },
@@ -214,6 +232,7 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
       { label: 'All Students', href: '/p_F7c2j/students' },
       { label: 'Add Student', href: '/p_F7c2j/students/add' },
       { label: 'Old Students', href: '/p_F7c2j/students?class=Old' },
+      { label: 'Student Images', href: '/p_F7c2j/student-images' },
     ] },
     { label: 'Forms', href: '/p_F7c2j/forms', icon: <Download className="h-4 w-4" /> },
   ],
@@ -222,7 +241,7 @@ export const panelNav: Record<PanelRole, NavItem[]> = {
 export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, loading, logout } = useAuth()
+  const { user, loading, logout, offline } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(() => {
     const expanded: Record<string, boolean> = {}
@@ -245,7 +264,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
 
   const doLogout = useCallback(() => {
     logout()
-    router.push('/')
+    router.push(APP_MODE ? APP_LOGIN : '/')
   }, [logout, router])
 
   // Session 112: force a password change before anything else when the account still
@@ -259,6 +278,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
 
   useEffect(() => {
     if (loading) return
+    if (!user && offline) return // app without internet: keep the session, the Retry screen shows
     if (!user || !user.roles.includes(role as unknown as UserRole)) {
       // Shared pages (e.g. /p_Xk7mN/exam-fee-collection, /collected-summary) declare a
       // hardcoded role but are reachable from several panels. If the declared role
@@ -268,9 +288,11 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
       if (effective && user) return
       doLogout()
     }
-  }, [user, loading, role, doLogout])
+  }, [user, loading, role, doLogout, offline])
 
   useEffect(() => {
+    // Session 116: the mobile app never signs out for inactivity (website only).
+    if (APP_MODE) return
     const updateActivity = () => { lastActivityRef.current = Date.now() }
     const handleMove = () => {
       if (!tickingRef.current) {
@@ -302,7 +324,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   const availableRoles = useMemo(() => {
     if (!user?.roles) return [role]
     const userRoles = new Set(user.roles as UserRole[])
-    return ROLE_PRIORITY.filter((r) => userRoles.has(r as unknown as UserRole))
+    return ROLE_PRIORITY.filter((r) => userRoles.has(r as unknown as UserRole) && roleInThisApp(r))
   }, [user, role])
 
   const showRoleSwitcher = availableRoles.length > 1
@@ -310,7 +332,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
   // shared across panels and use another panel's route prefix; navigating there
   // must not silently switch the active panel.
   const lastRole = (typeof window !== 'undefined' ? localStorage.getItem('active_panel_role') : null) as PanelRole | null
-  const userHas = (r: PanelRole) => !!user?.roles?.includes(r as unknown as UserRole)
+  const userHas = (r: PanelRole) => !!user?.roles?.includes(r as unknown as UserRole) && roleInThisApp(r)
   const defaultRole = user?.default_role as PanelRole | undefined
   const fallbackRole = userHas(role) ? role : (availableRoles[0] || role) as PanelRole
   const effectiveRole = lastRole && userHas(lastRole)
@@ -331,7 +353,8 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     return key ? canOpenPage(user, key) : true
   }, [permAware, user])
   const navItems = useMemo(() => baseNav
-    .map((item) => item.children ? { ...item, children: item.children.filter((c) => visibleHref(c.href)) } : item)
+    .filter((item) => APP_MODE || !item.appOnly)
+    .map((item) => item.children ? { ...item, children: item.children.filter((c) => (APP_MODE || !c.appOnly) && visibleHref(c.href)) } : item)
     .filter((item) => item.children ? item.children.length > 0 : visibleHref(item.href!)), [baseNav, visibleHref])
 
   // Pages granted from OTHER panels (e.g. a teacher given "Exam Fee Collection") → "Assigned to me"
@@ -370,7 +393,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
     setExpandedMenus((prev) => ({ ...prev, [label]: !prev[label] }))
   }
 
-  if (!user && !loading) return null
+  if (!user && !loading) return offline ? <OfflineScreen /> : null
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -379,7 +402,7 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="shrink-0 border-b border-gray-200 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={APP_MODE ? (ROLE_HOME[effectiveRole] || APP_LOGIN) : '/'} className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">MJ</div>
             <span className="text-sm font-semibold text-gray-900">College Portal</span>
           </Link>
@@ -498,13 +521,15 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
             <KeyRound className="h-4 w-4" />
             Change Password
           </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back to Website
-          </Link>
+          {!APP_MODE && (
+            <Link
+              href="/"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to Website
+            </Link>
+          )}
           <button
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50"
             onClick={doLogout}
@@ -524,14 +549,16 @@ export function PanelLayout({ children, role, title }: PanelLayoutProps) {
             </button>
             <h1 className="truncate text-base font-semibold text-gray-900">{title}</h1>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                Site
-              </Button>
-            </Link>
-          </div>
+          {!APP_MODE && (
+            <div className="flex shrink-0 items-center gap-2">
+              <Link href="/">
+                <Button variant="ghost" size="sm">
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Site
+                </Button>
+              </Link>
+            </div>
+          )}
         </header>
         <main className="min-w-0 flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
           {pageAllowed ? children : (

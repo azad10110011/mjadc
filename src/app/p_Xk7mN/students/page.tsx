@@ -16,8 +16,8 @@ import {
 import { ArrowUp, ArrowDown, Copy } from "lucide-react"; // Copy used in details view
 
 import { api, UPLOAD_BASE } from "@/lib/api";
-import { useGroupOptions } from "@/lib/catalog";
 import { exportToExcel, exportToPDF, type ExportColumn } from "@/lib/export";
+import { EMPTY_STUDENT_FILTERS, StudentFilters, filterStudents, studentFiltersActive } from "@/components/students/StudentFilters";
 
 
 const CLASSES = [
@@ -27,16 +27,13 @@ const CLASSES = [
 ];
 
 function StudentsPageInner() {
-  const GROUPS = useGroupOptions();
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlClass = searchParams.get("class");
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingStudent, setViewingStudent] = useState<any | null>(null);
-  const [search, setSearch] = useState("");
-  const [filterClass, setFilterClass] = useState("");
-  const [filterGroup, setFilterGroup] = useState("");
+  const [filters, setFilters] = useState(EMPTY_STUDENT_FILTERS); // Session 120: shared search + filters
   const [resetPwValue, setResetPwValue] = useState("");
   const [resetPwResult, setResetPwResult] = useState("");
   const [resetPwLoading, setResetPwLoading] = useState(false);
@@ -181,27 +178,8 @@ function StudentsPageInner() {
       .catch(() => alert("Already at bottom"));
   };
 
-  const filtered = students.filter((s) => {
-    const q = search.trim().toLowerCase();
-    if (
-      q &&
-      !(
-        String(s.student_id || "")
-          .toLowerCase()
-          .includes(q) ||
-        String(s.name || "")
-          .toLowerCase()
-          .includes(q) ||
-        String(s.mobile || "")
-          .toLowerCase()
-          .includes(q)
-      )
-    )
-      return false;
-    if (filterClass && s.class !== filterClass) return false;
-    if (filterGroup && s.student_group !== filterGroup) return false;
-    return true;
-  });
+  const filtered = filterStudents(students, filters);
+  const filtering = studentFiltersActive(filters);
 
   const columns = [
     { key: "sl", label: "SL" },
@@ -429,25 +407,6 @@ function StudentsPageInner() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-semibold text-gray-900">All Students</h3>
             <div className="flex flex-wrap items-center gap-2">
-              <Input
-                label=""
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search ID / name / mobile"
-                className="w-56"
-              />
-              <Select
-                label=""
-                options={[{ value: "", label: "All Classes" }, ...CLASSES]}
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-              />
-              <Select
-                label=""
-                options={[{ value: "", label: "All Groups" }, ...GROUPS]}
-                value={filterGroup}
-                onChange={(e) => setFilterGroup(e.target.value)}
-              />
               <Button
                 variant="outline"
                 size="sm"
@@ -502,12 +461,13 @@ function StudentsPageInner() {
               </Button>
             </div>
           </div>
+          <StudentFilters students={students} value={filters} onChange={setFilters} shown={filtered.length} classes={CLASSES} hideClass={!!urlClass} />
           <DataTable
             columns={columns}
             data={rows}
             loading={loading}
-            emptyMessage="No students"
-            onRowReorder={handleReorder}
+            emptyMessage={filtering ? "No students match the search / filters" : "No students"}
+            onRowReorder={filtering ? undefined : handleReorder}
             stickyScrollbar
           />
         </CardContent>

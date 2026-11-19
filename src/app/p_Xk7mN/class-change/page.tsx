@@ -139,7 +139,7 @@ export default function ClassChangePage() {
   }));
 
   return (
-    <PanelLayout role="admin" title="Class Change">
+    <PanelLayout role="admin" title="Bulk Class Change">
       <Card className="mb-6">
         <CardContent className="space-y-4 pt-6">
           <div className="grid gap-4 sm:grid-cols-3">
