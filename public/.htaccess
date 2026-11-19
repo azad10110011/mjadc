@@ -6,5 +6,18 @@ RewriteBase /
 RewriteCond %{REQUEST_URI} ^/mjadc-api/ [NC]
 RewriteRule ^ - [L]
 
+# Next.js page prefetch files: the browser asks for "__next.a.b.c.txt" but the export saves them as
+# "__next.a/b/c.txt". Serve the saved file instead of a 404 (only when the requested name doesn't exist).
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*/)?__next\.([^./]+)\.([^./]+)\.txt$ $1__next.$2/$3.txt [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*/)?__next\.([^./]+)\.([^./]+)\.([^./]+)\.txt$ $1__next.$2/$3/$4.txt [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*/)?__next\.([^./]+)\.([^./]+)\.([^./]+)\.([^./]+)\.txt$ $1__next.$2/$3/$4/$5.txt [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*/)?__next\.([^./]+)\.([^./]+)\.([^./]+)\.([^./]+)\.([^./]+)\.txt$ $1__next.$2/$3/$4/$5/$6.txt [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*/)?__next\.([^./]+)\.([^./]+)\.([^./]+)\.([^./]+)\.([^./]+)\.([^./]+)\.txt$ $1__next.$2/$3/$4/$5/$6/$7.txt [L]
+
 # Custom 404
 ErrorDocument 404 /404.html

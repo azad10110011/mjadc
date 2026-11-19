@@ -20,7 +20,7 @@ const SAMPLE: TranscriptData = {
   subjects: [
     { subject: 'Bangla-2', code: '102', parts: { cq: 52, mcq: 21, practical: null }, total: 73, grade: 'A', gpa: 4 },
     { subject: 'English-2', code: '108', parts: { cq: 68, mcq: null, practical: null }, total: 68, grade: 'A-', gpa: 3.5 },
-    { subject: 'Information and Communication Technology', code: '275', parts: { cq: 40, mcq: 20, practical: 22 }, total: 82, grade: 'A+', gpa: 5 },
+    { subject: 'Information and Communications Technology', code: '275', parts: { cq: 40, mcq: 20, practical: 22 }, total: 82, grade: 'A+', gpa: 5 },
     { subject: 'Psychology-2', code: '124', parts: { cq: 45, mcq: 20, practical: 21 }, total: 86, grade: 'A+', gpa: 5, is_optional: true },
   ],
 }

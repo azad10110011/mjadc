@@ -6,11 +6,12 @@
 import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
-import { GraduationCap, DollarSign, UserRound } from 'lucide-react'
+import { GraduationCap, DollarSign } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { canSeeLink } from '@/lib/permissions'
 import { QuickAccessGrid } from '@/components/quickAccess/QuickAccessGrid'
+import { ProfileCard } from '@/components/profile/ProfileCard'
 
 interface DashboardData {
   student: { name: string; class: string; student_id: string }
@@ -34,21 +35,11 @@ export default function StudentDashboardPage() {
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Could not load your dashboard'))
   }, [])
 
-  const s = data?.student
 
   return (
     <PanelLayout role="student" title="Student Dashboard">
       <div className="mx-auto max-w-4xl space-y-5">
-        <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-r from-blue-900 to-blue-700 p-5 text-white shadow-sm">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/15">
-            <UserRound className="h-7 w-7" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm opacity-80">Welcome</p>
-            <p className="truncate text-lg font-bold">{s?.name || (error ? '—' : 'Loading…')}</p>
-            <p className="text-sm opacity-90">ID {s?.student_id || '--'} · Class {s?.class || '--'}</p>
-          </div>
-        </div>
+        <ProfileCard />
 
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 

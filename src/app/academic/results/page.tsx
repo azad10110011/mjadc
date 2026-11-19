@@ -3,29 +3,20 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Search, CheckCircle2, XCircle } from 'lucide-react'
-import { Button, Input, Select, Card, CardContent, DataTable } from '@/components/ui'
+import { Button, Input, Select, Card, CardContent } from '@/components/ui'
 import { useExamNames } from '@/lib/catalog'
 import { api } from '@/lib/api'
 import { PageContainer } from '@/components/ui/PageContainer'
 
-interface SubjectResult {
-  subject: string
-  mcq: number
-  cq: number
-  practical: number
-  total: number
-  grade: string
-  gpa: number
-  absent_in?: string
-}
-
+// Session 115: public search shows the result SUMMARY only — GPA when passed, failed subject
+// names when failed. The full transcript is never shown here.
 interface ResultData {
   student_id: string
   name: string
-  status: string
+  status: 'Passed' | 'Failed'
+  final_gpa: number | null
+  grade: string
   fail_subjects: string[]
-  final_gpa: number
-  subjects: SubjectResult[]
 }
 
 export default function ResultsPage() {
@@ -63,18 +54,6 @@ export default function ResultsPage() {
       setLoading(false)
     }
   }
-
-  const subjectCols = [
-    { key: 'subject', label: 'Subject' },
-    { key: 'grade', label: 'Grade' },
-    { key: 'gpa', label: 'GPA' },
-  ]
-
-  const subjectRows = (result?.subjects || []).map((s) => ({
-    subject: s.subject,
-    grade: <span className={`font-medium ${s.grade === 'F' || s.grade === 'Absent' ? 'text-red-600' : ''}`}>{s.grade}</span>,
-    gpa: <span className={`font-medium ${Number(s.gpa) === 0 ? 'text-red-600' : ''}`}>{Number(s.gpa).toFixed(2)}</span>,
-  }))
 
   return (
     <PageContainer className="max-w-3xl">
@@ -120,11 +99,11 @@ export default function ResultsPage() {
                   <span className="font-bold">FAILED</span>
                 </div>
               )}
-              {result.status === 'Passed' && (
-                <span className="font-semibold text-gray-900">Final GPA: <span className="text-blue-600">{Number(result.final_gpa).toFixed(2)}</span></span>
+              {result.status === 'Passed' && result.final_gpa !== null && (
+                <span className="font-semibold text-gray-900">GPA: <span className="text-blue-600">{Number(result.final_gpa).toFixed(2)}</span>{result.grade ? ` (${result.grade})` : ''}</span>
               )}
             </div>
-            {result.fail_subjects?.length > 0 && (
+            {result.status === 'Failed' && result.fail_subjects?.length > 0 && (
               <div className="p-3 rounded-lg bg-red-50 border border-red-200">
                 <p className="font-medium text-red-700 mb-1">Failed Subjects:</p>
                 <ul className="list-disc list-inside text-sm text-red-600">
@@ -132,7 +111,6 @@ export default function ResultsPage() {
                 </ul>
               </div>
             )}
-            <DataTable columns={subjectCols} data={subjectRows} emptyMessage="No subject data" />
           </CardContent>
         </Card>
       )}

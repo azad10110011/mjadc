@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:app": "node scripts/build-app.mjs",
+    "build:app:staff": "node scripts/build-app.mjs --kind=staff",
+    "build:app:student": "node scripts/build-app.mjs --kind=student"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

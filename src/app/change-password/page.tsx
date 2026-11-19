@@ -7,6 +7,7 @@ import { Card, CardContent, Button, Input } from '@/components/ui'
 import { ROLE_HOME, type PanelRole } from '@/components/layout/PanelLayout'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { APP_LOGIN, APP_MODE } from '@/lib/appMode'
 
 function getRoleFromToken(): PanelRole | null {
   if (typeof window === 'undefined') return null
@@ -43,7 +44,7 @@ export default function ChangePasswordPage() {
   useEffect(() => {
     Promise.resolve().then(() => {
       const r = getRoleFromToken()
-      if (!r) { router.push('/') }
+      if (!r) { router.push(APP_MODE ? APP_LOGIN : '/') }
       else { setRole(r) }
     })
   }, [router])
@@ -58,7 +59,9 @@ export default function ChangePasswordPage() {
     if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
     setLoading(true)
     try {
-      await api.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword })
+      const res = await api.post<{ data?: { token?: string } }>('/auth/change-password', { current_password: currentPassword, new_password: newPassword })
+      // Session 116: a new password ends all other sessions; keep this one with the fresh token
+      if (res.data?.token) localStorage.setItem('token', res.data.token)
       setSuccess('Password changed successfully')
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
       if (mustChange) {

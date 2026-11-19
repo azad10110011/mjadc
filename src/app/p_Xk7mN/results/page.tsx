@@ -248,6 +248,24 @@ export default function AdminResultsPage() {
     }
   }
 
+  // Session 113: admin override — move the loaded subject's results to any stage.
+  const moveStatus = async (to: string, label: string) => {
+    if (!year || !cls || !examName || !subject) return
+    const selected = examSubjects.find((item) => item.key === subject)
+    const subjectValue = selected?.subject_name || subject
+    if (!confirm(`${label}\n\n${examName} ${cls} ${year} — ${selected?.label || subject}?`)) return
+    try {
+      const res: any = await api.post('/admin/results/status', {
+        status: to, year, class: cls, exam_name: examName, subject: subjectValue,
+      })
+      alert(res?.message || 'Done')
+      handleLoad()
+      fetchResults()
+    } catch (e: any) {
+      alert(e.message || 'Failed to change status')
+    }
+  }
+
   const handleDeleteOne = (id: number) => {
     if (!confirm('Delete this result?')) return
     api.delete(`/admin/results/${id}`)
@@ -391,6 +409,17 @@ export default function AdminResultsPage() {
               </>
             )}
           </div>
+          {students.length > 0 && (
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              <p className="mb-2 text-xs font-medium text-gray-500">Admin override — change status / send back (this exam + subject):</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={() => moveStatus('draft', 'Send back to Teacher')}>↩ Teacher (draft)</Button>
+                <Button variant="secondary" size="sm" onClick={() => moveStatus('submitted', 'Send to Exam Controller')}>→ Exam Controller</Button>
+                <Button variant="secondary" size="sm" onClick={() => moveStatus('approved', 'Approve &amp; send to Principal')}>→ Approve (Principal)</Button>
+                <Button variant="primary" size="sm" onClick={() => moveStatus('published', 'Publish now')}>✓ Publish</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

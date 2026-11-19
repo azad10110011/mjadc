@@ -170,10 +170,15 @@ export default function TeacherUploadResultPage() {
       }))
       const selected = availableSubjects.find((item) => item.key === subject)
       if (!selected) throw new Error('Choose an exam-configured subject before saving.')
-      await api.post('/teacher/results/upload', {
+      const res: any = await api.post('/teacher/results/upload', {
         year, class: cls, exam_name: examName, subject: selected.subject_name, paper_name: selected.paper_name, subject_id: selected.subject_id, marks,
       })
-      alert('Results saved successfully')
+      const d = res?.data || {}
+      let msg = 'Results saved'
+      if (d.skipped_locked) msg += `\n\n${d.skipped_locked} row(s) were already submitted/approved and were NOT changed.`
+      if (d.skipped_due) msg += `\n${d.skipped_due} row(s) skipped by the fee rule.`
+      alert(msg)
+      handleLoadStudents()
     } catch (e: any) {
       alert(e.message)
     } finally {

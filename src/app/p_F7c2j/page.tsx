@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { PanelLayout } from '@/components/layout'
 import { Card, CardContent } from '@/components/ui'
 import { QuickAccessGrid } from '@/components/quickAccess/QuickAccessGrid'
+import { ProfileCard } from '@/components/profile/ProfileCard'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { canSeeLink } from '@/lib/permissions'
@@ -34,6 +35,7 @@ export default function AdministrationDashboardPage() {
 
   return (
     <PanelLayout role="administration" title="Administration Panel">
+      <ProfileCard />
       <div className="overflow-x-auto pb-2 mb-6 scrollbar-thin">
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(150px, 1fr))' }}>
         {statCards.map((item) => (
