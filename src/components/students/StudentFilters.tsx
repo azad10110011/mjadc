@@ -57,11 +57,13 @@ interface Props {
   classes: { value: string; label: string }[]
   /** hide the Class dropdown (e.g. the page is already limited to one class via ?class=) */
   hideClass?: boolean
+  /** show the "drag-to-reorder is paused" note (only the All Students lists reorder) */
+  reorderNote?: boolean
 }
 
 const selectCls = 'h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-800 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200'
 
-export function StudentFilters({ students, value, onChange, shown, classes, hideClass }: Props) {
+export function StudentFilters({ students, value, onChange, shown, classes, hideClass, reorderNote = true }: Props) {
   const set = (patch: Partial<StudentFilterState>) => onChange({ ...value, ...patch })
   const groups = distinct(students, 'student_group')
   const sessions = distinct(students, 'academic_session')
@@ -111,7 +113,7 @@ export function StudentFilters({ students, value, onChange, shown, classes, hide
       </div>
       <p className="text-xs text-gray-500" aria-live="polite">
         Showing <b className="text-gray-800">{shown}</b> of {students.length} student{students.length === 1 ? '' : 's'}
-        {active && ' · drag-to-reorder is paused while filtering'}
+        {reorderNote && active && ' · drag-to-reorder is paused while filtering'}
       </p>
     </div>
   )
